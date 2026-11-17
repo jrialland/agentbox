@@ -8,7 +8,7 @@ from agentbox_harness.run import RunManager
 async def test_run_emits_ordered_events():
     agent = Agent("test", instructions="echo")
     bus = EventBus()
-    q = bus.subscribe()
+    sub = bus.subscribe()
 
     mgr = RunManager(model="test")
     run = mgr.start(agent, "hello", run_id="r1", bus=bus, model_override=TestModel())
@@ -16,11 +16,7 @@ async def test_run_emits_ordered_events():
     bus.close()
 
     assert result.output is not None
-    events = []
-    while not q.empty():
-        item = await q.get()
-        if item is not None:
-            events.append(item)
+    events = [e async for e in sub.stream()]
     seqs = [e.seq for e in events]
     assert seqs == sorted(seqs)
     assert len(events) > 0

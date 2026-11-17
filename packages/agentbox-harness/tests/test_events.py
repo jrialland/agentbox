@@ -10,26 +10,49 @@ class FakeEvent:
 
 async def test_event_bus_delivers_in_order():
     bus = EventBus()
-    q = bus.subscribe()
+    sub = bus.subscribe()
 
     bus.publish(RunEvent(run_id="r1", seq=0, event=FakeEvent("a")))
     bus.publish(RunEvent(run_id="r1", seq=1, event=FakeEvent("b")))
     bus.close()
 
-    got = []
-    while not q.empty():
-        item = await q.get()
-        if item is not None:
-            got.append(item)
-
+    got = [e async for e in sub.stream()]
     assert [e.seq for e in got] == [0, 1]
     assert [e.event.text for e in got] == ["a", "b"]
 
 
-async def test_multiple_subscribers_each_get_every_event():
+async def test_snapshot_replays_past_events():
     bus = EventBus()
-    q1 = bus.subscribe()
-    q2 = bus.subscribe()
-    bus.publish(RunEvent(run_id="r1", seq=0, event=FakeEvent("x")))
+    bus.publish(RunEvent(run_id="r1", seq=0, event=FakeEvent("a")))
+    bus.publish(RunEvent(run_id="r1", seq=1, event=FakeEvent("b")))
+
+    sub = bus.subscribe()
     bus.close()
-    assert await q1.get() == await q2.get()
+
+    got = [e async for e in sub.stream()]
+    assert [e.seq for e in got] == [0, 1]
+
+
+async def test_detach_stops_delivery():
+    bus = EventBus()
+    sub = bus.subscribe()
+    sub.detach()
+
+    bus.publish(RunEvent(run_id="r1", seq=0, event=FakeEvent("a")))
+    bus.close()
+
+    assert sub.queue.empty()
+
+
+async def test_reattach_replays_and_continues():
+    bus = EventBus()
+    sub = bus.subscribe()
+    bus.publish(RunEvent(run_id="r1", seq=0, event=FakeEvent("a")))
+    sub.detach()
+    bus.publish(RunEvent(run_id="r1", seq=1, event=FakeEvent("b")))
+
+    sub2 = bus.subscribe()
+    bus.close()
+
+    got = [e async for e in sub2.stream()]
+    assert [e.seq for e in got] == [0, 1]
