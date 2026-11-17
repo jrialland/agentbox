@@ -13,24 +13,24 @@ class Turn:
 
 
 class MessageLogStore(Protocol):
-    def append(self, turn: Turn) -> None: ...
+    async def append(self, turn: Turn) -> None: ...
 
-    def list_turns(self) -> list[Turn]: ...
+    async def list_turns(self) -> list[Turn]: ...
 
-    def get(self, turn_id: str) -> Turn: ...
+    async def get(self, turn_id: str) -> Turn: ...
 
 
 class InMemoryMessageLogStore:
     def __init__(self) -> None:
         self._turns: dict[str, Turn] = {}
 
-    def append(self, turn: Turn) -> None:
+    async def append(self, turn: Turn) -> None:
         self._turns[turn.id] = turn
 
-    def list_turns(self) -> list[Turn]:
+    async def list_turns(self) -> list[Turn]:
         return list(self._turns.values())
 
-    def get(self, turn_id: str) -> Turn:
+    async def get(self, turn_id: str) -> Turn:
         return self._turns[turn_id]
 
 
@@ -42,18 +42,18 @@ class Session:
     store: MessageLogStore
     head_id: str | None
 
-    def append(self, turn: Turn, parent_id: str | None) -> None:
-        self.store.append(turn)
+    async def append(self, turn: Turn, parent_id: str | None) -> None:
+        await self.store.append(turn)
         self.head_id = turn.id
 
-    def history(self) -> list[Turn]:
+    async def history(self) -> list[Turn]:
         if self.head_id is None:
             return []
         chain: list[Turn] = []
-        current = self.store.get(self.head_id)
+        current = await self.store.get(self.head_id)
         while True:
             chain.append(current)
             if current.parent_id is None:
                 break
-            current = self.store.get(current.parent_id)
+            current = await self.store.get(current.parent_id)
         return list(reversed(chain))
