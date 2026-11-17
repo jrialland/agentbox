@@ -1,8 +1,39 @@
+from collections.abc import Callable
+
 from pydantic_ai import Agent
 
 from agentbox_harness.spec import AgentSpec, McpToolBinding, Mode, NativeToolBinding
+from agentbox_harness.subagents import build_subagent_tool
 from agentbox_harness.tools.mcp import build_mcp_toolset
 from agentbox_harness.tools.registry import ToolRegistry
+
+
+def build_subagent_tools(
+    spec: AgentSpec,
+    sub_agents: dict[str, AgentSpec] | None,
+    registry: ToolRegistry,
+    model: str,
+    depth: int = 0,
+    max_depth: int = 3,
+) -> list[Callable]:
+    tools: list[Callable] = []
+    if depth >= max_depth or not sub_agents:
+        return tools
+    for sub_id in spec.sub_agent_ids:
+        sub_spec = sub_agents.get(sub_id)
+        if sub_spec is None:
+            continue
+        sub_agent = build_agent(
+            sub_spec,
+            Mode(name="subagent", flags={}),
+            registry,
+            model,
+            sub_agents=sub_agents,
+            depth=depth + 1,
+            max_depth=max_depth,
+        )
+        tools.append(build_subagent_tool(sub_agent))
+    return tools
 
 
 def build_agent(
@@ -10,6 +41,9 @@ def build_agent(
     mode: Mode,
     registry: ToolRegistry,
     model: str,
+    sub_agents: dict[str, AgentSpec] | None = None,
+    depth: int = 0,
+    max_depth: int = 3,
 ) -> Agent:
     native_names: set[str] = set()
     mcp_bindings: list[McpToolBinding] = []
@@ -20,6 +54,9 @@ def build_agent(
             mcp_bindings.append(binding)
 
     tools = registry.select_tools(mode, names=native_names)
+    tools.extend(
+        build_subagent_tools(spec, sub_agents, registry, model, depth, max_depth)
+    )
     toolsets = [build_mcp_toolset(b) for b in mcp_bindings]
     return Agent(
         model=model,

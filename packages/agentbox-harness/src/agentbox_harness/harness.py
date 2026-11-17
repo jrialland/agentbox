@@ -9,10 +9,17 @@ from agentbox_harness.tools.registry import ToolRegistry
 
 
 class Harness:
-    def __init__(self, registry: ToolRegistry, model: str, store_factory):
+    def __init__(
+        self,
+        registry: ToolRegistry,
+        model: str,
+        store_factory,
+        sub_agents: dict[str, AgentSpec] | None = None,
+    ):
         self.registry = registry
         self.model = model
         self.store_factory = store_factory
+        self.sub_agents = sub_agents or {}
         self.run_manager = RunManager(model=model)
 
     def start_session(
@@ -55,7 +62,13 @@ class Harness:
         session.append(turn, parent_id=session.head_id)
 
         mode = self._resolve_mode(session)
-        agent = build_agent(session.agent_spec, mode, self.registry, self.model)
+        agent = build_agent(
+            session.agent_spec,
+            mode,
+            self.registry,
+            self.model,
+            sub_agents=self.sub_agents,
+        )
         return self.run_manager.start(
             agent,
             user_message,
