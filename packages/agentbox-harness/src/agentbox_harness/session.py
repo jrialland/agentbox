@@ -45,3 +45,15 @@ class Session:
     def append(self, turn: Turn, parent_id: str | None) -> None:
         self.store.append(turn)
         self.head_id = turn.id
+
+    def history(self) -> list[Turn]:
+        if self.head_id is None:
+            return []
+        chain: list[Turn] = []
+        current = self.store.get(self.head_id)
+        while True:
+            chain.append(current)
+            if current.parent_id is None:
+                break
+            current = self.store.get(current.parent_id)
+        return list(reversed(chain))
