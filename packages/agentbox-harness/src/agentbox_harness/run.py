@@ -1,7 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 
-from pydantic_ai import Agent, AgentRunResultEvent
+from pydantic_ai import Agent, AgentRunResultEvent, CancellationToken
 
 from agentbox_harness.events import EventBus, RunEvent
 
@@ -10,9 +10,14 @@ from agentbox_harness.events import EventBus, RunEvent
 class Run:
     run_id: str
     task: asyncio.Task
+    cancellation_token: CancellationToken | None = None
 
     async def await_result(self):
         return await self.task
+
+    def cancel(self) -> None:
+        if self.cancellation_token is not None:
+            self.cancellation_token.cancel()
 
 
 class RunManager:
@@ -26,11 +31,12 @@ class RunManager:
         run_id: str,
         bus: EventBus,
         model_override=None,
+        cancellation_token: CancellationToken | None = None,
     ) -> Run:
         task = asyncio.create_task(
-            self._drive(agent, prompt, run_id, bus, model_override)
+            self._drive(agent, prompt, run_id, bus, model_override, cancellation_token)
         )
-        return Run(run_id=run_id, task=task)
+        return Run(run_id=run_id, task=task, cancellation_token=cancellation_token)
 
     async def _drive(
         self,
@@ -39,9 +45,12 @@ class RunManager:
         run_id: str,
         bus: EventBus,
         model_override=None,
+        cancellation_token: CancellationToken | None = None,
     ):
         seq = 0
         kwargs = {"model": model_override} if model_override is not None else {}
+        if cancellation_token is not None:
+            kwargs["cancellation_token"] = cancellation_token
         final = None
         async with agent.run_stream_events(prompt, **kwargs) as events:
             async for event in events:
