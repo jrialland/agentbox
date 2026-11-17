@@ -20,3 +20,15 @@ def test_select_tools_filters_by_flags():
 
     assert [f.__name__ for f in reg.select_tools(ask)] == ["read_file"]
     assert {f.__name__ for f in reg.select_tools(agent)} == {"read_file", "write_file"}
+
+
+def test_select_tools_filters_by_names():
+    reg = ToolRegistry()
+    reg.register_native("read_file", read_file, required_flags=("read",))
+    reg.register_native("write_file", write_file, required_flags=("write",))
+
+    agent = Mode(name="agent", flags={"write": True})
+    assert [f.__name__ for f in reg.select_tools(agent, names={"write_file"})] == [
+        "write_file"
+    ]
+    assert reg.select_tools(agent, names=set()) == []

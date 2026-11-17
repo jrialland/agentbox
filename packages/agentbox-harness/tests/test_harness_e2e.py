@@ -3,7 +3,12 @@ from pydantic_ai.models.test import TestModel
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.session import InMemoryMessageLogStore
-from agentbox_harness.spec import DEFAULT_MODES, AgentSpec, ModelBinding
+from agentbox_harness.spec import (
+    DEFAULT_MODES,
+    AgentSpec,
+    ModelBinding,
+    NativeToolBinding,
+)
 from agentbox_harness.tools.registry import ToolRegistry
 
 
@@ -16,7 +21,7 @@ def _spec() -> AgentSpec:
         name="coder",
         description="writes code",
         instructions="Be helpful.",
-        tool_bindings=[],
+        tool_bindings=[NativeToolBinding(name="write_file")],
         mode_definitions=list(DEFAULT_MODES),
         model_binding=ModelBinding(model="test", provider="test"),
     )

@@ -22,9 +22,13 @@ class ToolRegistry:
     ) -> None:
         self._native[name] = _Entry(callable, required_flags)
 
-    def select_tools(self, mode: Mode) -> list[Callable]:
-        return [
-            entry.callable
-            for entry in self._native.values()
-            if all(mode.allows(f) for f in entry.required_flags)
-        ]
+    def select_tools(
+        self, mode: Mode, names: set[str] | None = None
+    ) -> list[Callable]:
+        result = []
+        for name, entry in self._native.items():
+            if names is not None and name not in names:
+                continue
+            if all(mode.allows(f) for f in entry.required_flags):
+                result.append(entry.callable)
+        return result
