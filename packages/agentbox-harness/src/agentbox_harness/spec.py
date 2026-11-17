@@ -1,5 +1,3 @@
-from typing import Union
-
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass
 
@@ -31,7 +29,7 @@ class McpToolBinding:
     tool_prefix: str = ""
 
 
-ToolBinding = Union[NativeToolBinding, McpToolBinding]
+ToolBinding = NativeToolBinding | McpToolBinding
 
 
 class AgentSpec(BaseModel):

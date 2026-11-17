@@ -1,4 +1,4 @@
-from pydantic_ai.messages import ModelRequest, ModelResponse, UserPromptPart
+from pydantic_ai.messages import ModelRequest, ModelResponse, TextPart, UserPromptPart
 
 from agentbox_harness.messages import turns_to_messages
 from agentbox_harness.session import Turn
@@ -16,6 +16,7 @@ def test_turns_to_messages_maps_roles():
     assert isinstance(msgs[1], ModelResponse)
     assert isinstance(msgs[0].parts[0], UserPromptPart)
     assert msgs[0].parts[0].content == "hello"
+    assert isinstance(msgs[1].parts[0], TextPart)
     assert msgs[1].parts[0].content == "hi there"
 
 

@@ -41,6 +41,7 @@ class Session:
     agent_spec: AgentSpec | None
     store: MessageLogStore
     head_id: str | None
+    mode_name: str = "agent"
 
     async def append(self, turn: Turn, parent_id: str | None) -> None:
         await self.store.append(turn)

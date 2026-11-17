@@ -1,2 +1,20 @@
 [tool.uv.workspace]
 members = ["packages/*"]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.8",
+    "ty",
+    "bandit>=1.7",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "N"]
+ignore = ["B009"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["agentbox_harness", "agentbox_models", "agentbox_providers"]

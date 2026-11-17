@@ -31,22 +31,23 @@ class Harness:
         mode_name: str,
     ) -> Session:
         store = self.store_factory()
-        session = Session(
+        return Session(
             session_id=uuid.uuid4().hex,
             project_root=project_root,
             agent_spec=spec,
             store=store,
             head_id=None,
+            mode_name=mode_name,
         )
-        session._mode_name = mode_name
-        return session
 
     def _resolve_mode(self, session: Session):
-        name = getattr(session, "_mode_name", "agent")
-        for mode in session.agent_spec.mode_definitions:
-            if mode.name == name:
+        spec = session.agent_spec
+        if spec is None:
+            raise ValueError("Session has no agent spec")
+        for mode in spec.mode_definitions:
+            if mode.name == session.mode_name:
                 return mode
-        raise ValueError(f"Unknown mode: {name}")
+        raise ValueError(f"Unknown mode: {session.mode_name}")
 
     async def run(
         self,
@@ -66,8 +67,11 @@ class Harness:
         await session.append(turn, parent_id=session.head_id)
 
         mode = self._resolve_mode(session)
+        spec = session.agent_spec
+        if spec is None:
+            raise ValueError("Session has no agent spec")
         agent = build_agent(
-            session.agent_spec,
+            spec,
             mode,
             self.registry,
             self.model,

@@ -1,4 +1,4 @@
-from typing import Generic, Type, TypeVar
+from typing import Generic, TypeVar
 
 from sqlmodel import SQLModel, select
 
@@ -6,7 +6,7 @@ T = TypeVar("T", bound=SQLModel)
 
 
 class Repository(Generic[T]):
-    model: Type[T]
+    model: type[T]
 
     def __init__(self, session_factory):
         self._factory = session_factory
@@ -21,7 +21,7 @@ class Repository(Generic[T]):
     async def get(self, id: str) -> T | None:
         async with self._factory() as s:
             return (
-                await s.execute(select(self.model).where(self.model.id == id))
+                await s.execute(select(self.model).where(getattr(self.model, "id") == id))
             ).scalars().first()
 
     async def list(self) -> list[T]:
@@ -31,7 +31,7 @@ class Repository(Generic[T]):
     async def delete(self, id: str) -> None:
         async with self._factory() as s:
             row = (
-                await s.execute(select(self.model).where(self.model.id == id))
+                await s.execute(select(self.model).where(getattr(self.model, "id") == id))
             ).scalars().first()
             if row is not None:
                 await s.delete(row)

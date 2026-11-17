@@ -12,6 +12,7 @@ def test_cancelled_is_cancelled():
 def test_escape_is_error():
     out = normalize_error(PathEscapesRootError("../x"))
     assert out.status == "error"
+    assert out.message is not None
     assert "root" in out.message.lower() or "escape" in out.message.lower()
 
 

@@ -43,7 +43,7 @@ async def test_harness_session_persists_turns():
             store=store,
             head_id=None,
         )
-        session._mode_name = "agent"
+        session.mode_name = "agent"
         bus = EventBus()
         outcome = await harness.run_turn(
             session, "write a file", bus=bus, model_override=TestModel()

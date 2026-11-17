@@ -1,7 +1,7 @@
 from sqlmodel import select
 
-from agentbox_models.db import create_engine_and_sessionmaker, init_db
 import agentbox_models.tables.auth  # noqa: F401  (registers User in metadata)
+from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.tables.core import Agent, Model, Provider, TurnRow
 
 

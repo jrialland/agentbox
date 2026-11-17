@@ -35,7 +35,7 @@ def test_build_subagent_tools_injects_delegation_tool():
 
     tools = build_subagent_tools(parent, {"sub": sub_spec}, reg, "test")
 
-    assert [t.__name__ for t in tools] == ["delegate_sub"]
+    assert [getattr(t, "__name__") for t in tools] == ["delegate_sub"]
 
 
 def test_build_subagent_tools_respects_max_depth():
