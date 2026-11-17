@@ -13,6 +13,7 @@ resolution-markers = [
 members = [
     "agentbox-harness",
     "agentbox-models",
+    "agentbox-providers",
 ]
 
 [manifest.dependency-groups]
@@ -74,6 +75,35 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.13" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "sqlmodel", specifier = ">=0.0.14" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pytest", specifier = ">=8.0" },
+    { name = "pytest-asyncio", specifier = ">=0.23" },
+]
+
+[[package]]
+name = "agentbox-providers"
+version = "0.1.0"
+source = { editable = "packages/agentbox-providers" }
+dependencies = [
+    { name = "agentbox-models" },
+    { name = "httpx" },
+    { name = "pydantic-ai" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "agentbox-models", editable = "packages/agentbox-models" },
+    { name = "httpx", specifier = ">=0.27" },
+    { name = "pydantic-ai", specifier = ">=2.0" },
 ]
 
 [package.metadata.requires-dev]
