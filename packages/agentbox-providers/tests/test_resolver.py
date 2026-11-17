@@ -1,0 +1,56 @@
+import pytest
+from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.ollama import OllamaModel
+from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
+
+from agentbox_models.tables.core import Provider
+from agentbox_providers.resolver import resolve_model
+
+
+def test_resolve_ollama():
+    m = resolve_model(
+        Provider(id="p", name="ollama", kind="ollama", base_url="http://localhost:11434"),
+        "gemma4:e2b",
+    )
+    assert isinstance(m, OllamaModel)
+
+
+def test_resolve_openai_legacy():
+    m = resolve_model(
+        Provider(id="p", name="openai", kind="openai_legacy", api_key="sk-test"), "gpt-4o"
+    )
+    assert isinstance(m, OpenAIChatModel)
+
+
+def test_resolve_openai_responses():
+    m = resolve_model(
+        Provider(id="p", name="openai", kind="openai_responses", api_key="sk-test"), "gpt-4o"
+    )
+    assert isinstance(m, OpenAIResponsesModel)
+
+
+def test_resolve_anthropic():
+    m = resolve_model(
+        Provider(id="p", name="anthropic", kind="anthropic", api_key="sk-test"), "claude-x"
+    )
+    assert isinstance(m, AnthropicModel)
+
+
+def test_resolve_generic():
+    m = resolve_model(
+        Provider(id="p", name="gen", kind="generic", base_url="https://x/v1"), "m"
+    )
+    assert isinstance(m, OpenAIChatModel)
+
+
+def test_resolve_moonshot():
+    m = resolve_model(
+        Provider(id="p", name="moonshot", kind="moonshot", base_url="https://api.moonshot.cn/v1"),
+        "moonshot-v1-8k",
+    )
+    assert isinstance(m, OpenAIChatModel)
+
+
+def test_resolve_unknown_kind_raises():
+    with pytest.raises(ValueError):
+        resolve_model(Provider(id="p", name="x", kind="bogus"), "m")
