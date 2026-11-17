@@ -34,7 +34,7 @@ This specification covers the provider layer, which bridges the persisted `provi
 | D1 | Local models via **Ollama** (`OllamaModel`), not a custom `transformers` adapter. | Pydantic AI natively supports Ollama; `transformers` has no native local chat/generation integration and would require a custom `Model` subclass. Ollama serves GGUF models (gemma, lfm) downloaded from HuggingFace, key-free. |
 | D2 | New **`agentbox-providers`** package. | Keeps persistence (`agentbox-models`) separate from live-model resolution; resolution depends on pydantic-ai and the tables. |
 | D3 | **`list_models` fetch-only** (no persistence). | Separation of concerns; the backend/UI decides whether to upsert fetched names. |
-| D4 | Broaden harness `model` type to **`str \| Model`**. | pydantic-ai's `Agent(model=...)` accepts both; generic/base-URL providers require a `Model` instance, not just a string. |
+| D4 | Harness `model` uses a **single type: `Model`** (pydantic-ai `Model` instance), never `str`. | A union `str \| Model` is ambiguous. `"test"` is only pydantic-ai's string alias for `TestModel`; using `Model` instances throughout is type-clean, and generic/base-URL providers require a `Model` instance anyway. |
 | D5 | Built-in providers use **environment-variable API keys** (e.g. `MOONSHOT_API_KEY`); generic providers use the stored key (env fallback). | Matches the initial spec ("variable d'environnement Moonshot API Key"). |
 
 ## 3. Package: `agentbox-providers`
@@ -78,9 +78,10 @@ Maps `Provider.kind` to a pydantic-ai `Model`:
 
 ## 7. Harness Integration
 
-- Change `build_agent`, `Harness`, and `RunManager` to accept `model: str | Model` (pydantic-ai `Model`).
-- The harness already passes `model` straight to `Agent(model=...)`, which accepts both types.
-- Tests keep passing `"test"` / `TestModel()`.
+- Change `build_agent` and `Harness` to accept a **`Model` instance** (pydantic-ai `Model`), a single type — no `str`.
+- `build_agent(spec, mode, registry, model: Model)` passes the instance straight to `Agent(model=...)`.
+- Remove the dead `RunManager.model` field (it was stored but never used — `_drive` only uses `model_override`, and the model is already set on the `Agent` in `build_agent`).
+- Tests switch `"test"` → `TestModel()` / `FunctionModel()`.
 
 ## 8. Testing
 
