@@ -10,7 +10,7 @@ async def test_run_emits_ordered_events():
     bus = EventBus()
     sub = bus.subscribe()
 
-    mgr = RunManager(model="test")
+    mgr = RunManager()
     run = mgr.start(agent, "hello", run_id="r1", bus=bus, model_override=TestModel())
     result = await run.await_result()
     bus.close()

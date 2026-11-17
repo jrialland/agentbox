@@ -29,9 +29,6 @@ class Run:
 
 
 class RunManager:
-    def __init__(self, model: str):
-        self.model = model
-
     def start(
         self,
         agent: Agent,

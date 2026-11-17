@@ -1,6 +1,7 @@
 from collections.abc import Callable
 
 from pydantic_ai import Agent
+from pydantic_ai.models import Model
 
 from agentbox_harness.spec import AgentSpec, McpToolBinding, Mode, NativeToolBinding
 from agentbox_harness.subagents import build_subagent_tool
@@ -12,7 +13,7 @@ def build_subagent_tools(
     spec: AgentSpec,
     sub_agents: dict[str, AgentSpec] | None,
     registry: ToolRegistry,
-    model: str,
+    model: Model,
     depth: int = 0,
     max_depth: int = 3,
 ) -> list[Callable]:
@@ -40,7 +41,7 @@ def build_agent(
     spec: AgentSpec,
     mode: Mode,
     registry: ToolRegistry,
-    model: str,
+    model: Model,
     sub_agents: dict[str, AgentSpec] | None = None,
     depth: int = 0,
     max_depth: int = 3,

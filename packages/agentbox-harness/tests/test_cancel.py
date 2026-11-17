@@ -11,7 +11,7 @@ async def test_cancel_raises_run_cancelled():
     bus = EventBus()
     token = CancellationToken()
 
-    mgr = RunManager(model="test")
+    mgr = RunManager()
     run = mgr.start(
         agent,
         "hello",

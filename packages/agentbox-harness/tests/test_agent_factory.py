@@ -32,7 +32,7 @@ def test_build_agent_sets_instructions_and_tools():
     reg.register_native("write_file", write_file, required_flags=("write",))
 
     spec = _spec([NativeToolBinding(name="write_file")])
-    agent = build_agent(spec, Mode(name="agent", flags={"write": True}), reg, "test")
+    agent = build_agent(spec, Mode(name="agent", flags={"write": True}), reg, TestModel())
 
     assert isinstance(agent, Agent)
     result = agent.run_sync("hi", model=TestModel())
@@ -43,7 +43,7 @@ def test_build_agent_attaches_mcp_toolsets():
     reg = ToolRegistry()
     spec = _spec([McpToolBinding(server_url="https://example.com/mcp")])
 
-    agent = build_agent(spec, Mode(name="agent", flags={}), reg, "test")
+    agent = build_agent(spec, Mode(name="agent", flags={}), reg, TestModel())
 
     mcp = [t for t in agent.toolsets if isinstance(t, MCPToolset)]
     assert len(mcp) == 1

@@ -1,4 +1,5 @@
 from pydantic_ai.models.function import FunctionModel
+from pydantic_ai.models.test import TestModel
 
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
@@ -37,7 +38,7 @@ async def test_harness_passes_prior_history():
     reg = ToolRegistry()
     reg.register_native("write_file", write_file, required_flags=("write",))
 
-    harness = Harness(registry=reg, model="test", store_factory=InMemoryMessageLogStore)
+    harness = Harness(registry=reg, model=TestModel(), store_factory=InMemoryMessageLogStore)
     session = harness.start_session(_spec(), project_root=".", mode_name="agent")
 
     await session.store.append(

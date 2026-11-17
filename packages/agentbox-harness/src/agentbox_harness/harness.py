@@ -1,5 +1,7 @@
 import uuid
 
+from pydantic_ai.models import Model
+
 from agentbox_harness.agent_factory import build_agent
 from agentbox_harness.errors import RunOutcome
 from agentbox_harness.events import EventBus
@@ -14,7 +16,7 @@ class Harness:
     def __init__(
         self,
         registry: ToolRegistry,
-        model: str,
+        model: Model,
         store_factory,
         sub_agents: dict[str, AgentSpec] | None = None,
     ):
@@ -22,7 +24,7 @@ class Harness:
         self.model = model
         self.store_factory = store_factory
         self.sub_agents = sub_agents or {}
-        self.run_manager = RunManager(model=model)
+        self.run_manager = RunManager()
 
     def start_session(
         self,

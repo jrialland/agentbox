@@ -32,7 +32,7 @@ async def test_harness_session_persists_turns():
     )
     reg = ToolRegistry()
     reg.register_native("write_file", write_file, required_flags=("write",))
-    harness = Harness(registry=reg, model="test", store_factory=InMemoryMessageLogStore)
+    harness = Harness(registry=reg, model=TestModel(), store_factory=InMemoryMessageLogStore)
 
     async with factory() as s:
         store = SQLiteMessageLogStore(s, "sess1")
