@@ -40,9 +40,18 @@ class RunManager:
         bus: EventBus,
         model_override=None,
         cancellation_token: CancellationToken | None = None,
+        message_history=None,
     ) -> Run:
         task = asyncio.create_task(
-            self._drive(agent, prompt, run_id, bus, model_override, cancellation_token)
+            self._drive(
+                agent,
+                prompt,
+                run_id,
+                bus,
+                model_override,
+                cancellation_token,
+                message_history,
+            )
         )
         return Run(run_id=run_id, task=task, cancellation_token=cancellation_token)
 
@@ -54,11 +63,14 @@ class RunManager:
         bus: EventBus,
         model_override=None,
         cancellation_token: CancellationToken | None = None,
+        message_history=None,
     ):
         seq = 0
         kwargs = {"model": model_override} if model_override is not None else {}
         if cancellation_token is not None:
             kwargs["cancellation_token"] = cancellation_token
+        if message_history is not None:
+            kwargs["message_history"] = message_history
         final = None
         try:
             async with agent.run_stream_events(prompt, **kwargs) as events:

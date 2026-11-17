@@ -2,6 +2,7 @@ import uuid
 
 from agentbox_harness.agent_factory import build_agent
 from agentbox_harness.events import EventBus
+from agentbox_harness.messages import turns_to_messages
 from agentbox_harness.run import Run, RunManager
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.spec import AgentSpec
@@ -53,6 +54,8 @@ class Harness:
         bus: EventBus,
         model_override=None,
     ) -> Run:
+        message_history = turns_to_messages(session.history())
+
         turn = Turn(
             id=uuid.uuid4().hex,
             role="user",
@@ -75,4 +78,5 @@ class Harness:
             run_id=uuid.uuid4().hex,
             bus=bus,
             model_override=model_override,
+            message_history=message_history,
         )
