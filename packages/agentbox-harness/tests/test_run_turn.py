@@ -40,4 +40,4 @@ async def test_run_turn_records_assistant_turn():
     )
 
     assert outcome.status == "success"
-    assert [t.role for t in session.history()] == ["user", "assistant"]
+    assert [t.role for t in await session.history()] == ["user", "assistant"]

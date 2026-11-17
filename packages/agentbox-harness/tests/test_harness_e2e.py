@@ -35,8 +35,8 @@ async def test_harness_runs_a_session():
     session = harness.start_session(_spec(), project_root=".", mode_name="agent")
 
     bus = EventBus()
-    run = harness.run(session, "write a file", bus=bus, model_override=TestModel())
+    run = await harness.run(session, "write a file", bus=bus, model_override=TestModel())
     result = await run.await_result()
 
     assert result.output is not None
-    assert session.history()[-1].role == "user"
+    assert (await session.history())[-1].role == "user"

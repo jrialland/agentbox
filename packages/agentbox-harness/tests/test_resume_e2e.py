@@ -40,16 +40,16 @@ async def test_harness_passes_prior_history():
     harness = Harness(registry=reg, model="test", store_factory=InMemoryMessageLogStore)
     session = harness.start_session(_spec(), project_root=".", mode_name="agent")
 
-    session.store.append(
+    await session.store.append(
         Turn(id="u1", role="user", content="first question", parent_id=None)
     )
-    session.store.append(
+    await session.store.append(
         Turn(id="a1", role="assistant", content="first answer", parent_id="u1")
     )
     session.head_id = "a1"
 
     bus = EventBus()
-    run = harness.run(
+    run = await harness.run(
         session,
         "second question",
         bus=bus,

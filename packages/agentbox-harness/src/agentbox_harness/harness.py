@@ -48,14 +48,14 @@ class Harness:
                 return mode
         raise ValueError(f"Unknown mode: {name}")
 
-    def run(
+    async def run(
         self,
         session: Session,
         user_message: str,
         bus: EventBus,
         model_override=None,
     ) -> Run:
-        message_history = turns_to_messages(session.history())
+        message_history = turns_to_messages(await session.history())
 
         turn = Turn(
             id=uuid.uuid4().hex,
@@ -63,7 +63,7 @@ class Harness:
             content=user_message,
             parent_id=session.head_id,
         )
-        session.append(turn, parent_id=session.head_id)
+        await session.append(turn, parent_id=session.head_id)
 
         mode = self._resolve_mode(session)
         agent = build_agent(
@@ -89,7 +89,7 @@ class Harness:
         bus: EventBus,
         model_override=None,
     ) -> RunOutcome:
-        run = self.run(session, user_message, bus, model_override)
+        run = await self.run(session, user_message, bus, model_override)
         outcome = await run.await_outcome()
         if outcome.status == "success":
             result = await run.await_result()
@@ -99,5 +99,5 @@ class Harness:
                 content=str(result.output),
                 parent_id=session.head_id,
             )
-            session.append(turn, parent_id=session.head_id)
+            await session.append(turn, parent_id=session.head_id)
         return outcome
