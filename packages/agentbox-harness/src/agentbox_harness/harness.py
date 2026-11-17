@@ -1,6 +1,7 @@
 import uuid
 
 from agentbox_harness.agent_factory import build_agent
+from agentbox_harness.errors import RunOutcome
 from agentbox_harness.events import EventBus
 from agentbox_harness.messages import turns_to_messages
 from agentbox_harness.run import Run, RunManager
@@ -80,3 +81,23 @@ class Harness:
             model_override=model_override,
             message_history=message_history,
         )
+
+    async def run_turn(
+        self,
+        session: Session,
+        user_message: str,
+        bus: EventBus,
+        model_override=None,
+    ) -> RunOutcome:
+        run = self.run(session, user_message, bus, model_override)
+        outcome = await run.await_outcome()
+        if outcome.status == "success":
+            result = await run.await_result()
+            turn = Turn(
+                id=uuid.uuid4().hex,
+                role="assistant",
+                content=str(result.output),
+                parent_id=session.head_id,
+            )
+            session.append(turn, parent_id=session.head_id)
+        return outcome
