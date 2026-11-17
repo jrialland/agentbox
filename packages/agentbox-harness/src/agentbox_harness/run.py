@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from pydantic_ai import Agent, AgentRunResultEvent, CancellationToken
 
+from agentbox_harness.errors import RunOutcome, normalize_error
 from agentbox_harness.events import EventBus, RunEvent
 
 
@@ -14,6 +15,13 @@ class Run:
 
     async def await_result(self):
         return await self.task
+
+    async def await_outcome(self) -> RunOutcome:
+        try:
+            await self.task
+            return RunOutcome(status="success")
+        except BaseException as exc:
+            return normalize_error(exc)
 
     def cancel(self) -> None:
         if self.cancellation_token is not None:
@@ -52,10 +60,14 @@ class RunManager:
         if cancellation_token is not None:
             kwargs["cancellation_token"] = cancellation_token
         final = None
-        async with agent.run_stream_events(prompt, **kwargs) as events:
-            async for event in events:
-                bus.publish(RunEvent(run_id=run_id, seq=seq, event=event))
-                seq += 1
-                if isinstance(event, AgentRunResultEvent):
-                    final = event.result
-        return final
+        try:
+            async with agent.run_stream_events(prompt, **kwargs) as events:
+                async for event in events:
+                    bus.publish(RunEvent(run_id=run_id, seq=seq, event=event))
+                    seq += 1
+                    if isinstance(event, AgentRunResultEvent):
+                        final = event.result
+            return final
+        except BaseException as exc:
+            bus.publish(RunEvent(run_id=run_id, seq=seq, event=normalize_error(exc)))
+            raise
