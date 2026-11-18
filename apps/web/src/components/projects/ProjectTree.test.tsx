@@ -1,0 +1,60 @@
+import { MantineProvider } from "@mantine/core";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { vi } from "vitest";
+
+import * as endpoints from "../../api/endpoints";
+import { ProjectTree } from "./ProjectTree";
+
+function renderTree() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(
+    <MantineProvider>
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/"]}>
+          <Routes>
+            <Route path="/" element={<ProjectTree />} />
+            <Route path="/sessions/:id" element={<div>Session page</div>} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </MantineProvider>,
+  );
+}
+
+beforeEach(() => {
+  vi.spyOn(endpoints, "fetchProjects").mockResolvedValue([
+    { id: "p1", name: "Proj A", path: "/a", owner_id: "u1", created_at: "t1" },
+  ] as never);
+  vi.spyOn(endpoints, "fetchSessions").mockResolvedValue([
+    { id: "s1", project_id: "p1", agent_id: "ag", created_at: "t2" },
+  ] as never);
+  vi.spyOn(endpoints, "fetchAgents").mockResolvedValue([{ name: "coder" }] as never);
+});
+
+test("renders projects with grouped sessions and navigates", async () => {
+  renderTree();
+  expect(await screen.findByText("Proj A")).toBeInTheDocument();
+  const session = await screen.findByText("Session 1");
+  fireEvent.click(session);
+  await waitFor(() => expect(screen.getByText("Session page")).toBeInTheDocument());
+});
+
+test("creates a project via the modal", async () => {
+  const created = vi.spyOn(endpoints, "createProject").mockResolvedValue({
+    id: "p2",
+    name: "New",
+    path: "/n",
+    owner_id: "u1",
+    created_at: "t",
+  } as never);
+  renderTree();
+  fireEvent.click(await screen.findByRole("button", { name: /new project/i }));
+  fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "New" } });
+  fireEvent.change(screen.getByLabelText("Path"), { target: { value: "/n" } });
+  fireEvent.click(screen.getByRole("button", { name: /create/i }));
+  await waitFor(() =>
+    expect(created).toHaveBeenCalledWith({ name: "New", path: "/n" }, expect.anything()),
+  );
+});

@@ -1,11 +1,16 @@
 import { render, screen } from "@testing-library/react";
+import { vi } from "vitest";
 
 import { App } from "./App";
+import * as endpoints from "./api/endpoints";
 import { useAuthStore } from "./store/auth";
 
 beforeEach(() => {
   useAuthStore.getState().clear();
   window.history.pushState({}, "", "/");
+  vi.spyOn(endpoints, "fetchProjects").mockResolvedValue([]);
+  vi.spyOn(endpoints, "fetchSessions").mockResolvedValue([]);
+  vi.spyOn(endpoints, "fetchAgents").mockResolvedValue([]);
 });
 
 test("redirects to login when unauthenticated", () => {
