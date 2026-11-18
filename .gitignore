@@ -7,3 +7,6 @@ dist/
 build/
 .coverage
 *.db
+node_modules/
+.vite/
+.ruff_cache/
