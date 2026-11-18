@@ -86,7 +86,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Requirement | Status | Notes |
 |---|---|---|
 | Render MCP Apps from MCP servers | DEFERRED | Sub-project: backend emits app events; frontend hosts via `@mcp-ui/client`. |
-| Shown as tabs **left of the conversation** (not in the flow) | DEFERRED | Same sub-project. |
+| Shown as tabs **on the right of the conversation** (corrected from the original "left"; Claude.ai style) | DEFERRED | Same sub-project. |
 
 ## Technical stack
 
