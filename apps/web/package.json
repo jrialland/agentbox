@@ -17,6 +17,7 @@
     "@mantine/hooks": "^9.8.1",
     "@mantine/modals": "^9.8.1",
     "@mantine/notifications": "^9.8.1",
+    "@mcp-ui/client": "^7.1.1",
     "@remixicon/react": "^4.9.0",
     "@tanstack/react-query": "^5.108.0",
     "bulma": "^1.0.4",

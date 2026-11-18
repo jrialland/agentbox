@@ -15,6 +15,7 @@ from agentbox_api.routers.providers import router as providers_router
 from agentbox_api.routers.roles import router as roles_router
 from agentbox_api.routers.sessions import router as sessions_router
 from agentbox_api.routers.users import router as users_router
+from agentbox_api.sandbox import sandbox_response
 from agentbox_models.db import create_engine_and_sessionmaker
 
 
@@ -51,4 +52,9 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
     app.include_router(users_router)
     app.include_router(roles_router)
     app.include_router(api_keys_router)
+
+    @app.get("/sandbox", include_in_schema=False)
+    async def sandbox_page(csp: str | None = None):
+        return sandbox_response(csp)
+
     return app
