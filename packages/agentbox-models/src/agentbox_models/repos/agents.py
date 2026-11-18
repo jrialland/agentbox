@@ -92,6 +92,11 @@ class AgentRepository:
                 model_binding=ModelBinding(model=model.name, provider=provider.name),
             )
 
+    async def list(self) -> list[AgentSpec]:
+        async with self._factory() as s:
+            rows = (await s.execute(select(Agent))).scalars().all()
+        return [await self.load(r.name) for r in rows]
+
     async def delete(self, name: str) -> None:
         async with self._factory() as s:
             row = (

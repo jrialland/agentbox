@@ -37,7 +37,7 @@ async def login(body: LoginRequest, request: Request):
         settings.jwt_algorithm,
         settings.jwt_expiry_seconds,
     )
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer"}  # nosec B105
 
 
 @router.post("/register")

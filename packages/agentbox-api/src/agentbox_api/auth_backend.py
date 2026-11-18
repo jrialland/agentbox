@@ -1,5 +1,6 @@
 import json
 
+import jwt
 from sqlmodel import select
 from starlette.authentication import AuthCredentials, AuthenticationBackend, BaseUser
 
@@ -78,7 +79,7 @@ class JWTAuthenticationBackend(AuthenticationBackend):
                 return AuthCredentials(scopes=list(perms)), CurrentUser(
                     user.id, user.username, perms
                 )
-            except Exception:
+            except (jwt.InvalidTokenError, KeyError):
                 pass
 
             key_row = (
