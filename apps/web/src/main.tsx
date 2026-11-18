@@ -1,3 +1,7 @@
+import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
+import "bulma/css/bulma.css";
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 
