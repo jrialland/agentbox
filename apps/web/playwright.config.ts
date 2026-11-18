@@ -32,7 +32,10 @@ export default defineConfig({
       command: "bun run dev -- --port 5173",
       url: "http://localhost:5173",
       reuseExistingServer: false,
-      env: { VITE_API_URL: "http://localhost:8000" },
+      env: {
+        VITE_API_URL: "/api",
+        VITE_SANDBOX_URL: "http://localhost:8000/sandbox",
+      },
     },
   ],
 });

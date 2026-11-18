@@ -1,5 +1,6 @@
 import createClient from "openapi-fetch";
 
+import { API_URL } from "../config";
 import { useAuthStore } from "../store/auth";
 import type { paths } from "./schema";
 
@@ -14,7 +15,7 @@ export function authMiddleware(getToken: () => string | null) {
 }
 
 export const api = createClient<paths>({
-  baseUrl: import.meta.env.VITE_API_URL ?? "http://localhost:8000",
+  baseUrl: API_URL,
 });
 
 api.use(authMiddleware(() => useAuthStore.getState().token));
