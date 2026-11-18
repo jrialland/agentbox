@@ -4,6 +4,9 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useMessages } from "../api/queries";
+import { MarkdownBlock } from "../chat/MarkdownBlock";
+import { ReasoningBlock } from "../chat/ReasoningBlock";
+import { ToolCallBlock } from "../chat/ToolCallBlock";
 import { useChat } from "../chat/useChat";
 import { useAuthStore } from "../store/auth";
 
@@ -33,18 +36,20 @@ export function SessionPage() {
         {(messages ?? []).map((m) => (
           <div key={m.id} className={`session-turn session-turn-${m.role}`}>
             <p className="is-size-7 has-text-grey">{m.role}</p>
-            <pre className="session-content">{m.content}</pre>
+            {m.role === "assistant" ? (
+              <MarkdownBlock content={m.content} />
+            ) : (
+              <pre className="session-content">{m.content}</pre>
+            )}
           </div>
         ))}
-        {(chat.text || chat.reasoning) && (
+        {(chat.text || chat.reasoning || chat.toolCalls.length > 0) && (
           <div className="session-turn session-turn-assistant">
-            {chat.reasoning && (
-              <details>
-                <summary>Reasoning</summary>
-                <pre>{chat.reasoning}</pre>
-              </details>
-            )}
-            <pre className="session-content">{chat.text}</pre>
+            {chat.reasoning && <ReasoningBlock content={chat.reasoning} />}
+            {chat.toolCalls.map((tc) => (
+              <ToolCallBlock key={tc.id} call={tc} />
+            ))}
+            {chat.text && <MarkdownBlock content={chat.text} />}
           </div>
         )}
         {chat.error && <div className="notification is-danger">{chat.error}</div>}
