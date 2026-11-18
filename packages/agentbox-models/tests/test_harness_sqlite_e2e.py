@@ -34,21 +34,20 @@ async def test_harness_session_persists_turns():
     reg.register_native("write_file", write_file, required_flags=("write",))
     harness = Harness(registry=reg, model=TestModel(), store_factory=InMemoryMessageLogStore)
 
-    async with factory() as s:
-        store = SQLiteMessageLogStore(s, "sess1")
-        session = Session(
-            session_id="sess1",
-            project_root=".",
-            agent_spec=spec,
-            store=store,
-            head_id=None,
-        )
-        session.mode_name = "agent"
-        bus = EventBus()
-        outcome = await harness.run_turn(
-            session, "write a file", bus=bus, model_override=TestModel()
-        )
-        assert outcome.status == "success"
-        roles = [t.role for t in await session.history()]
-        assert roles == ["user", "assistant"]
+    store = SQLiteMessageLogStore(factory, "sess1")
+    session = Session(
+        session_id="sess1",
+        project_root=".",
+        agent_spec=spec,
+        store=store,
+        head_id=None,
+    )
+    session.mode_name = "agent"
+    bus = EventBus()
+    outcome = await harness.run_turn(
+        session, "write a file", bus=bus, model_override=TestModel()
+    )
+    assert outcome.status == "success"
+    roles = [t.role for t in await session.history()]
+    assert roles == ["user", "assistant"]
     await engine.dispose()

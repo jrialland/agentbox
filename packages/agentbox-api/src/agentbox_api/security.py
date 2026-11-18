@@ -1,5 +1,5 @@
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import bcrypt
 import jwt
@@ -16,7 +16,7 @@ def verify_password(password: str, hashed: str) -> bool:
 def create_jwt(user_id: str, secret: str, algorithm: str, expiry_seconds: int) -> str:
     payload = {
         "sub": user_id,
-        "exp": datetime.now(timezone.utc) + timedelta(seconds=expiry_seconds),
+        "exp": datetime.now(UTC) + timedelta(seconds=expiry_seconds),
     }
     return jwt.encode(payload, secret, algorithm=algorithm)
 

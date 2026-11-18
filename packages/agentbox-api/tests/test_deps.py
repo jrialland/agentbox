@@ -1,7 +1,8 @@
 import pytest
-from agentbox_api.deps import require_permission
 from fastapi import HTTPException
 from starlette.authentication import AuthCredentials
+
+from agentbox_api.deps import require_permission
 
 
 async def test_require_permission_allows():

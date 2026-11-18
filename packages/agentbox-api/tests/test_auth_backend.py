@@ -1,5 +1,8 @@
 from starlette.authentication import AuthCredentials
 
+from agentbox_api.auth_backend import JWTAuthenticationBackend, load_user_permissions
+from agentbox_api.config import Settings
+from agentbox_api.security import create_jwt
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.tables.auth import (
     Permission,
@@ -8,10 +11,6 @@ from agentbox_models.tables.auth import (
     User,
     UserRoleLink,
 )
-
-from agentbox_api.auth_backend import JWTAuthenticationBackend, load_user_permissions
-from agentbox_api.config import Settings
-from agentbox_api.security import create_jwt
 
 
 async def test_load_user_permissions():

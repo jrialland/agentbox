@@ -1,8 +1,8 @@
 import httpx
+
 from agentbox_api.app import create_app
 from agentbox_api.config import Settings
 from agentbox_api.security import hash_password
-
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.tables.auth import User
 
