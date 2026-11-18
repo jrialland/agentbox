@@ -18,3 +18,11 @@ export const api = createClient<paths>({
 });
 
 api.use(authMiddleware(() => useAuthStore.getState().token));
+
+api.use({
+  onResponse({ response }) {
+    if (response.status === 401) {
+      useAuthStore.getState().clear();
+    }
+  },
+});
