@@ -95,7 +95,12 @@ class AgentRepository:
     async def list(self) -> list[AgentSpec]:
         async with self._factory() as s:
             rows = (await s.execute(select(Agent))).scalars().all()
-        return [await self.load(r.name) for r in rows]
+        specs: list[AgentSpec] = []
+        for row in rows:
+            spec = await self.load(row.name)
+            if spec is not None:
+                specs.append(spec)
+        return specs
 
     async def delete(self, name: str) -> None:
         async with self._factory() as s:
