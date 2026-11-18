@@ -1,9 +1,10 @@
-import { Button, Select, Textarea } from "@mantine/core";
+import { Button } from "@mantine/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useMessages } from "../api/queries";
+import { Composer } from "../chat/Composer";
 import { MarkdownBlock } from "../chat/MarkdownBlock";
 import { ReasoningBlock } from "../chat/ReasoningBlock";
 import { ToolCallBlock } from "../chat/ToolCallBlock";
@@ -20,12 +21,19 @@ export function SessionPage() {
   const qc = useQueryClient();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<string | null>("agent");
+  const [forkFromTurnId, setForkFromTurnId] = useState<string | null>(null);
 
-  async function onSend() {
+  async function handleSend(attachmentIds: string[]) {
     const content = input.trim();
     if (!content) return;
+    const fork = forkFromTurnId;
     setInput("");
-    await chat.send(content, { mode: mode ?? "agent" });
+    setForkFromTurnId(null);
+    await chat.send(content, {
+      mode: mode ?? "agent",
+      forkFromTurnId: fork,
+      attachmentIds,
+    });
     await qc.invalidateQueries({ queryKey: ["messages", id] });
   }
 
@@ -35,7 +43,21 @@ export function SessionPage() {
       <div className="session-messages">
         {(messages ?? []).map((m) => (
           <div key={m.id} className={`session-turn session-turn-${m.role}`}>
-            <p className="is-size-7 has-text-grey">{m.role}</p>
+            <div className="is-flex is-justify-content-space-between">
+              <p className="is-size-7 has-text-grey">{m.role}</p>
+              {m.role === "user" && (
+                <Button
+                  size="compact-xs"
+                  variant="subtle"
+                  onClick={() => {
+                    setInput(m.content);
+                    setForkFromTurnId(m.parent_id ?? null);
+                  }}
+                >
+                  Edit
+                </Button>
+              )}
+            </div>
             {m.role === "assistant" ? (
               <MarkdownBlock content={m.content} />
             ) : (
@@ -54,20 +76,15 @@ export function SessionPage() {
         )}
         {chat.error && <div className="notification is-danger">{chat.error}</div>}
       </div>
-      <div className="box">
-        <Textarea
-          label="Message"
-          value={input}
-          onChange={(e) => setInput(e.currentTarget.value)}
-          rows={3}
-        />
-        <div className="is-flex is-justify-content-space-between mt-2">
-          <Select data={["ask", "agent"]} value={mode} onChange={setMode} w={120} />
-          <Button onClick={onSend} loading={chat.running}>
-            Send
-          </Button>
-        </div>
-      </div>
+      <Composer
+        sessionId={id}
+        value={input}
+        setValue={setInput}
+        mode={mode}
+        setMode={setMode}
+        running={chat.running}
+        onSend={handleSend}
+      />
     </div>
   );
 }
