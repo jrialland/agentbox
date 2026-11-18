@@ -9,8 +9,8 @@ import { AppShell } from "./components/layout/AppShell";
 import { AgentsPage } from "./pages/AgentsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
-import { ProjectsPage } from "./pages/ProjectsPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
+import { SessionPage } from "./pages/SessionPage";
 import { ThemeSync } from "./theme/ThemeSync";
 
 const queryClient = new QueryClient();
@@ -30,7 +30,7 @@ export function App() {
                   <Route index element={<HomePage />} />
                   <Route path="agents" element={<AgentsPage />} />
                   <Route path="providers" element={<ProvidersPage />} />
-                  <Route path="projects" element={<ProjectsPage />} />
+                  <Route path="sessions/:id" element={<SessionPage />} />
                 </Route>
               </Route>
             </Routes>
