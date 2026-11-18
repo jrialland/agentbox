@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 
 from agentbox_api.auth_backend import JWTAuthenticationBackend
@@ -32,6 +33,13 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
     app.add_middleware(
         AuthenticationMiddleware,
         backend=JWTAuthenticationBackend(session_factory, settings),
+    )
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=settings.cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
     )
     app.include_router(auth_router)
     app.include_router(agents_router)
