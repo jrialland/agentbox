@@ -3,6 +3,8 @@ import json
 from sqlmodel import select
 from starlette.authentication import AuthCredentials, AuthenticationBackend, BaseUser
 
+from agentbox_api.config import Settings
+from agentbox_api.security import decode_jwt, hash_api_key
 from agentbox_models.tables.auth import (
     ApiKey,
     Permission,
@@ -10,9 +12,6 @@ from agentbox_models.tables.auth import (
     User,
     UserRoleLink,
 )
-
-from agentbox_api.config import Settings
-from agentbox_api.security import decode_jwt, hash_api_key
 
 
 class CurrentUser(BaseUser):
@@ -39,14 +38,16 @@ async def load_user_permissions(session, user_id: str) -> set[str]:
     perm_ids = (
         await session.execute(
             select(RolePermissionLink.permission_id).where(
-                RolePermissionLink.role_id.in_(role_ids)
+                RolePermissionLink.role_id.in_(role_ids)  # ty: ignore[missing-attribute]
             )
         )
     ).scalars().all()
     if not perm_ids:
         return set()
     perms = (
-        await session.execute(select(Permission.name).where(Permission.id.in_(perm_ids)))
+        await session.execute(
+            select(Permission.name).where(Permission.id.in_(perm_ids))  # ty: ignore[missing-attribute]
+        )
     ).scalars().all()
     return set(perms)
 
