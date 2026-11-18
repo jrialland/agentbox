@@ -42,28 +42,27 @@ def _to_spec(body: AgentCreate) -> AgentSpec:
     )
 
 
-@router.post("")
+@router.post("", response_model=AgentSpec)
 async def create_agent(
     body: AgentCreate, request: Request, _=Depends(require_permission("agents:create"))
 ):
     repo = AgentRepository(request.app.state.session_factory)
-    spec = await repo.save(_to_spec(body))
-    return spec.model_dump()
+    return await repo.save(_to_spec(body))
 
 
-@router.get("")
+@router.get("", response_model=list[AgentSpec])
 async def list_agents(request: Request, _=Depends(require_permission("agents:read"))):
     repo = AgentRepository(request.app.state.session_factory)
-    return [s.model_dump() for s in await repo.list()]
+    return await repo.list()
 
 
-@router.get("/{name}")
+@router.get("/{name}", response_model=AgentSpec)
 async def get_agent(name: str, request: Request, _=Depends(require_permission("agents:read"))):
     repo = AgentRepository(request.app.state.session_factory)
     spec = await repo.load(name)
     if spec is None:
         raise HTTPException(status_code=404, detail="Not found")
-    return spec.model_dump()
+    return spec
 
 
 @router.delete("/{name}")

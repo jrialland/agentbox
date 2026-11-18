@@ -118,7 +118,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/AgentSpec"
+                  },
+                  "type": "array",
+                  "title": "Response List Agents Agents Get"
+                }
               }
             }
           }
@@ -145,7 +151,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSpec"
+                }
               }
             }
           },
@@ -185,7 +193,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSpec"
+                }
               }
             }
           },
@@ -388,7 +398,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Project"
+                  },
+                  "type": "array",
+                  "title": "Response List Projects Projects Get"
+                }
               }
             }
           }
@@ -415,7 +431,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
               }
             }
           },
@@ -455,7 +473,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/Project"
+                }
               }
             }
           },
@@ -522,7 +542,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SessionRow"
+                  },
+                  "type": "array",
+                  "title": "Response List Sessions Sessions Get"
+                }
               }
             }
           }
@@ -549,7 +575,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRow"
+                }
               }
             }
           },
@@ -589,7 +617,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRow"
+                }
               }
             }
           },
@@ -1001,6 +1031,64 @@
         ],
         "title": "AgentCreate"
       },
+      "AgentSpec": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "instructions": {
+            "type": "string",
+            "title": "Instructions"
+          },
+          "tool_bindings": {
+            "items": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/NativeToolBinding"
+                },
+                {
+                  "$ref": "#/components/schemas/McpToolBinding"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Tool Bindings"
+          },
+          "sub_agent_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sub Agent Ids",
+            "default": []
+          },
+          "mode_definitions": {
+            "items": {
+              "$ref": "#/components/schemas/Mode"
+            },
+            "type": "array",
+            "title": "Mode Definitions",
+            "default": []
+          },
+          "model_binding": {
+            "$ref": "#/components/schemas/ModelBinding"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "description",
+          "instructions",
+          "tool_bindings",
+          "model_binding"
+        ],
+        "title": "AgentSpec"
+      },
       "ApiKeyCreate": {
         "properties": {
           "scopes": {
@@ -1064,6 +1152,24 @@
         ],
         "title": "LoginResponse"
       },
+      "McpToolBinding": {
+        "properties": {
+          "server_url": {
+            "type": "string",
+            "title": "Server Url"
+          },
+          "tool_prefix": {
+            "type": "string",
+            "title": "Tool Prefix",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "server_url"
+        ],
+        "title": "McpToolBinding"
+      },
       "MeResponse": {
         "properties": {
           "id": {
@@ -1103,7 +1209,67 @@
         ],
         "title": "MessageRequest"
       },
-      "ProjectCreate": {
+      "Mode": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "flags": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "type": "object",
+            "title": "Flags"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "flags"
+        ],
+        "title": "Mode"
+      },
+      "ModelBinding": {
+        "properties": {
+          "model": {
+            "type": "string",
+            "title": "Model"
+          },
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          }
+        },
+        "type": "object",
+        "required": [
+          "model",
+          "provider"
+        ],
+        "title": "ModelBinding"
+      },
+      "NativeToolBinding": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "required_flags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Required Flags",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "NativeToolBinding"
+      },
+      "Project": {
         "properties": {
           "id": {
             "type": "string",
@@ -1120,6 +1286,11 @@
           "owner_id": {
             "type": "string",
             "title": "Owner Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
           }
         },
         "type": "object",
@@ -1128,6 +1299,24 @@
           "name",
           "path",
           "owner_id"
+        ],
+        "title": "Project"
+      },
+      "ProjectCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "path"
         ],
         "title": "ProjectCreate"
       },
@@ -1236,10 +1425,6 @@
       },
       "SessionCreate": {
         "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
           "project_id": {
             "type": "string",
             "title": "Project Id"
@@ -1251,11 +1436,49 @@
         },
         "type": "object",
         "required": [
-          "id",
           "project_id",
           "agent_id"
         ],
         "title": "SessionCreate"
+      },
+      "SessionRow": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "head_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Head Turn Id"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "agent_id"
+        ],
+        "title": "SessionRow"
       },
       "UserCreate": {
         "properties": {

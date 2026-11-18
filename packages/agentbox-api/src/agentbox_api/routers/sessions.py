@@ -23,7 +23,6 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
 class SessionCreate(BaseModel):
-    id: str
     project_id: str
     agent_id: str
 
@@ -32,21 +31,22 @@ class MessageRequest(BaseModel):
     content: str
 
 
-@router.post("")
+@router.post("", response_model=SessionRow)
 async def create_session(
     body: SessionCreate, request: Request, _=Depends(require_permission("sessions:create"))
 ):
-    return await SessionRepository(request.app.state.session_factory).create(
-        SessionRow(**body.model_dump())
+    session = SessionRow(
+        id=uuid.uuid4().hex, project_id=body.project_id, agent_id=body.agent_id
     )
+    return await SessionRepository(request.app.state.session_factory).create(session)
 
 
-@router.get("")
+@router.get("", response_model=list[SessionRow])
 async def list_sessions(request: Request, _=Depends(require_permission("sessions:read"))):
     return await SessionRepository(request.app.state.session_factory).list()
 
 
-@router.get("/{sid}")
+@router.get("/{sid}", response_model=SessionRow)
 async def get_session(sid: str, request: Request, _=Depends(require_permission("sessions:read"))):
     s = await SessionRepository(request.app.state.session_factory).get(sid)
     if s is None:

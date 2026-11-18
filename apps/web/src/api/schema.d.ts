@@ -376,6 +376,28 @@ export interface components {
              */
             sub_agent_ids: string[];
         };
+        /** AgentSpec */
+        AgentSpec: {
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Instructions */
+            instructions: string;
+            /** Tool Bindings */
+            tool_bindings: (components["schemas"]["NativeToolBinding"] | components["schemas"]["McpToolBinding"])[];
+            /**
+             * Sub Agent Ids
+             * @default []
+             */
+            sub_agent_ids: string[];
+            /**
+             * Mode Definitions
+             * @default []
+             */
+            mode_definitions: components["schemas"]["Mode"][];
+            model_binding: components["schemas"]["ModelBinding"];
+        };
         /** ApiKeyCreate */
         ApiKeyCreate: {
             /**
@@ -403,6 +425,16 @@ export interface components {
             /** Token Type */
             token_type: string;
         };
+        /** McpToolBinding */
+        McpToolBinding: {
+            /** Server Url */
+            server_url: string;
+            /**
+             * Tool Prefix
+             * @default
+             */
+            tool_prefix: string;
+        };
         /** MeResponse */
         MeResponse: {
             /** Id */
@@ -417,8 +449,34 @@ export interface components {
             /** Content */
             content: string;
         };
-        /** ProjectCreate */
-        ProjectCreate: {
+        /** Mode */
+        Mode: {
+            /** Name */
+            name: string;
+            /** Flags */
+            flags: {
+                [key: string]: boolean;
+            };
+        };
+        /** ModelBinding */
+        ModelBinding: {
+            /** Model */
+            model: string;
+            /** Provider */
+            provider: string;
+        };
+        /** NativeToolBinding */
+        NativeToolBinding: {
+            /** Name */
+            name: string;
+            /**
+             * Required Flags
+             * @default []
+             */
+            required_flags: string[];
+        };
+        /** Project */
+        Project: {
             /** Id */
             id: string;
             /** Name */
@@ -427,6 +485,18 @@ export interface components {
             path: string;
             /** Owner Id */
             owner_id: string;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
+        };
+        /** ProjectCreate */
+        ProjectCreate: {
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
         };
         /** ProviderCreate */
         ProviderCreate: {
@@ -461,12 +531,26 @@ export interface components {
         };
         /** SessionCreate */
         SessionCreate: {
+            /** Project Id */
+            project_id: string;
+            /** Agent Id */
+            agent_id: string;
+        };
+        /** SessionRow */
+        SessionRow: {
             /** Id */
             id: string;
             /** Project Id */
             project_id: string;
             /** Agent Id */
             agent_id: string;
+            /** Head Turn Id */
+            head_turn_id?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at?: string;
         };
         /** UserCreate */
         UserCreate: {
@@ -600,7 +684,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AgentSpec"][];
                 };
             };
         };
@@ -624,7 +708,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AgentSpec"];
                 };
             };
             /** @description Validation Error */
@@ -655,7 +739,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["AgentSpec"];
                 };
             };
             /** @description Validation Error */
@@ -830,7 +914,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["Project"][];
                 };
             };
         };
@@ -854,7 +938,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["Project"];
                 };
             };
             /** @description Validation Error */
@@ -885,7 +969,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["Project"];
                 };
             };
             /** @description Validation Error */
@@ -945,7 +1029,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["SessionRow"][];
                 };
             };
         };
@@ -969,7 +1053,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["SessionRow"];
                 };
             };
             /** @description Validation Error */
@@ -1000,7 +1084,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["SessionRow"];
                 };
             };
             /** @description Validation Error */

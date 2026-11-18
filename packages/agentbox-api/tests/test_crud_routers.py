@@ -72,14 +72,14 @@ async def test_projects_create_and_list():
     engine, client = await _make_app(["projects:create", "projects:read"])
     try:
         token = await _login(client)
-        r = await client.post(
-            "/projects",
-            json={"id": "prj1", "name": "myproj", "path": "/tmp/p", "owner_id": "u1"},
-            headers={"Authorization": f"Bearer {token}"},
-        )
+        h = {"Authorization": f"Bearer {token}"}
+        r = await client.post("/projects", json={"name": "myproj", "path": "/tmp/p"}, headers=h)
         assert r.status_code == 200
-        r = await client.get("/projects", headers={"Authorization": f"Bearer {token}"})
-        assert any(p["id"] == "prj1" for p in r.json())
+        created = r.json()
+        assert created["id"]
+        assert created["owner_id"] == "u1"
+        r = await client.get("/projects", headers=h)
+        assert any(p["id"] == created["id"] for p in r.json())
     finally:
         await client.aclose()
         await engine.dispose()
@@ -89,14 +89,15 @@ async def test_sessions_create_and_list():
     engine, client = await _make_app(["sessions:create", "sessions:read"])
     try:
         token = await _login(client)
+        h = {"Authorization": f"Bearer {token}"}
         r = await client.post(
-            "/sessions",
-            json={"id": "s1", "project_id": "prj", "agent_id": "ag"},
-            headers={"Authorization": f"Bearer {token}"},
+            "/sessions", json={"project_id": "prj", "agent_id": "ag"}, headers=h
         )
         assert r.status_code == 200
-        r = await client.get("/sessions", headers={"Authorization": f"Bearer {token}"})
-        assert any(s["id"] == "s1" for s in r.json())
+        created = r.json()
+        assert created["id"]
+        r = await client.get("/sessions", headers=h)
+        assert any(s["id"] == created["id"] for s in r.json())
     finally:
         await client.aclose()
         await engine.dispose()

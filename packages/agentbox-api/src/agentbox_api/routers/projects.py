@@ -1,3 +1,5 @@
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 
@@ -9,27 +11,29 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 class ProjectCreate(BaseModel):
-    id: str
     name: str
     path: str
-    owner_id: str
 
 
-@router.post("")
+@router.post("", response_model=Project)
 async def create_project(
     body: ProjectCreate, request: Request, _=Depends(require_permission("projects:create"))
 ):
-    return await ProjectRepository(request.app.state.session_factory).create(
-        Project(**body.model_dump())
+    project = Project(
+        id=uuid.uuid4().hex,
+        name=body.name,
+        path=body.path,
+        owner_id=request.user.identity,
     )
+    return await ProjectRepository(request.app.state.session_factory).create(project)
 
 
-@router.get("")
+@router.get("", response_model=list[Project])
 async def list_projects(request: Request, _=Depends(require_permission("projects:read"))):
     return await ProjectRepository(request.app.state.session_factory).list()
 
 
-@router.get("/{pid}")
+@router.get("/{pid}", response_model=Project)
 async def get_project(pid: str, request: Request, _=Depends(require_permission("projects:read"))):
     p = await ProjectRepository(request.app.state.session_factory).get(pid)
     if p is None:
