@@ -27,6 +27,7 @@ class NativeToolBinding:
 class McpToolBinding:
     server_url: str
     tool_prefix: str = ""
+    id: str = ""
 
 
 ToolBinding = NativeToolBinding | McpToolBinding
