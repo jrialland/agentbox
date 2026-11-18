@@ -53,3 +53,14 @@ async def register(body: RegisterRequest, request: Request):
         s.add(user)
         await s.commit()
     return {"id": user.id, "username": user.username}
+
+
+@router.get("/me")
+async def me(request: Request):
+    if not request.user.is_authenticated:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return {
+        "id": request.user.identity,
+        "username": request.user.display_name,
+        "permissions": list(request.auth.scopes) if request.auth else [],
+    }

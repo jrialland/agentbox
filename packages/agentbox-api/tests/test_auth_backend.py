@@ -51,4 +51,6 @@ async def test_authenticate_jwt():
     assert isinstance(creds, AuthCredentials)
     assert "agents:read" in creds.scopes
     assert user.display_name == "a"
+    assert user.is_authenticated is True
+    assert user.identity == "u1"
     await engine.dispose()
