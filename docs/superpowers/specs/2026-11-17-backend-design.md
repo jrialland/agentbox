@@ -40,6 +40,7 @@ This specification covers the backend, which exposes the platform's use cases (a
 | D4 | **Reuse pydantic-ai's `AGUIAdapter` facilities** (`transform_stream` + `streaming_response`/`encode_stream`) over the harness's raw events, instead of a hand-rolled serializer. | pydantic-ai already ships the AG-UI transformation and SSE framing; the harness emits raw `AgentStreamEvent`/`AgentRunResultEvent`s (inside `RunEvent`), so a thin adapter unwraps and pipes them through. |
 | D5 | Chat endpoint wires `resolve_model` + `Harness` + `SQLiteMessageLogStore`. | Reuses all three packages; the backend is the integration layer. |
 | D6 | RBAC enforced via a `require_permission(...)` dependency. | Centralized, declarative, testable. |
+| D7 | **Use Starlette's native auth extension points** — a custom `AuthenticationBackend` returning `(AuthCredentials, BaseUser)`, wired via `AuthenticationMiddleware`, populating `request.user`/`request.auth`. | Reuses the mandated Starlette/FastAPI mechanism instead of a bespoke auth layer; permissions ride in `AuthCredentials.scopes`. |
 
 ## 3. Package: `agentbox-api`
 
@@ -47,30 +48,37 @@ This specification covers the backend, which exposes the platform's use cases (a
 - Layout:
   - `app.py` — FastAPI app + lifespan (engine/session factory).
   - `config.py` — settings (JWT secret, DB URL) from environment.
-  - `security.py` — password hashing, JWT sign/verify, API-key hash/lookup.
-  - `deps.py` — dependencies (DB session, current user, `require_permission`).
+  - `security.py` — password hashing (bcrypt), JWT sign/verify (pyjwt), API-key hash/lookup.
+  - `auth_backend.py` — `JWTAuthenticationBackend(AuthenticationBackend)` returning `(AuthCredentials, User)`; `User(BaseUser)`.
+  - `deps.py` — dependencies (DB session, `require_permission` reading `request.auth.scopes`).
   - `routers/` — `auth.py`, `agents.py`, `providers.py`, `projects.py`, `sessions.py`, `users.py`, `api_keys.py`.
   - `streaming.py` — thin adapter: unwraps `RunEvent` → raw pydantic-ai events and pipes them through `AGUIAdapter` (`transform_stream` + `streaming_response`).
   - `schemas.py` — Pydantic request/response models.
 
-## 4. Authentication
+## 4. Authentication (Starlette-native)
+
+- A custom `JWTAuthenticationBackend(AuthenticationBackend)` implements `authenticate(request) -> (AuthCredentials, BaseUser) | None`:
+  - Reads `Authorization: Bearer <token>`.
+  - If the token is a **JWT**: verify signature (pyjwt), load the user + roles + permissions from the DB.
+  - If it is an **API key**: hash and look up `api_keys`, resolving the user + the key's `scopes`.
+  - Returns `(AuthCredentials(scopes=[permissions...]), User(...))`, or `None` (→ `UnauthenticatedUser`).
+- A `User(BaseUser)` subclass carries `id`, `username`, `permissions`, `roles`; implements `is_authenticated`, `display_name`, `identity`.
+- `AuthenticationMiddleware` is registered on the FastAPI app, populating `request.user` and `request.auth` in the ASGI scope.
 
 ### 4.1 JWT login
 
 - `POST /auth/login` with `{username, password}`.
 - Verifies `password_hash` (bcrypt `checkpw`); on success issues an HS256 JWT with `sub` = user id and an expiry.
-- Requests authenticate via `Authorization: Bearer <jwt>`.
 
 ### 4.2 API keys
 
 - `POST /api-keys` creates a key: a random secret is generated, its hash stored in `api_keys.key_hash`, with `scopes` (JSON list of permissions, a subset of the user's). The raw secret is returned once.
-- Programmatic requests send `Authorization: Bearer <api-key>`; the backend hashes and looks it up, resolving the user + scopes.
 
 ## 5. RBAC
 
 - Permissions are string names, e.g. `agents:create`, `agents:read`, `agents:update`, `agents:delete`, `providers:create`, `providers:read`, `providers:delete`, `providers:list-models`, `projects:create`, `projects:read`, `projects:delete`, `sessions:create`, `sessions:read`, `users:manage`, `roles:manage`, `api_keys:manage`.
 - Roles bind permissions (`role_permissions`); users bind roles (`user_roles`).
-- The `require_permission(name)` dependency resolves the caller to a permission set and returns 403 if absent. Admin role grants all.
+- Enforcement: the `require_permission(name)` dependency checks `request.auth.scopes` (the permissions resolved by the backend) and returns 403 if absent. Admin role grants all. Starlette's `requires(...)` decorator is also usable where appropriate.
 
 ## 6. Endpoints
 
@@ -112,6 +120,7 @@ Client → FastAPI → auth dep (JWT/API-key → user+perms)
 ## 10. Testing
 
 - `security.py` — unit-test password hashing and JWT sign/verify round-trips.
+- `JWTAuthenticationBackend` — unit-test that JWT and API-key requests resolve to `(AuthCredentials, User)` with correct scopes, and that unknown/invalid credentials return `None`.
 - `require_permission` — unit-test with stubbed caller contexts.
 - Endpoints — FastAPI `TestClient` against an in-memory async SQLite DB (via dependency override).
 - Streaming adapter — unit-test that `RunEvent`s unwrap and flow through `transform_stream` into AG-UI events; the real-model path is already covered in `agentbox-providers`.
