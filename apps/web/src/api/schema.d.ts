@@ -396,6 +396,22 @@ export interface components {
             /** Password */
             password: string;
         };
+        /** LoginResponse */
+        LoginResponse: {
+            /** Access Token */
+            access_token: string;
+            /** Token Type */
+            token_type: string;
+        };
+        /** MeResponse */
+        MeResponse: {
+            /** Id */
+            id: string;
+            /** Username */
+            username: string;
+            /** Permissions */
+            permissions: string[];
+        };
         /** MessageRequest */
         MessageRequest: {
             /** Content */
@@ -502,7 +518,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["LoginResponse"];
                 };
             };
             /** @description Validation Error */
@@ -564,7 +580,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["MeResponse"];
                 };
             };
         };

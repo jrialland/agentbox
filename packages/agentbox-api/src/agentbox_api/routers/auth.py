@@ -21,7 +21,18 @@ class RegisterRequest(BaseModel):
     password: str
 
 
-@router.post("/login")
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class MeResponse(BaseModel):
+    id: str
+    username: str
+    permissions: list[str]
+
+
+@router.post("/login", response_model=LoginResponse)
 async def login(body: LoginRequest, request: Request):
     factory = request.app.state.session_factory
     async with factory() as s:
@@ -55,7 +66,7 @@ async def register(body: RegisterRequest, request: Request):
     return {"id": user.id, "username": user.username}
 
 
-@router.get("/me")
+@router.get("/me", response_model=MeResponse)
 async def me(request: Request):
     if not request.user.is_authenticated:
         raise HTTPException(status_code=401, detail="Not authenticated")
