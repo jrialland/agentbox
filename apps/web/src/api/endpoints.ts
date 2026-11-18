@@ -4,6 +4,8 @@ import type { components } from "./schema";
 export type Project = components["schemas"]["Project"];
 export type Session = components["schemas"]["SessionRow"];
 export type Agent = components["schemas"]["AgentSpec"];
+export type Provider = components["schemas"]["ProviderRead"];
+export type Model = components["schemas"]["Model"];
 
 export async function fetchProjects(): Promise<Project[]> {
   const { data } = await api.GET("/projects");
@@ -37,4 +39,55 @@ export async function createSession(body: {
 export async function fetchAgents(): Promise<Agent[]> {
   const { data } = await api.GET("/agents");
   return data ?? [];
+}
+
+export async function fetchProviders(): Promise<Provider[]> {
+  const { data } = await api.GET("/providers");
+  return data ?? [];
+}
+
+export async function createProvider(body: {
+  name: string;
+  kind: string;
+  base_url?: string;
+  api_key?: string;
+  models_url?: string;
+}): Promise<Provider> {
+  const { data, error } = await api.POST("/providers", { body });
+  if (error) throw new Error("Failed to create provider");
+  return data as Provider;
+}
+
+export async function deleteProvider(id: string): Promise<void> {
+  await api.DELETE("/providers/{pid}", { params: { path: { pid: id } } });
+}
+
+export async function refreshModels(id: string): Promise<Model[]> {
+  const { data } = await api.POST("/providers/{pid}/models/refresh", {
+    params: { path: { pid: id } },
+  });
+  return data ?? [];
+}
+
+export async function fetchModels(): Promise<Model[]> {
+  const { data } = await api.GET("/models");
+  return data ?? [];
+}
+
+export async function createAgent(body: {
+  name: string;
+  description: string;
+  instructions: string;
+  model: string;
+  tool_bindings: Record<string, unknown>[];
+  mode_definitions: Record<string, unknown>[];
+  sub_agent_ids: string[];
+}): Promise<Agent> {
+  const { data, error } = await api.POST("/agents", { body });
+  if (error) throw new Error("Failed to create agent");
+  return data as Agent;
+}
+
+export async function deleteAgent(name: string): Promise<void> {
+  await api.DELETE("/agents/{name}", { params: { path: { name } } });
 }

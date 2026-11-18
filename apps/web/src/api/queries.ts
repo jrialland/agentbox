@@ -1,12 +1,19 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
+  createAgent,
   createProject,
+  createProvider,
   createSession,
+  deleteAgent,
   deleteProject,
+  deleteProvider,
   fetchAgents,
+  fetchModels,
   fetchProjects,
+  fetchProviders,
   fetchSessions,
+  refreshModels,
 } from "./endpoints";
 
 export function useProjects() {
@@ -19,6 +26,14 @@ export function useSessions() {
 
 export function useAgents() {
   return useQuery({ queryKey: ["agents"], queryFn: fetchAgents });
+}
+
+export function useProviders() {
+  return useQuery({ queryKey: ["providers"], queryFn: fetchProviders });
+}
+
+export function useModels() {
+  return useQuery({ queryKey: ["models"], queryFn: fetchModels });
 }
 
 export function useCreateProject() {
@@ -42,5 +57,45 @@ export function useDeleteProject() {
   return useMutation({
     mutationFn: deleteProject,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useCreateProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createProvider,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
+  });
+}
+
+export function useDeleteProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteProvider,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
+  });
+}
+
+export function useRefreshModels() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: refreshModels,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["models"] }),
+  });
+}
+
+export function useCreateAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createAgent,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+export function useDeleteAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAgent,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["agents"] }),
   });
 }
