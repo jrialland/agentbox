@@ -21,7 +21,7 @@ def build_server() -> MCPServer:
         """Render the demo MCP app."""
         return f"App result: {text}"
 
-    @mcp.resource(APP_URI)
+    @mcp.resource(APP_URI, mime_type="text/html;profile=mcp-app")
     def app_html() -> str:
         return (
             "<!doctype html><html><body><h1>Hello MCP App</h1>"

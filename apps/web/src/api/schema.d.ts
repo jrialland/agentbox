@@ -266,6 +266,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/{sid}/mcp/{server_id}/resources/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Read App Resource */
+        post: operations["read_app_resource_sessions__sid__mcp__server_id__resources_read_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{sid}/mcp/{server_id}/tools/call": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Call App Tool */
+        post: operations["call_app_tool_sessions__sid__mcp__server_id__tools_call_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -455,6 +489,18 @@ export interface components {
             /** File */
             file: string;
         };
+        /** CallToolBody */
+        CallToolBody: {
+            /** Name */
+            name: string;
+            /**
+             * Arguments
+             * @default {}
+             */
+            arguments: {
+                [key: string]: unknown;
+            };
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -483,6 +529,11 @@ export interface components {
              * @default
              */
             tool_prefix: string;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
         };
         /** MeResponse */
         MeResponse: {
@@ -613,6 +664,11 @@ export interface components {
              * @default false
              */
             is_builtin: boolean;
+        };
+        /** ReadResourceBody */
+        ReadResourceBody: {
+            /** Uri */
+            uri: string;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -1307,6 +1363,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AttachmentRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    read_app_resource_sessions__sid__mcp__server_id__resources_read_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+                server_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadResourceBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    call_app_tool_sessions__sid__mcp__server_id__tools_call_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+                server_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CallToolBody"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */

@@ -821,6 +821,124 @@
         }
       }
     },
+    "/sessions/{sid}/mcp/{server_id}/resources/read": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Read App Resource",
+        "operationId": "read_app_resource_sessions__sid__mcp__server_id__resources_read_post",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "server_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Server Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReadResourceBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sid}/mcp/{server_id}/tools/call": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Call App Tool",
+        "operationId": "call_app_tool_sessions__sid__mcp__server_id__tools_call_post",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "server_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Server Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CallToolBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/users": {
       "get": {
         "tags": [
@@ -1275,6 +1393,25 @@
         ],
         "title": "Body_upload_attachment_sessions__sid__attachments_post"
       },
+      "CallToolBody": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "arguments": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Arguments",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "CallToolBody"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1333,6 +1470,11 @@
           "tool_prefix": {
             "type": "string",
             "title": "Tool Prefix",
+            "default": ""
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
             "default": ""
           }
         },
@@ -1689,6 +1831,19 @@
           "kind"
         ],
         "title": "ProviderRead"
+      },
+      "ReadResourceBody": {
+        "properties": {
+          "uri": {
+            "type": "string",
+            "title": "Uri"
+          }
+        },
+        "type": "object",
+        "required": [
+          "uri"
+        ],
+        "title": "ReadResourceBody"
       },
       "RegisterRequest": {
         "properties": {

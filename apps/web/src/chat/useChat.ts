@@ -2,6 +2,7 @@ import type { AbstractAgent } from "@ag-ui/client";
 import { useRef, useState } from "react";
 
 import { createChatAgent, type SendOptions } from "./agent";
+import { appTabFromSnapshot, type AppTab } from "./apps";
 
 export type ToolCall = { id: string; name: string; args: string; result?: string };
 
@@ -9,6 +10,7 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
   const [text, setText] = useState("");
   const [reasoning, setReasoning] = useState("");
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [appTabs, setAppTabs] = useState<AppTab[]>([]);
   const [running, setRunning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const agentRef = useRef<AbstractAgent | null>(null);
@@ -52,6 +54,19 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
                 : tc,
             ),
           ),
+        onActivitySnapshotEvent: (p: {
+          event: {
+            messageId: string;
+            activityType: string;
+            content: Record<string, unknown>;
+          };
+        }) => {
+          const tab = appTabFromSnapshot(p.event);
+          if (!tab) return;
+          setAppTabs((prev) =>
+            prev.some((t) => t.id === tab.id) ? prev : [...prev, tab],
+          );
+        },
         onRunErrorEvent: (p: { event: { message?: string } }) =>
           setError(p.event?.message ?? "run error"),
       });
@@ -68,5 +83,9 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
     setToolCalls([]);
   }
 
-  return { text, reasoning, toolCalls, running, error, send, reset };
+  function closeApp(id: string) {
+    setAppTabs((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  return { text, reasoning, toolCalls, appTabs, running, error, send, reset, closeApp };
 }
