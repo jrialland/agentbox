@@ -57,6 +57,7 @@ class Harness:
         user_message: str,
         bus: EventBus,
         model_override=None,
+        prompt_override=None,
     ) -> Run:
         message_history = turns_to_messages(await session.history())
 
@@ -86,6 +87,7 @@ class Harness:
             bus=bus,
             model_override=model_override,
             message_history=message_history,
+            prompt_override=prompt_override,
         )
 
     async def run_turn(

@@ -37,6 +37,9 @@ class SessionCreate(BaseModel):
 
 class MessageRequest(BaseModel):
     content: str
+    mode: str | None = None
+    fork_from_turn_id: str | None = None
+    attachment_ids: list[str] = []
 
 
 @router.post("", response_model=SessionRow)
@@ -175,14 +178,33 @@ async def chat(
         agent_spec=spec,
         store=store,
         head_id=None,
-        mode_name="agent",
+        mode_name=body.mode or "agent",
     )
-    turns = await store.list_turns()
-    if turns:
-        parents = {t.parent_id for t in turns if t.parent_id}
-        leaves = [t for t in turns if t.id not in parents]
-        if leaves:
-            session.head_id = leaves[-1].id
+    if body.fork_from_turn_id:
+        session.head_id = body.fork_from_turn_id
+    else:
+        turns = await store.list_turns()
+        if turns:
+            parents = {t.parent_id for t in turns if t.parent_id}
+            leaves = [t for t in turns if t.id not in parents]
+            if leaves:
+                session.head_id = leaves[-1].id
+
+    prompt_override = None
+    if body.attachment_ids:
+        from pydantic_ai.messages import BinaryContent
+
+        async with factory() as s:
+            arows = (
+                await s.execute(
+                    select(SessionAttachment).where(
+                        SessionAttachment.id.in_(body.attachment_ids)  # ty: ignore[missing-attribute]
+                    )
+                )
+            ).scalars().all()
+        binary = [BinaryContent(data=a.data, media_type=a.media_type) for a in arows]
+        if binary:
+            prompt_override = [body.content, *binary]
 
     harness = Harness(
         registry=_build_registry(project.path),
@@ -191,7 +213,7 @@ async def chat(
     )
     bus = EventBus()
     sub = bus.subscribe()
-    run = await harness.run(session, body.content, bus)
+    run = await harness.run(session, body.content, bus, prompt_override=prompt_override)
 
     async def raw_events():
         async def finish():

@@ -238,10 +238,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** List Messages */
+        get: operations["list_messages_sessions__sid__messages_get"];
         put?: never;
         /** Chat */
         post: operations["chat_sessions__sid__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{sid}/attachments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload Attachment */
+        post: operations["upload_attachment_sessions__sid__attachments_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -423,6 +441,20 @@ export interface components {
              */
             scopes: string[];
         };
+        /** AttachmentRead */
+        AttachmentRead: {
+            /** Id */
+            id: string;
+            /** Media Type */
+            media_type: string;
+            /** Filename */
+            filename: string;
+        };
+        /** Body_upload_attachment_sessions__sid__attachments_post */
+        Body_upload_attachment_sessions__sid__attachments_post: {
+            /** File */
+            file: string;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -461,10 +493,32 @@ export interface components {
             /** Permissions */
             permissions: string[];
         };
+        /** MessageRead */
+        MessageRead: {
+            /** Id */
+            id: string;
+            /** Role */
+            role: string;
+            /** Content */
+            content: string;
+            /** Parent Id */
+            parent_id?: string | null;
+            /** Created At */
+            created_at: string;
+        };
         /** MessageRequest */
         MessageRequest: {
             /** Content */
             content: string;
+            /** Mode */
+            mode?: string | null;
+            /** Fork From Turn Id */
+            fork_from_turn_id?: string | null;
+            /**
+             * Attachment Ids
+             * @default []
+             */
+            attachment_ids: string[];
         };
         /** Mode */
         Mode: {
@@ -1160,6 +1214,37 @@ export interface operations {
             };
         };
     };
+    list_messages_sessions__sid__messages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessageRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     chat_sessions__sid__messages_post: {
         parameters: {
             query?: never;
@@ -1182,6 +1267,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_attachment_sessions__sid__attachments_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_attachment_sessions__sid__attachments_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttachmentRead"];
                 };
             };
             /** @description Validation Error */

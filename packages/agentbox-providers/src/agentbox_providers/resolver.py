@@ -33,4 +33,8 @@ def resolve_model(provider: Provider, model_name: str) -> Model:
         )
     if kind == "ollama":
         return OllamaModel(model_name, provider=OllamaProvider(base_url=provider.base_url))
+    if kind == "test":
+        from pydantic_ai.models.test import TestModel
+
+        return TestModel(custom_output_text="Hello from the test provider")
     raise ValueError(f"Unknown provider kind: {kind}")
