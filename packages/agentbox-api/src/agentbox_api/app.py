@@ -3,10 +3,10 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from starlette.middleware.authentication import AuthenticationMiddleware
 
-from agentbox_models.db import create_engine_and_sessionmaker
-
 from agentbox_api.auth_backend import JWTAuthenticationBackend
 from agentbox_api.config import Settings
+from agentbox_api.routers.auth import router as auth_router
+from agentbox_models.db import create_engine_and_sessionmaker
 
 
 def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI:
@@ -26,4 +26,5 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
         AuthenticationMiddleware,
         backend=JWTAuthenticationBackend(session_factory, settings),
     )
+    app.include_router(auth_router)
     return app
