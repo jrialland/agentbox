@@ -140,6 +140,67 @@ async def upload_attachment(
     return AttachmentRead(id=row.id, media_type=row.media_type, filename=row.filename)
 
 
+class ReadResourceBody(BaseModel):
+    uri: str
+
+
+class CallToolBody(BaseModel):
+    name: str
+    arguments: dict = {}
+
+
+async def _agent_spec(request: Request, sid: str):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        srow = (
+            await s.execute(select(SessionRow).where(SessionRow.id == sid))
+        ).scalars().first()
+        if srow is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+        agent = (
+            await s.execute(select(Agent).where(Agent.id == srow.agent_id))
+        ).scalars().first()
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Agent not found")
+    return await AgentRepository(factory).load(agent.name)
+
+
+@router.post("/{sid}/mcp/{server_id}/resources/read")
+async def read_app_resource(
+    sid: str,
+    server_id: str,
+    body: ReadResourceBody,
+    request: Request,
+    _=Depends(require_permission("sessions:create")),
+):
+    from agentbox_api import mcp_relay
+
+    spec = await _agent_spec(request, sid)
+    try:
+        return await mcp_relay.read_resource_for_app(spec, server_id, body.uri)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="MCP server not found") from None
+
+
+@router.post("/{sid}/mcp/{server_id}/tools/call")
+async def call_app_tool(
+    sid: str,
+    server_id: str,
+    body: CallToolBody,
+    request: Request,
+    _=Depends(require_permission("sessions:create")),
+):
+    from agentbox_api import mcp_relay
+
+    spec = await _agent_spec(request, sid)
+    try:
+        return await mcp_relay.call_tool_for_app(
+            spec, server_id, body.name, body.arguments
+        )
+    except KeyError:
+        raise HTTPException(status_code=404, detail="MCP server not found") from None
+
+
 def _build_registry(project_root: str) -> ToolRegistry:
     box = FilesystemToolbox(pathlib.Path(project_root))
     registry = ToolRegistry()
