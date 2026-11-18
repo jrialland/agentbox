@@ -23,6 +23,7 @@ from agentbox_models.tables.core import (
     Provider,
     SessionAttachment,
     SessionRow,
+    TurnRow,
 )
 from agentbox_providers.resolver import resolve_model
 
@@ -59,6 +60,46 @@ async def get_session(sid: str, request: Request, _=Depends(require_permission("
     if s is None:
         raise HTTPException(status_code=404, detail="Not found")
     return s
+
+
+class MessageRead(BaseModel):
+    id: str
+    role: str
+    content: str
+    parent_id: str | None = None
+    created_at: str
+
+
+@router.get("/{sid}/messages", response_model=list[MessageRead])
+async def list_messages(
+    sid: str, request: Request, _=Depends(require_permission("sessions:read"))
+):
+    async with request.app.state.session_factory() as s:
+        rows = (
+            await s.execute(select(TurnRow).where(TurnRow.session_id == sid))
+        ).scalars().all()
+    by_id = {r.id: r for r in rows}
+    parent_ids = {r.parent_id for r in rows if r.parent_id}
+    leaves = [r for r in rows if r.id not in parent_ids]
+    if not leaves:
+        return []
+    leaf = max(leaves, key=lambda r: (r.created_at.isoformat() if r.created_at else ""))
+    chain = []
+    cur = leaf
+    while cur is not None:
+        chain.append(cur)
+        cur = by_id.get(cur.parent_id) if cur.parent_id else None
+    chain.reverse()
+    return [
+        MessageRead(
+            id=r.id,
+            role=r.role,
+            content=r.content,
+            parent_id=r.parent_id,
+            created_at=r.created_at.isoformat() if r.created_at else "",
+        )
+        for r in chain
+    ]
 
 
 class AttachmentRead(BaseModel):
