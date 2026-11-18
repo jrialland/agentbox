@@ -28,6 +28,7 @@ This specification covers the backend, which exposes the platform's use cases (a
 - `agentbox-providers` — `resolve_model` / `list_models`.
 - `agentbox-harness` — `Harness`, `Session`, `ToolRegistry`, `FilesystemToolbox`, `EventBus`, `RunEvent`.
 - `fastapi`, `uvicorn`, `pyjwt`, `bcrypt`.
+- `pydantic-ai[ag-ui]` — pulls in `ag-ui-protocol` and `starlette` for the AG-UI adapter.
 
 ## 2. Decisions and Rationale
 
@@ -36,7 +37,7 @@ This specification covers the backend, which exposes the platform's use cases (a
 | D1 | **JWT login + API keys** (two auth paths). | JWT for interactive/web use; API keys for programmatic access (and A2A later). |
 | D2 | **bcrypt** for password hashing; **pyjwt** (HS256) for JWTs. | Standard, maintained, minimal. `passlib` is avoided (unmaintained with newer bcrypt). |
 | D3 | JWT carries only `sub` (user id); roles/permissions are resolved from the DB per request. | Permission changes take effect immediately; a fresh, correct enforcement. |
-| D4 | **Custom AG-UI serializer** over the harness `EventBus` events. | The harness owns session/persistence/sub-agents; a thin adapter maps its canonical `RunEvent`s to AG-UI SSE without reimplementing the runtime. |
+| D4 | **Reuse pydantic-ai's `AGUIAdapter` facilities** (`transform_stream` + `streaming_response`/`encode_stream`) over the harness's raw events, instead of a hand-rolled serializer. | pydantic-ai already ships the AG-UI transformation and SSE framing; the harness emits raw `AgentStreamEvent`/`AgentRunResultEvent`s (inside `RunEvent`), so a thin adapter unwraps and pipes them through. |
 | D5 | Chat endpoint wires `resolve_model` + `Harness` + `SQLiteMessageLogStore`. | Reuses all three packages; the backend is the integration layer. |
 | D6 | RBAC enforced via a `require_permission(...)` dependency. | Centralized, declarative, testable. |
 
@@ -49,7 +50,7 @@ This specification covers the backend, which exposes the platform's use cases (a
   - `security.py` — password hashing, JWT sign/verify, API-key hash/lookup.
   - `deps.py` — dependencies (DB session, current user, `require_permission`).
   - `routers/` — `auth.py`, `agents.py`, `providers.py`, `projects.py`, `sessions.py`, `users.py`, `api_keys.py`.
-  - `streaming.py` — AG-UI serializer (`RunEvent` → AG-UI SSE events).
+  - `streaming.py` — thin adapter: unwraps `RunEvent` → raw pydantic-ai events and pipes them through `AGUIAdapter` (`transform_stream` + `streaming_response`).
   - `schemas.py` — Pydantic request/response models.
 
 ## 4. Authentication
@@ -92,8 +93,8 @@ This specification covers the backend, which exposes the platform's use cases (a
   3. Build a `ToolRegistry` with `FilesystemToolbox` (sandboxed to the project root).
   4. Build `Harness(model, registry, store_factory=SQLiteMessageLogStore)`.
   5. `run_turn`, subscribing to the `EventBus`.
-  6. Serialize `RunEvent`s → AG-UI events (`RUN_STARTED`, `TEXT_MESSAGE_START`/`CONTENT`/`END`, `TOOL_CALL_START`/`ARGS`/`END`/`RESULT`, `REASONING_MESSAGE_*`, `CUSTOM`, `RUN_FINISHED`/`RUN_ERROR`) as SSE.
-- The serializer is a pure, unit-testable function/generator.
+  6. Unwrap each `RunEvent` to its raw pydantic-ai event and pipe it through `AGUIAdapter.transform_stream()` → AG-UI events (`RUN_STARTED`, `TEXT_MESSAGE_*`, `TOOL_CALL_*`, `REASONING_MESSAGE_*`, `CUSTOM`, `RUN_FINISHED`), then `streaming_response()` emits SSE.
+- A `RunOutcome` (error/cancelled) maps to `RUN_ERROR`/`RUN_FINISHED(cancelled)`.
 
 ## 8. Data Flow
 
@@ -113,7 +114,7 @@ Client → FastAPI → auth dep (JWT/API-key → user+perms)
 - `security.py` — unit-test password hashing and JWT sign/verify round-trips.
 - `require_permission` — unit-test with stubbed caller contexts.
 - Endpoints — FastAPI `TestClient` against an in-memory async SQLite DB (via dependency override).
-- Streaming serializer — unit-test with recorded `RunEvent` sequences; the real-model path is already covered in `agentbox-providers`.
+- Streaming adapter — unit-test that `RunEvent`s unwrap and flow through `transform_stream` into AG-UI events; the real-model path is already covered in `agentbox-providers`.
 
 ## 11. Open Items / Future Work
 
