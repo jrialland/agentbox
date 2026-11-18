@@ -7,6 +7,9 @@ from agentbox_api.auth_backend import JWTAuthenticationBackend
 from agentbox_api.config import Settings
 from agentbox_api.routers.agents import router as agents_router
 from agentbox_api.routers.auth import router as auth_router
+from agentbox_api.routers.projects import router as projects_router
+from agentbox_api.routers.providers import router as providers_router
+from agentbox_api.routers.sessions import router as sessions_router
 from agentbox_models.db import create_engine_and_sessionmaker
 
 
@@ -29,4 +32,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
     )
     app.include_router(auth_router)
     app.include_router(agents_router)
+    app.include_router(providers_router)
+    app.include_router(projects_router)
+    app.include_router(sessions_router)
     return app
