@@ -93,11 +93,12 @@ export function AgentsPage() {
               key={t}
               label={t}
               checked={tools.includes(t)}
-              onChange={(e) =>
+              onChange={(e) => {
+                const checked = e.currentTarget.checked;
                 setTools((prev) =>
-                  e.currentTarget.checked ? [...prev, t] : prev.filter((x) => x !== t),
-                )
-              }
+                  checked ? [...prev, t] : prev.filter((x) => x !== t),
+                );
+              }}
             />
           ))}
         </div>
@@ -139,24 +140,22 @@ export function AgentsPage() {
             <div key={i}>
               <TextInput
                 value={m.name}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const value = e.currentTarget.value;
                   setModes((p) =>
-                    p.map((x, j) =>
-                      j === i ? { ...x, name: e.currentTarget.value } : x,
-                    ),
-                  )
-                }
+                    p.map((x, j) => (j === i ? { ...x, name: value } : x)),
+                  );
+                }}
               />
               <Checkbox
                 label="Write enabled"
                 checked={m.write}
-                onChange={(e) =>
+                onChange={(e) => {
+                  const checked = e.currentTarget.checked;
                   setModes((p) =>
-                    p.map((x, j) =>
-                      j === i ? { ...x, write: e.currentTarget.checked } : x,
-                    ),
-                  )
-                }
+                    p.map((x, j) => (j === i ? { ...x, write: checked } : x)),
+                  );
+                }}
               />
             </div>
           ))}
