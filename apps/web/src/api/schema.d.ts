@@ -109,17 +109,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/providers/{pid}/models": {
+    "/providers/{pid}/models/refresh": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Provider Models */
-        get: operations["provider_models_providers__pid__models_get"];
+        get?: never;
         put?: never;
-        post?: never;
+        /** Refresh Models */
+        post: operations["refresh_models_providers__pid__models_refresh_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -138,6 +138,23 @@ export interface paths {
         post?: never;
         /** Delete Provider */
         delete: operations["delete_provider_providers__pid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Models Endpoint */
+        get: operations["list_models_endpoint_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -458,6 +475,15 @@ export interface components {
                 [key: string]: boolean;
             };
         };
+        /** Model */
+        Model: {
+            /** Id */
+            id: string;
+            /** Provider Id */
+            provider_id: string;
+            /** Name */
+            name: string;
+        };
         /** ModelBinding */
         ModelBinding: {
             /** Model */
@@ -500,8 +526,6 @@ export interface components {
         };
         /** ProviderCreate */
         ProviderCreate: {
-            /** Id */
-            id: string;
             /** Name */
             name: string;
             /** Kind */
@@ -512,6 +536,24 @@ export interface components {
             api_key?: string | null;
             /** Models Url */
             models_url?: string | null;
+        };
+        /** ProviderRead */
+        ProviderRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Kind */
+            kind: string;
+            /** Base Url */
+            base_url?: string | null;
+            /** Models Url */
+            models_url?: string | null;
+            /**
+             * Is Builtin
+             * @default false
+             */
+            is_builtin: boolean;
         };
         /** RegisterRequest */
         RegisterRequest: {
@@ -799,7 +841,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ProviderRead"][];
                 };
             };
         };
@@ -823,7 +865,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ProviderRead"];
                 };
             };
             /** @description Validation Error */
@@ -837,7 +879,7 @@ export interface operations {
             };
         };
     };
-    provider_models_providers__pid__models_get: {
+    refresh_models_providers__pid__models_refresh_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -854,7 +896,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["Model"][];
                 };
             };
             /** @description Validation Error */
@@ -895,6 +937,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_models_endpoint_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Model"][];
                 };
             };
         };

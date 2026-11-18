@@ -44,15 +44,16 @@ async def test_providers_create_and_list():
     engine, client = await _make_app(["providers:create", "providers:read"])
     try:
         token = await _login(client)
+        h = {"Authorization": f"Bearer {token}"}
         r = await client.post(
-            "/providers",
-            json={"id": "p1", "name": "openai", "kind": "generic"},
-            headers={"Authorization": f"Bearer {token}"},
+            "/providers", json={"name": "openai", "kind": "generic"}, headers=h
         )
         assert r.status_code == 200
-        r = await client.get("/providers", headers={"Authorization": f"Bearer {token}"})
+        created = r.json()
+        assert created["id"]
+        r = await client.get("/providers", headers=h)
         assert r.status_code == 200
-        assert any(p["id"] == "p1" for p in r.json())
+        assert any(p["id"] == created["id"] for p in r.json())
     finally:
         await client.aclose()
         await engine.dispose()

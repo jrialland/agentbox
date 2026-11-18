@@ -262,7 +262,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ProviderRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Providers Providers Get"
+                }
               }
             }
           }
@@ -289,7 +295,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderRead"
+                }
               }
             }
           },
@@ -306,13 +314,13 @@
         }
       }
     },
-    "/providers/{pid}/models": {
-      "get": {
+    "/providers/{pid}/models/refresh": {
+      "post": {
         "tags": [
           "providers"
         ],
-        "summary": "Provider Models",
-        "operationId": "provider_models_providers__pid__models_get",
+        "summary": "Refresh Models",
+        "operationId": "refresh_models_providers__pid__models_refresh_post",
         "parameters": [
           {
             "name": "pid",
@@ -329,7 +337,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Model"
+                  },
+                  "title": "Response Refresh Models Providers  Pid  Models Refresh Post"
+                }
               }
             }
           },
@@ -379,6 +393,31 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/models": {
+      "get": {
+        "tags": [
+          "models"
+        ],
+        "summary": "List Models Endpoint",
+        "operationId": "list_models_endpoint_models_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/Model"
+                  },
+                  "type": "array",
+                  "title": "Response List Models Endpoint Models Get"
                 }
               }
             }
@@ -1230,6 +1269,29 @@
         ],
         "title": "Mode"
       },
+      "Model": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "provider_id",
+          "name"
+        ],
+        "title": "Model"
+      },
       "ModelBinding": {
         "properties": {
           "model": {
@@ -1322,10 +1384,6 @@
       },
       "ProviderCreate": {
         "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
           "name": {
             "type": "string",
             "title": "Name"
@@ -1370,11 +1428,60 @@
         },
         "type": "object",
         "required": [
-          "id",
           "name",
           "kind"
         ],
         "title": "ProviderCreate"
+      },
+      "ProviderRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "kind": {
+            "type": "string",
+            "title": "Kind"
+          },
+          "base_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Base Url"
+          },
+          "models_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Models Url"
+          },
+          "is_builtin": {
+            "type": "boolean",
+            "title": "Is Builtin",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "ProviderRead"
       },
       "RegisterRequest": {
         "properties": {

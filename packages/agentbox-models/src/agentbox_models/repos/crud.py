@@ -40,6 +40,7 @@ class Repository(Generic[T]):
 
 from agentbox_models.tables.auth import ApiKey, Permission, Role, User  # noqa: E402
 from agentbox_models.tables.core import (  # noqa: E402
+    Model,
     Project,
     Provider,
     SessionRow,
@@ -65,6 +66,10 @@ class ApiKeyRepository(Repository[ApiKey]):
 
 class ProviderRepository(Repository[Provider]):
     model = Provider
+
+
+class ModelRepository(Repository[Model]):
+    model = Model
 
 
 class ProjectRepository(Repository[Project]):
