@@ -5,6 +5,7 @@ from agentbox_api.config import Settings
 from agentbox_api.security import hash_password
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.tables.auth import Permission, Role, RolePermissionLink, User, UserRoleLink
+from agentbox_models.tables.core import Agent
 
 
 async def _seed_user(factory, user_id: str, username: str, perms: list[str]):
@@ -32,7 +33,7 @@ async def _make_app(perms: list[str]):
     app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)
     transport = httpx.ASGITransport(app=app)
     client = httpx.AsyncClient(transport=transport, base_url="http://test")
-    return engine, client
+    return engine, client, factory
 
 
 async def _login(client) -> str:
@@ -41,7 +42,7 @@ async def _login(client) -> str:
 
 
 async def test_providers_create_and_list():
-    engine, client = await _make_app(["providers:create", "providers:read"])
+    engine, client, _factory = await _make_app(["providers:create", "providers:read"])
     try:
         token = await _login(client)
         h = {"Authorization": f"Bearer {token}"}
@@ -60,7 +61,7 @@ async def test_providers_create_and_list():
 
 
 async def test_providers_requires_permission():
-    engine, client = await _make_app([])
+    engine, client, _factory = await _make_app([])
     try:
         r = await client.get("/providers")
         assert r.status_code in (401, 403)
@@ -70,7 +71,7 @@ async def test_providers_requires_permission():
 
 
 async def test_projects_create_and_list():
-    engine, client = await _make_app(["projects:create", "projects:read"])
+    engine, client, _factory = await _make_app(["projects:create", "projects:read"])
     try:
         token = await _login(client)
         h = {"Authorization": f"Bearer {token}"}
@@ -87,8 +88,19 @@ async def test_projects_create_and_list():
 
 
 async def test_sessions_create_and_list():
-    engine, client = await _make_app(["sessions:create", "sessions:read"])
+    engine, client, factory = await _make_app(["sessions:create", "sessions:read"])
     try:
+        async with factory() as s:
+            s.add(
+                Agent(
+                    id="agid",
+                    name="ag",
+                    description="",
+                    instructions="",
+                    model_id="m",
+                )
+            )
+            await s.commit()
         token = await _login(client)
         h = {"Authorization": f"Bearer {token}"}
         r = await client.post(

@@ -46,10 +46,17 @@ class MessageRequest(BaseModel):
 async def create_session(
     body: SessionCreate, request: Request, _=Depends(require_permission("sessions:create"))
 ):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        agent = (
+            await s.execute(select(Agent).where(Agent.name == body.agent_id))
+        ).scalars().first()
+    if agent is None:
+        raise HTTPException(status_code=404, detail="Agent not found")
     session = SessionRow(
-        id=uuid.uuid4().hex, project_id=body.project_id, agent_id=body.agent_id
+        id=uuid.uuid4().hex, project_id=body.project_id, agent_id=agent.id
     )
-    return await SessionRepository(request.app.state.session_factory).create(session)
+    return await SessionRepository(factory).create(session)
 
 
 @router.get("", response_model=list[SessionRow])
