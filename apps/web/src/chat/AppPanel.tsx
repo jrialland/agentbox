@@ -82,6 +82,8 @@ export function AppPanel({
               value={tab.id}
               rightSection={
                 <CloseButton
+                  component="span"
+                  role="button"
                   size="xs"
                   aria-label="Close app"
                   onClick={(e) => {

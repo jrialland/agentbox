@@ -19,6 +19,13 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
+      command:
+        "uv run python packages/agentbox-api/tests/mcp_app_server.py 9000",
+      cwd: repoRoot,
+      port: 9000,
+      reuseExistingServer: false,
+    },
+    {
       command: "uv run python -m agentbox_api.dev_server",
       cwd: repoRoot,
       url: "http://localhost:8000/openapi.json",

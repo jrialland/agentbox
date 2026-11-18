@@ -52,6 +52,6 @@ test("AppPanel renders a tab and closes it", () => {
     </MantineProvider>,
   );
   expect(screen.getByText("App 1")).toBeInTheDocument();
-  fireEvent.click(screen.getByLabelText("Close app"));
+  fireEvent.click(screen.getByRole("button", { name: "Close app" }));
   expect(onClose).toHaveBeenCalledWith("m1");
 });
