@@ -2,7 +2,7 @@ import asyncio
 import pathlib
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -16,7 +16,14 @@ from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.repos.crud import SessionRepository
 from agentbox_models.repos.message_log import SQLiteMessageLogStore
-from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
+from agentbox_models.tables.core import (
+    Agent,
+    Model,
+    Project,
+    Provider,
+    SessionAttachment,
+    SessionRow,
+)
 from agentbox_providers.resolver import resolve_model
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -52,6 +59,33 @@ async def get_session(sid: str, request: Request, _=Depends(require_permission("
     if s is None:
         raise HTTPException(status_code=404, detail="Not found")
     return s
+
+
+class AttachmentRead(BaseModel):
+    id: str
+    media_type: str
+    filename: str
+
+
+@router.post("/{sid}/attachments", response_model=AttachmentRead)
+async def upload_attachment(
+    sid: str,
+    request: Request,
+    file: UploadFile = File(...),
+    _=Depends(require_permission("sessions:create")),
+):
+    data = await file.read()
+    row = SessionAttachment(
+        id=uuid.uuid4().hex,
+        session_id=sid,
+        media_type=file.content_type or "application/octet-stream",
+        filename=file.filename or "file",
+        data=data,
+    )
+    async with request.app.state.session_factory() as s:
+        s.add(row)
+        await s.commit()
+    return AttachmentRead(id=row.id, media_type=row.media_type, filename=row.filename)
 
 
 def _build_registry(project_root: str) -> ToolRegistry:

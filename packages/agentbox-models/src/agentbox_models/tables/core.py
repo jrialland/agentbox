@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 
+from sqlalchemy import Column, LargeBinary
 from sqlmodel import Field, SQLModel
 
 
@@ -65,4 +66,13 @@ class TurnRow(SQLModel, table=True):
     role: str
     content: str
     parent_id: str | None = None
+    created_at: datetime = Field(default_factory=utcnow)
+
+
+class SessionAttachment(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    session_id: str = Field(foreign_key="sessionrow.id")
+    media_type: str
+    filename: str
+    data: bytes = Field(sa_column=Column(LargeBinary, nullable=False))
     created_at: datetime = Field(default_factory=utcnow)

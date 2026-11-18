@@ -12,6 +12,7 @@ from agentbox_models.tables.core import (
     Model,
     Project,
     Provider,
+    SessionAttachment,
     SessionRow,
     TurnRow,
 )
@@ -28,6 +29,7 @@ __all__ = [
     "Model",
     "Project",
     "Provider",
+    "SessionAttachment",
     "SessionRow",
     "TurnRow",
 ]
