@@ -1424,6 +1424,11 @@
             ],
             "title": "Mode"
           },
+          "fork": {
+            "type": "boolean",
+            "title": "Fork",
+            "default": false
+          },
           "fork_from_turn_id": {
             "anyOf": [
               {

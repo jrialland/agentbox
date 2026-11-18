@@ -22,19 +22,24 @@ export function SessionPage() {
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<string | null>("agent");
   const [forkFromTurnId, setForkFromTurnId] = useState<string | null>(null);
+  const [forkMode, setForkMode] = useState(false);
 
   async function handleSend(attachmentIds: string[]) {
     const content = input.trim();
     if (!content) return;
-    const fork = forkFromTurnId;
+    const doFork = forkMode;
+    const forkFrom = forkFromTurnId;
     setInput("");
+    setForkMode(false);
     setForkFromTurnId(null);
     await chat.send(content, {
       mode: mode ?? "agent",
-      forkFromTurnId: fork,
+      fork: doFork,
+      forkFromTurnId: forkFrom,
       attachmentIds,
     });
-    await qc.invalidateQueries({ queryKey: ["messages", id] });
+    await qc.refetchQueries({ queryKey: ["messages", id] });
+    chat.reset();
   }
 
   return (
@@ -51,6 +56,7 @@ export function SessionPage() {
                   variant="subtle"
                   onClick={() => {
                     setInput(m.content);
+                    setForkMode(true);
                     setForkFromTurnId(m.parent_id ?? null);
                   }}
                 >

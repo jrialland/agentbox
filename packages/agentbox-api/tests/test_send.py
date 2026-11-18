@@ -80,7 +80,12 @@ async def test_send_records_turns_and_forks(tmp_path):
         # fork from the first user turn
         r = await client.post(
             "/sessions/s1/messages",
-            json={"content": "edited", "fork_from_turn_id": user_turn, "mode": "ask"},
+            json={
+                "content": "edited",
+                "fork": True,
+                "fork_from_turn_id": user_turn,
+                "mode": "ask",
+            },
             headers=h,
         )
         assert r.status_code == 200

@@ -62,5 +62,11 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
     }
   }
 
-  return { text, reasoning, toolCalls, running, error, send };
+  function reset() {
+    setText("");
+    setReasoning("");
+    setToolCalls([]);
+  }
+
+  return { text, reasoning, toolCalls, running, error, send, reset };
 }

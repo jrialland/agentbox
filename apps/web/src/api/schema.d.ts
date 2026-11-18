@@ -512,6 +512,11 @@ export interface components {
             content: string;
             /** Mode */
             mode?: string | null;
+            /**
+             * Fork
+             * @default false
+             */
+            fork: boolean;
             /** Fork From Turn Id */
             fork_from_turn_id?: string | null;
             /**

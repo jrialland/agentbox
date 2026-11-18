@@ -2,6 +2,7 @@ import { HttpAgent } from "@ag-ui/client";
 
 export interface SendOptions {
   mode: string;
+  fork?: boolean;
   forkFromTurnId?: string | null;
   attachmentIds?: string[];
 }
@@ -22,6 +23,7 @@ export function createChatAgent(opts: {
       const payload = {
         content: typeof lastUser?.content === "string" ? lastUser.content : "",
         mode: opts.send.mode,
+        fork: opts.send.fork ?? false,
         fork_from_turn_id: opts.send.forkFromTurnId ?? null,
         attachment_ids: opts.send.attachmentIds ?? [],
       };

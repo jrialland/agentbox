@@ -38,6 +38,7 @@ class SessionCreate(BaseModel):
 class MessageRequest(BaseModel):
     content: str
     mode: str | None = None
+    fork: bool = False
     fork_from_turn_id: str | None = None
     attachment_ids: list[str] = []
 
@@ -187,7 +188,7 @@ async def chat(
         head_id=None,
         mode_name=body.mode or "agent",
     )
-    if body.fork_from_turn_id:
+    if body.fork:
         session.head_id = body.fork_from_turn_id
     else:
         turns = await store.list_turns()

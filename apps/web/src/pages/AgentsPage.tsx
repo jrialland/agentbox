@@ -82,7 +82,7 @@ export function AgentsPage() {
         />
         <Select
           label="Model"
-          data={(models ?? []).map((m) => m.name)}
+          data={[...new Set((models ?? []).map((m) => m.name))]}
           value={model}
           onChange={setModel}
         />
@@ -162,7 +162,7 @@ export function AgentsPage() {
         </div>
         <MultiSelect
           label="Sub-agents"
-          data={(agents ?? []).map((a) => a.name)}
+          data={[...new Set((agents ?? []).map((a) => a.name))]}
           value={subAgents}
           onChange={setSubAgents}
         />
