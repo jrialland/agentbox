@@ -29,6 +29,7 @@ This specification covers the backend, which exposes the platform's use cases (a
 - `agentbox-harness` — `Harness`, `Session`, `ToolRegistry`, `FilesystemToolbox`, `EventBus`, `RunEvent`.
 - `fastapi`, `uvicorn`, `pyjwt`, `bcrypt`.
 - `pydantic-ai[ag-ui]` — pulls in `ag-ui-protocol` and `starlette` for the AG-UI adapter.
+- `pydantic-settings` — `BaseSettings` for configuration (already a transitive dependency).
 
 ## 2. Decisions and Rationale
 
@@ -47,13 +48,13 @@ This specification covers the backend, which exposes the platform's use cases (a
 - New workspace member `packages/agentbox-api`.
 - Layout:
   - `app.py` — FastAPI app + lifespan (engine/session factory).
-  - `config.py` — settings (JWT secret, DB URL) from environment.
+  - `config.py` — a `pydantic-settings.BaseSettings` subclass (JWT secret as `SecretStr`, DB URL, JWT expiry, etc.) loaded from environment / `.env`.
   - `security.py` — password hashing (bcrypt), JWT sign/verify (pyjwt), API-key hash/lookup.
   - `auth_backend.py` — `JWTAuthenticationBackend(AuthenticationBackend)` returning `(AuthCredentials, User)`; `User(BaseUser)`.
   - `deps.py` — dependencies (DB session, `require_permission` reading `request.auth.scopes`).
   - `routers/` — `auth.py`, `agents.py`, `providers.py`, `projects.py`, `sessions.py`, `users.py`, `api_keys.py`.
   - `streaming.py` — thin adapter: unwraps `RunEvent` → raw pydantic-ai events and pipes them through `AGUIAdapter` (`transform_stream` + `streaming_response`).
-  - `schemas.py` — Pydantic request/response models.
+  - `schemas.py` — Pydantic request/response DTOs; reuse SQLModel table models directly where the wire format matches, DTOs only for shapes that differ (e.g. `tool_bindings`/`mode_definitions` are JSON strings in the DB but structured on the wire).
 
 ## 4. Authentication (Starlette-native)
 
@@ -67,7 +68,7 @@ This specification covers the backend, which exposes the platform's use cases (a
 
 ### 4.1 JWT login
 
-- `POST /auth/login` with `{username, password}`.
+- `POST /auth/login` with `{username, password}` (declared via `fastapi.security.HTTPBearer` / `OAuth2PasswordRequestForm` for OpenAPI docs).
 - Verifies `password_hash` (bcrypt `checkpw`); on success issues an HS256 JWT with `sub` = user id and an expiry.
 
 ### 4.2 API keys
