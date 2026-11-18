@@ -9,6 +9,7 @@ import {
   deleteProject,
   deleteProvider,
   fetchAgents,
+  fetchMessages,
   fetchModels,
   fetchProjects,
   fetchProviders,
@@ -34,6 +35,13 @@ export function useProviders() {
 
 export function useModels() {
   return useQuery({ queryKey: ["models"], queryFn: fetchModels });
+}
+
+export function useMessages(sessionId: string) {
+  return useQuery({
+    queryKey: ["messages", sessionId],
+    queryFn: () => fetchMessages(sessionId),
+  });
 }
 
 export function useCreateProject() {

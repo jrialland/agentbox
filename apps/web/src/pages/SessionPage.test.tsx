@@ -1,15 +1,26 @@
+import { MantineProvider } from "@mantine/core";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
+import { vi } from "vitest";
 
+import * as endpoints from "../api/endpoints";
 import { SessionPage } from "./SessionPage";
 
-test("shows the session id", () => {
+test("renders the chat composer", async () => {
+  vi.spyOn(endpoints, "fetchMessages").mockResolvedValue([]);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
-    <MemoryRouter initialEntries={["/sessions/abc123"]}>
-      <Routes>
-        <Route path="/sessions/:id" element={<SessionPage />} />
-      </Routes>
-    </MemoryRouter>,
+    <MantineProvider>
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/sessions/abc"]}>
+          <Routes>
+            <Route path="/sessions/:id" element={<SessionPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </MantineProvider>,
   );
-  expect(screen.getByText(/abc123/)).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Session" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
 });

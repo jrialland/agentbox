@@ -1,3 +1,4 @@
+import { useAuthStore } from "../store/auth";
 import { api } from "./client";
 import type { components } from "./schema";
 
@@ -39,6 +40,32 @@ export async function createSession(body: {
 export async function fetchAgents(): Promise<Agent[]> {
   const { data } = await api.GET("/agents");
   return data ?? [];
+}
+
+export type Message = components["schemas"]["MessageRead"];
+
+export async function fetchMessages(sid: string): Promise<Message[]> {
+  const { data } = await api.GET("/sessions/{sid}/messages", {
+    params: { path: { sid } },
+  });
+  return data ?? [];
+}
+
+export async function uploadAttachment(
+  sid: string,
+  file: File,
+): Promise<{ id: string; media_type: string; filename: string }> {
+  const base = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  const form = new FormData();
+  form.append("file", file);
+  const token = useAuthStore.getState().token;
+  const r = await fetch(`${base}/sessions/${sid}/attachments`, {
+    method: "POST",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!r.ok) throw new Error("upload failed");
+  return r.json();
 }
 
 export async function fetchProviders(): Promise<Provider[]> {
