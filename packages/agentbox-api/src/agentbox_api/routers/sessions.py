@@ -7,7 +7,8 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
-from agentbox_api.runtime import build_registry, delete_session_data, resolve_agent_runtime
+from agentbox_api.runtime import delete_session_data
+from agentbox_api.skills import prepare_agent, render_skill
 from agentbox_api.streaming import agui_response
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
@@ -34,6 +35,7 @@ class SessionCreate(BaseModel):
 class MessageRequest(BaseModel):
     content: str
     mode: str | None = None
+    skill: str | None = None
     fork: bool = False
     fork_from_turn_id: str | None = None
     attachment_ids: list[str] = []
@@ -259,9 +261,14 @@ async def chat(
             await s.execute(select(Project).where(Project.id == srow.project_id))
         ).scalars().first()
 
-    runtime = await resolve_agent_runtime(factory, agent.name)
-    spec = runtime.spec
-    resolved = runtime.model
+    prepared = await prepare_agent(
+        factory,
+        agent.name,
+        project.path,
+        request.app.state.settings.skills_user_dir,
+    )
+    spec = prepared.spec
+    resolved = prepared.runtime.model
 
     store = SQLiteMessageLogStore(factory, sid)
     session = Session(
@@ -282,7 +289,7 @@ async def chat(
             if leaves:
                 session.head_id = leaves[-1].id
 
-    prompt_override = None
+    binary = []
     if body.attachment_ids:
         from pydantic_ai.messages import BinaryContent
 
@@ -295,11 +302,20 @@ async def chat(
                 )
             ).scalars().all()
         binary = [BinaryContent(data=a.data, media_type=a.media_type) for a in arows]
-        if binary:
-            prompt_override = [body.content, *binary]
+
+    prefix = []
+    if body.skill:
+        skill = next((s for s in prepared.skills if s.name == body.skill), None)
+        if skill is None:
+            raise HTTPException(status_code=400, detail="Unknown skill")
+        prefix = [render_skill(skill)]
+
+    prompt_override = (
+        [*prefix, body.content, *binary] if (prefix or binary) else None
+    )
 
     harness = Harness(
-        registry=build_registry(project.path),
+        registry=prepared.registry,
         model=resolved,
         store_factory=lambda: SQLiteMessageLogStore(factory, sid),
     )

@@ -8,8 +8,9 @@ from dataclasses import dataclass
 
 from skills_ref import read_properties, to_prompt
 
-from agentbox_api.runtime import build_registry, resolve_agent_runtime
+from agentbox_api.runtime import AgentRuntime, build_registry, resolve_agent_runtime
 from agentbox_harness.spec import AgentSpec, NativeToolBinding
+from agentbox_harness.tools.registry import ToolRegistry
 
 _BUILTIN = pathlib.Path(__file__).parent / "skills_builtin"
 
@@ -88,36 +89,40 @@ def _strip_frontmatter(text: str) -> str:
     return text
 
 
+def render_skill(skill: Skill) -> str:
+    base = skill.location.parent
+    body = _strip_frontmatter(skill.location.read_text(encoding="utf-8"))
+    resources = sorted(
+        p.relative_to(base).as_posix()
+        for p in base.rglob("*")
+        if p.is_file() and p != skill.location
+    )
+    listing = "\n".join(resources)
+    return (
+        f"<skill_content name={skill.name!r}>\n{body}\n\n"
+        f"Skill directory: {base}\nResources:\n{listing}\n</skill_content>"
+    )
+
+
 def make_activate_tool(skills: list[Skill]) -> Callable:
     by_name = {s.name: s for s in skills}
 
     async def activate_skill(name: str) -> str:
         skill = by_name.get(name)
         if skill is None:
-            raise ValueError(
+            return (
                 f"Unknown skill: {name}. Available: {', '.join(sorted(by_name))}"
             )
-        base = skill.location.parent
-        body = _strip_frontmatter(skill.location.read_text(encoding="utf-8"))
-        resources = sorted(
-            p.relative_to(base).as_posix()
-            for p in base.rglob("*")
-            if p.is_file() and p != skill.location
-        )
-        listing = "\n".join(resources)
-        return (
-            f"<skill_content name={name!r}>\n{body}\n\n"
-            f"Skill directory: {base}\nResources:\n{listing}\n</skill_content>"
-        )
+        return render_skill(skill)
 
     return activate_skill
 
 
 @dataclass
 class PreparedAgent:
-    runtime: object
+    runtime: AgentRuntime
     spec: AgentSpec
-    registry: object
+    registry: ToolRegistry
     skills: list[Skill]
 
 
