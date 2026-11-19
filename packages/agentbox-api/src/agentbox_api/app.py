@@ -12,6 +12,7 @@ from agentbox_api.logging import configure_logging
 from agentbox_api.routers.agents import router as agents_router
 from agentbox_api.routers.api_keys import router as api_keys_router
 from agentbox_api.routers.auth import router as auth_router
+from agentbox_api.routers.labels import router as labels_router
 from agentbox_api.routers.models import router as models_router
 from agentbox_api.routers.permissions import router as permissions_router
 from agentbox_api.routers.projects import router as projects_router
@@ -61,6 +62,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
     app.include_router(users_router)
     app.include_router(roles_router)
     app.include_router(api_keys_router)
+    app.include_router(labels_router)
     app.include_router(skills_router)
 
     @app.get("/sandbox", include_in_schema=False)

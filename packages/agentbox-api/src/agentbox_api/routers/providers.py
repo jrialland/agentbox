@@ -6,8 +6,9 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
+from agentbox_api.routers.models import ModelRead, model_read
 from agentbox_models.repos.crud import ProviderRepository
-from agentbox_models.tables.core import Agent, Model, Provider
+from agentbox_models.tables.core import Agent, Model, ModelLabelLink, Provider
 from agentbox_providers.models import list_models
 
 router = APIRouter(prefix="/providers", tags=["providers"])
@@ -77,7 +78,7 @@ async def update_provider(
     return provider
 
 
-@router.post("/{pid}/models/refresh", response_model=list[Model])
+@router.post("/{pid}/models/refresh", response_model=list[ModelRead])
 async def refresh_models(
     pid: str, request: Request, _=Depends(require_permission("providers:list-models"))
 ):
@@ -99,7 +100,8 @@ async def refresh_models(
         rows = (
             await s.execute(select(Model).where(Model.provider_id == pid))
         ).scalars().all()
-    return rows
+        result = [await model_read(s, row) for row in rows]
+    return result
 
 
 @router.delete("/{pid}")
@@ -126,6 +128,15 @@ async def delete_provider(
             ).scalars().first()
             if in_use is not None:
                 raise HTTPException(status_code=409, detail="Model in use")
+            links = (
+                await s.execute(
+                    select(ModelLabelLink).where(
+                        ModelLabelLink.model_id.in_(model_ids)  # ty: ignore[missing-attribute]
+                    )
+                )
+            ).scalars().all()
+            for link in links:
+                await s.delete(link)
         for model in models:
             await s.delete(model)
         await s.delete(provider)
