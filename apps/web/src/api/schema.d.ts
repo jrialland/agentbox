@@ -567,6 +567,42 @@ export interface components {
              * @default []
              */
             scopes: string[];
+            /** Expires At */
+            expires_at?: string | null;
+        };
+        /** ApiKeyCreated */
+        ApiKeyCreated: {
+            /** Id */
+            id: string;
+            /** Scopes */
+            scopes: string[];
+            /** Expires At */
+            expires_at?: string | null;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Key */
+            key: string;
+        };
+        /** ApiKeyRead */
+        ApiKeyRead: {
+            /** Id */
+            id: string;
+            /** Scopes */
+            scopes: string[];
+            /** Expires At */
+            expires_at?: string | null;
+            /** Revoked At */
+            revoked_at?: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** AttachmentRead */
         AttachmentRead: {
@@ -2237,7 +2273,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ApiKeyRead"][];
                 };
             };
         };
@@ -2261,7 +2297,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["ApiKeyCreated"];
                 };
             };
             /** @description Validation Error */
