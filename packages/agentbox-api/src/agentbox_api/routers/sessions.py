@@ -65,12 +65,36 @@ async def list_sessions(request: Request, _=Depends(require_permission("sessions
     return await SessionRepository(request.app.state.session_factory).list()
 
 
-@router.get("/{sid}", response_model=SessionRow)
-async def get_session(sid: str, request: Request, _=Depends(require_permission("sessions:read"))):
-    s = await SessionRepository(request.app.state.session_factory).get(sid)
-    if s is None:
-        raise HTTPException(status_code=404, detail="Not found")
-    return s
+class SessionDetail(BaseModel):
+    id: str
+    project_id: str
+    agent_id: str
+    agent_name: str
+    head_turn_id: str | None = None
+    created_at: str
+
+
+@router.get("/{sid}", response_model=SessionDetail)
+async def get_session(
+    sid: str, request: Request, _=Depends(require_permission("sessions:read"))
+):
+    async with request.app.state.session_factory() as s:
+        row = (
+            await s.execute(select(SessionRow).where(SessionRow.id == sid))
+        ).scalars().first()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        agent = (
+            await s.execute(select(Agent).where(Agent.id == row.agent_id))
+        ).scalars().first()
+    return SessionDetail(
+        id=row.id,
+        project_id=row.project_id,
+        agent_id=row.agent_id,
+        agent_name=agent.name if agent is not None else "",
+        head_turn_id=row.head_turn_id,
+        created_at=row.created_at.isoformat() if row.created_at else "",
+    )
 
 
 class MessageRead(BaseModel):

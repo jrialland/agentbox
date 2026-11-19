@@ -250,6 +250,132 @@
         }
       }
     },
+    "/agents/{name}/avatar": {
+      "get": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "Get Avatar",
+        "operationId": "get_avatar_agents__name__avatar_get",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "Upload Avatar",
+        "operationId": "upload_avatar_agents__name__avatar_put",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_avatar_agents__name__avatar_put"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "Reset Avatar",
+        "operationId": "reset_avatar_agents__name__avatar_delete",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/providers": {
       "get": {
         "tags": [
@@ -657,7 +783,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SessionRow"
+                  "$ref": "#/components/schemas/SessionDetail"
                 }
               }
             }
@@ -1393,6 +1519,20 @@
         ],
         "title": "Body_upload_attachment_sessions__sid__attachments_post"
       },
+      "Body_upload_avatar_agents__name__avatar_put": {
+        "properties": {
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          }
+        },
+        "type": "object",
+        "required": [
+          "file"
+        ],
+        "title": "Body_upload_avatar_agents__name__avatar_put"
+      },
       "CallToolBody": {
         "properties": {
           "name": {
@@ -1909,6 +2049,50 @@
           "agent_id"
         ],
         "title": "SessionCreate"
+      },
+      "SessionDetail": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "project_id": {
+            "type": "string",
+            "title": "Project Id"
+          },
+          "agent_id": {
+            "type": "string",
+            "title": "Agent Id"
+          },
+          "agent_name": {
+            "type": "string",
+            "title": "Agent Name"
+          },
+          "head_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Head Turn Id"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "project_id",
+          "agent_id",
+          "agent_name",
+          "created_at"
+        ],
+        "title": "SessionDetail"
       },
       "SessionRow": {
         "properties": {

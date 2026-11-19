@@ -91,6 +91,25 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/agents/{name}/avatar": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Avatar */
+        get: operations["get_avatar_agents__name__avatar_get"];
+        /** Upload Avatar */
+        put: operations["upload_avatar_agents__name__avatar_put"];
+        post?: never;
+        /** Reset Avatar */
+        delete: operations["reset_avatar_agents__name__avatar_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/providers": {
         parameters: {
             query?: never;
@@ -489,6 +508,11 @@ export interface components {
             /** File */
             file: string;
         };
+        /** Body_upload_avatar_agents__name__avatar_put */
+        Body_upload_avatar_agents__name__avatar_put: {
+            /** File */
+            file: string;
+        };
         /** CallToolBody */
         CallToolBody: {
             /** Name */
@@ -692,6 +716,21 @@ export interface components {
             project_id: string;
             /** Agent Id */
             agent_id: string;
+        };
+        /** SessionDetail */
+        SessionDetail: {
+            /** Id */
+            id: string;
+            /** Project Id */
+            project_id: string;
+            /** Agent Id */
+            agent_id: string;
+            /** Agent Name */
+            agent_name: string;
+            /** Head Turn Id */
+            head_turn_id?: string | null;
+            /** Created At */
+            created_at: string;
         };
         /** SessionRow */
         SessionRow: {
@@ -911,6 +950,103 @@ export interface operations {
         };
     };
     delete_agent_agents__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_avatar_agents__name__avatar_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_avatar_agents__name__avatar_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_avatar_agents__name__avatar_put"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_avatar_agents__name__avatar_delete: {
         parameters: {
             query?: never;
             header?: never;
@@ -1261,7 +1397,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionRow"];
+                    "application/json": components["schemas"]["SessionDetail"];
                 };
             };
             /** @description Validation Error */
