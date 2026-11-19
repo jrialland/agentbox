@@ -244,13 +244,14 @@ function ModelLabelsModal({
           <TextInput
             label="Label"
             value={row.label}
-            onChange={(e) =>
+            onChange={(e) => {
+              const value = e.currentTarget.value;
               setRows((prev) =>
                 prev.map((item, i) =>
-                  i === index ? { ...item, label: e.currentTarget.value } : item,
+                  i === index ? { ...item, label: value } : item,
                 ),
-              )
-            }
+              );
+            }}
           />
           <NumberInput
             label="Priority"
