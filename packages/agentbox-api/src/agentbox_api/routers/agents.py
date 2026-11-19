@@ -1,5 +1,8 @@
 import hashlib
+import json
+import uuid
 
+from a2a import types as a2a_types
 from fastapi import (
     APIRouter,
     Depends,
@@ -9,6 +12,7 @@ from fastapi import (
     Response,
     UploadFile,
 )
+from google.protobuf import json_format
 from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
@@ -23,7 +27,7 @@ from agentbox_harness.spec import (
     NativeToolBinding,
 )
 from agentbox_models.repos.agents import AgentRepository
-from agentbox_models.tables.core import Agent
+from agentbox_models.tables.core import Agent, AgentCard
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -168,3 +172,73 @@ async def reset_avatar(
         await s.commit()
     logger.info("avatar reset agent={}", name)
     return Response(status_code=204)
+
+
+@router.get("/{name}/card")
+async def get_agent_card(
+    name: str, request: Request, _=Depends(require_permission("agents:read"))
+):
+    async with request.app.state.session_factory() as s:
+        agent = (
+            await s.execute(select(Agent).where(Agent.name == name))
+        ).scalars().first()
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        row = (
+            await s.execute(select(AgentCard).where(AgentCard.agent_id == agent.id))
+        ).scalars().first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="No agent card")
+    return json.loads(row.card)
+
+
+@router.put("/{name}/card")
+async def set_agent_card(
+    name: str,
+    body: dict,
+    request: Request,
+    _=Depends(require_permission("agents:create")),
+):
+    try:
+        json_format.ParseDict(body, a2a_types.AgentCard())
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid A2A agent card") from None
+    async with request.app.state.session_factory() as s:
+        agent = (
+            await s.execute(select(Agent).where(Agent.name == name))
+        ).scalars().first()
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        row = (
+            await s.execute(select(AgentCard).where(AgentCard.agent_id == agent.id))
+        ).scalars().first()
+        if row is None:
+            row = AgentCard(id=uuid.uuid4().hex, agent_id=agent.id, card=json.dumps(body))
+            s.add(row)
+        else:
+            row.card = json.dumps(body)
+            s.add(row)
+        await s.commit()
+    logger.info("agent card set agent={}", name)
+    return body
+
+
+@router.delete("/{name}/card")
+async def delete_agent_card(
+    name: str, request: Request, _=Depends(require_permission("agents:create"))
+):
+    async with request.app.state.session_factory() as s:
+        agent = (
+            await s.execute(select(Agent).where(Agent.name == name))
+        ).scalars().first()
+        if agent is not None:
+            row = (
+                await s.execute(
+                    select(AgentCard).where(AgentCard.agent_id == agent.id)
+                )
+            ).scalars().first()
+            if row is not None:
+                await s.delete(row)
+                await s.commit()
+    return {"ok": True}
+

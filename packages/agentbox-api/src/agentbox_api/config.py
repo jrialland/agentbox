@@ -8,5 +8,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expiry_seconds: int = 3600
     cors_origins: list[str] = ["http://localhost:5173"]
+    a2a_workspace: str = "."
+    a2a_public_url: str = "http://localhost:8000"
 
     model_config = SettingsConfigDict(env_file=".env")
