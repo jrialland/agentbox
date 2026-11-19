@@ -37,8 +37,8 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | File tools (Codex / MCP FileSystem parity) | DONE | `FilesystemToolbox` mirrors MCP FileSystem tool set, sandboxed to project root. |
 | Agent definition (name, description, prompt, tools, sub-agents, model) | DONE | `AgentSpec` + full agent create form. |
 | Sub-agents | DONE | Harness agents-as-tools (isolated runs). |
-| Agent avatar (attach photo) | DEFERRED | `Agent.avatar_url` column exists; no UI/logic. |
-| **RoboHash avatars (set #1) by default + copyright notices** | DEFERRED | Not implemented; must use RoboHash set 1 when built. |
+| Agent avatar (attach photo) | DONE | `GET/PUT/DELETE /agents/{name}/avatar`; normalized 300×300 PNG upload; create-form picker + per-row change/remove. |
+| **RoboHash avatars (set #1) by default + copyright notices** | DONE | Local `robohash` lib (`roboset="set1"`), seeded by agent id; `NOTICE` + README credits (Zikri Kader, CC-BY). |
 
 ## Use case 2 — LLM configuration
 
@@ -115,15 +115,15 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 8 | Agents + providers management (E2E) | `specs/2026-11-17-web-management-design.md` | `plans/2026-11-17-web-management.md` |
 | 9 | Chat (core + edit/fork + composer) | `specs/2026-11-17-web-chat-design.md` | `plans/2026-11-17-web-chat.md` |
 | 10 | MCP Apps (right-side tabs + relay + sandbox) | `specs/2026-11-17-web-mcp-apps-design.md` | `plans/2026-11-17-web-mcp-apps.md` |
+| 11 | Agent avatars (RoboHash set1 + custom photo) | `specs/2026-11-17-agent-avatars-design.md` | `plans/2026-11-17-agent-avatars.md` |
 
 ## Deferred backlog (not yet scheduled)
 
 1. **Skills system** + `/` autocomplete.
 2. **`@` file autocomplete** (needs a project file-listing endpoint).
-3. **RoboHash avatars** (set #1, with required copyright notices) + avatar UI.
-4. **ACP** adapter (IDE over STDIO).
-5. **A2A** adapter + agent cards + A2A enablement per agent.
-6. **Permissions CRUD** router (admin UI for permissions).
-7. **API-key lifetime** exposure in the create endpoint/UI.
-8. **loguru** wiring in the backend.
-9. Provider **edit (PUT)** endpoints; **session delete**.
+3. **ACP** adapter (IDE over STDIO).
+4. **A2A** adapter + agent cards + A2A enablement per agent.
+5. **Permissions CRUD** router (admin UI for permissions).
+6. **API-key lifetime** exposure in the create endpoint/UI.
+7. **loguru** wiring in the backend.
+8. Provider **edit (PUT)** endpoints; **session delete**.
