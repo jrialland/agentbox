@@ -1,5 +1,6 @@
 import uuid
 
+from loguru import logger
 from pydantic_ai.models import Model
 
 from agentbox_harness.agent_factory import build_agent
@@ -73,6 +74,12 @@ class Harness:
         spec = session.agent_spec
         if spec is None:
             raise ValueError("Session has no agent spec")
+        logger.debug(
+            "harness run start agent={} mode={} session={}",
+            spec.name,
+            mode.name,
+            session.session_id,
+        )
         agent = build_agent(
             spec,
             mode,

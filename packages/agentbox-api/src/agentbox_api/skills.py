@@ -6,6 +6,7 @@ import pathlib
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from loguru import logger
 from skills_ref import read_properties, to_prompt
 
 from agentbox_api.runtime import AgentRuntime, build_registry, resolve_agent_runtime
@@ -52,6 +53,7 @@ def discover_skills(project_root: str, user_dir: str) -> list[Skill]:
     for scope in ("builtin", "user", "project"):
         for skill in scopes[scope]:
             merged[skill.name] = skill
+    logger.debug("skills discovered count={}", len(merged))
     return list(merged.values())
 
 
@@ -110,9 +112,11 @@ def make_activate_tool(skills: list[Skill]) -> Callable:
     async def activate_skill(name: str) -> str:
         skill = by_name.get(name)
         if skill is None:
+            logger.warning("unknown skill name={}", name)
             return (
                 f"Unknown skill: {name}. Available: {', '.join(sorted(by_name))}"
             )
+        logger.info("skill activated name={}", name)
         return render_skill(skill)
 
     return activate_skill

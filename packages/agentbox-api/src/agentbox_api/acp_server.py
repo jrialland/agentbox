@@ -19,6 +19,7 @@ from typing import cast
 import acp
 from acp import PROTOCOL_VERSION, run_agent
 from acp import schema as s
+from loguru import logger
 from pydantic_ai.messages import (
     BinaryContent,
     FunctionToolCallEvent,
@@ -235,6 +236,7 @@ class AgentboxAcpAgent:
             session_id, cwd, project_id, runtime.agent_id, spec, runtime.model,
             prepared.registry, mode,
         )
+        logger.info("acp session new agent={} session={}", self._agent_name, session_id)
         return s.NewSessionResponse(session_id=session_id, modes=_modes(spec, mode))
 
     async def prompt(self, session_id, prompt, **kwargs):
@@ -244,6 +246,7 @@ class AgentboxAcpAgent:
         client = self._client
         if client is None:
             raise RuntimeError("ACP client not connected")
+        logger.info("acp run start session={}", session_id)
         parts = prompt_parts(prompt)
         text = "".join(p for p in parts if isinstance(p, str))
         store = SQLiteMessageLogStore(self._factory, session_id)
@@ -303,6 +306,7 @@ class AgentboxAcpAgent:
         sess = self._sessions.get(session_id)
         if sess is not None and sess.run is not None:
             sess.run.cancel()
+        logger.info("acp cancel session={}", session_id)
 
     async def set_session_mode(self, session_id, mode_id, **kwargs):
         sess = self._sessions.get(session_id)

@@ -1,4 +1,5 @@
 import httpx
+from loguru import logger
 
 from agentbox_models.tables.core import Provider
 from agentbox_providers.api_keys import resolve_api_key
@@ -19,4 +20,6 @@ async def list_models(provider: Provider) -> list[str]:
     if key:
         headers["Authorization"] = f"Bearer {key}"
     data = await _get_json(provider.models_url, headers=headers)
-    return [item["id"] for item in data.get("data", [])]
+    models = [item["id"] for item in data.get("data", [])]
+    logger.debug("listed {} models provider={}", len(models), provider.name)
+    return models

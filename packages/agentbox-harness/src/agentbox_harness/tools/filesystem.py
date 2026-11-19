@@ -2,6 +2,8 @@ import pathlib
 import shutil
 from dataclasses import dataclass
 
+from loguru import logger
+
 
 class PathEscapesRootError(Exception):
     pass
@@ -30,6 +32,7 @@ class FilesystemToolbox:
         ).resolve()
         roots = [self.root_dir] if write else self._read_roots
         if not any(p == r or r in p.parents for r in roots):
+            logger.warning("path escapes root path={} root={}", path, self.root_dir)
             raise PathEscapesRootError(path)
         return p
 

@@ -1,6 +1,7 @@
 import asyncio
 from dataclasses import dataclass
 
+from loguru import logger
 from pydantic_ai import Agent, AgentRunResultEvent, CancellationToken
 
 from agentbox_harness.errors import RunOutcome, normalize_error
@@ -82,5 +83,6 @@ class RunManager:
                         final = event.result
             return final
         except BaseException as exc:
+            logger.exception("run failed id={}", run_id)
             bus.publish(RunEvent(run_id=run_id, seq=seq, event=normalize_error(exc)))
             raise

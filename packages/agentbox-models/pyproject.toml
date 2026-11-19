@@ -5,6 +5,7 @@ description = "Data model and persistence for Agentbox"
 requires-python = ">=3.11"
 dependencies = [
     "sqlmodel>=0.0.14",
+    "loguru>=0.7",
     "sqlalchemy[asyncio]>=2.0",
     "aiosqlite>=0.19",
     "alembic>=1.13",

@@ -14,6 +14,7 @@ from a2a.helpers import (
 from a2a.server.agent_execution import AgentExecutor, RequestContext
 from a2a.server.events import EventQueue
 from a2a.server.tasks import TaskUpdater
+from loguru import logger
 from pydantic_ai.messages import PartDeltaEvent, PartStartEvent, TextPart, TextPartDelta
 from sqlmodel import select
 
@@ -76,6 +77,7 @@ class AgentboxA2AExecutor(AgentExecutor):
         updater = TaskUpdater(event_queue, task.id, task.context_id)
         await updater.start_work()
         session_id = task.context_id
+        logger.info("a2a run start agent={} session={}", self._agent_name, session_id)
         workspace = self._settings.a2a_workspace
         prepared = await prepare_agent(
             self._factory, self._agent_name, workspace, self._settings.skills_user_dir
@@ -156,6 +158,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             )
             await updater.complete()
         else:
+            logger.warning("a2a run failed session={} status={}", session_id, outcome.status)
             await updater.failed(message=new_text_message(outcome.message or "error"))
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:

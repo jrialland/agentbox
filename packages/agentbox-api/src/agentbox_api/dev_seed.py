@@ -1,5 +1,6 @@
 import uuid
 
+from loguru import logger
 from sqlmodel import select
 
 from agentbox_api.security import hash_password
@@ -54,3 +55,4 @@ async def seed_admin(factory) -> None:
             s.add(RolePermissionLink(role_id=rid, permission_id=pid))
         s.add(UserRoleLink(user_id=uid, role_id=rid))
         await s.commit()
+        logger.info("seeded admin user")

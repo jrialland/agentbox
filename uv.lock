@@ -135,6 +135,7 @@ name = "agentbox-harness"
 version = "0.1.0"
 source = { editable = "packages/agentbox-harness" }
 dependencies = [
+    { name = "loguru" },
     { name = "pydantic" },
     { name = "pydantic-ai" },
 ]
@@ -147,6 +148,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "loguru", specifier = ">=0.7" },
     { name = "pydantic", specifier = ">=2.0" },
     { name = "pydantic-ai", specifier = ">=0.0.1" },
 ]
@@ -165,6 +167,7 @@ dependencies = [
     { name = "agentbox-harness" },
     { name = "aiosqlite" },
     { name = "alembic" },
+    { name = "loguru" },
     { name = "sqlalchemy", extra = ["asyncio"] },
     { name = "sqlmodel" },
 ]
@@ -180,6 +183,7 @@ requires-dist = [
     { name = "agentbox-harness", editable = "packages/agentbox-harness" },
     { name = "aiosqlite", specifier = ">=0.19" },
     { name = "alembic", specifier = ">=1.13" },
+    { name = "loguru", specifier = ">=0.7" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2.0" },
     { name = "sqlmodel", specifier = ">=0.0.14" },
 ]
@@ -197,6 +201,7 @@ source = { editable = "packages/agentbox-providers" }
 dependencies = [
     { name = "agentbox-models" },
     { name = "httpx" },
+    { name = "loguru" },
     { name = "pydantic-ai" },
 ]
 
@@ -210,6 +215,7 @@ dev = [
 requires-dist = [
     { name = "agentbox-models", editable = "packages/agentbox-models" },
     { name = "httpx", specifier = ">=0.27" },
+    { name = "loguru", specifier = ">=0.7" },
     { name = "pydantic-ai", specifier = ">=2.0" },
 ]
 

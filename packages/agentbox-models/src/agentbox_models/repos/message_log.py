@@ -1,3 +1,4 @@
+from loguru import logger
 from sqlmodel import select
 
 from agentbox_harness.session import Turn
@@ -21,6 +22,7 @@ class SQLiteMessageLogStore:
                 )
             )
             await s.commit()
+            logger.debug("turn appended session={} role={}", self._session_id, turn.role)
 
     async def list_turns(self) -> list[Turn]:
         async with self._factory() as s:

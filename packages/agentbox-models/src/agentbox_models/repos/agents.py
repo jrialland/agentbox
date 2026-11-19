@@ -1,6 +1,7 @@
 import json
 import uuid
 
+from loguru import logger
 from sqlmodel import select
 
 from agentbox_harness.spec import (
@@ -67,6 +68,7 @@ class AgentRepository:
             row.sub_agent_ids = json.dumps(spec.sub_agent_ids)
             s.add(row)
             await s.commit()
+            logger.info("agent saved name={}", spec.name)
         return spec
 
     async def load(self, name: str) -> AgentSpec | None:
@@ -110,3 +112,4 @@ class AgentRepository:
             if row is not None:
                 await s.delete(row)
                 await s.commit()
+                logger.info("agent deleted name={}", name)

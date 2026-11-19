@@ -1,6 +1,7 @@
 import re
 
 from fastmcp.client.transports import StdioTransport
+from loguru import logger
 from pydantic_ai.mcp import MCPToolset
 
 from agentbox_harness.spec import McpToolBinding
@@ -16,6 +17,7 @@ def _slug(value: str) -> str:
 
 
 def build_mcp_toolset(binding: McpToolBinding) -> MCPToolset:
+    logger.debug("mcp toolset built id={} stdio={}", mcp_toolset_id(binding), bool(binding.command))
     if binding.command:
         transport = StdioTransport(
             command=binding.command,

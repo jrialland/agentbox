@@ -1,5 +1,6 @@
 from collections.abc import Callable
 
+from loguru import logger
 from pydantic_ai import Agent
 from pydantic_ai.models import Model
 
@@ -59,6 +60,7 @@ def build_agent(
         build_subagent_tools(spec, sub_agents, registry, model, depth, max_depth)
     )
     toolsets = [build_mcp_toolset(b) for b in mcp_bindings]
+    logger.debug("agent built name={} tools={} toolsets={}", spec.name, len(tools), len(toolsets))
     return Agent(
         model=model,
         name=spec.name,

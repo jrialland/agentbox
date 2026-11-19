@@ -2,6 +2,7 @@ import pathlib
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from loguru import logger
 from pydantic_ai.models import Model as PydanticModel
 from sqlmodel import select
 
@@ -61,6 +62,7 @@ async def resolve_agent_runtime(factory, agent_name: str) -> AgentRuntime:
     spec = await AgentRepository(factory).load(agent_name)
     if spec is None:
         raise KeyError(agent_name)
+    logger.debug("agent runtime resolved agent={} model={}", agent_name, model.name)
     return AgentRuntime(
         agent_id=agent.id,
         created_by=agent.created_by,

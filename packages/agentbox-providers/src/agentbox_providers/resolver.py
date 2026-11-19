@@ -1,3 +1,4 @@
+from loguru import logger
 from pydantic_ai.models import Model
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.ollama import OllamaModel
@@ -12,6 +13,7 @@ from agentbox_providers.api_keys import resolve_api_key
 
 def resolve_model(provider: Provider, model_name: str) -> Model:
     kind = provider.kind
+    logger.debug("resolving model provider={} kind={} model={}", provider.name, kind, model_name)
     if kind == "openai_legacy":
         return OpenAIChatModel(
             model_name, provider=OpenAIProvider(api_key=resolve_api_key(provider))
