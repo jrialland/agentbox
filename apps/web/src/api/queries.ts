@@ -13,8 +13,11 @@ import {
   fetchModels,
   fetchProjects,
   fetchProviders,
+  fetchSession,
   fetchSessions,
   refreshModels,
+  resetAgentAvatar,
+  uploadAgentAvatar,
 } from "./endpoints";
 
 export function useProjects() {
@@ -105,5 +108,36 @@ export function useDeleteAgent() {
   return useMutation({
     mutationFn: deleteAgent,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+export function useSession(sessionId: string) {
+  return useQuery({
+    queryKey: ["session", sessionId],
+    queryFn: () => fetchSession(sessionId),
+    enabled: !!sessionId,
+  });
+}
+
+export function useUploadAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ name, file }: { name: string; file: File }) =>
+      uploadAgentAvatar(name, file),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+}
+
+export function useResetAvatar() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (name: string) => resetAgentAvatar(name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["agents"] });
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
   });
 }

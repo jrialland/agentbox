@@ -1,3 +1,4 @@
+import { API_URL } from "../config";
 import { useAuthStore } from "../store/auth";
 import { api } from "./client";
 import type { components } from "./schema";
@@ -55,7 +56,7 @@ export async function uploadAttachment(
   sid: string,
   file: File,
 ): Promise<{ id: string; media_type: string; filename: string }> {
-  const base = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+  const base = API_URL;
   const form = new FormData();
   form.append("file", file);
   const token = useAuthStore.getState().token;
@@ -117,4 +118,35 @@ export async function createAgent(body: {
 
 export async function deleteAgent(name: string): Promise<void> {
   await api.DELETE("/agents/{name}", { params: { path: { name } } });
+}
+
+export type SessionDetail = components["schemas"]["SessionDetail"];
+
+export async function fetchSession(sid: string): Promise<SessionDetail> {
+  const { data, error } = await api.GET("/sessions/{sid}", {
+    params: { path: { sid } },
+  });
+  if (error) throw new Error("Failed to fetch session");
+  return data as SessionDetail;
+}
+
+export async function uploadAgentAvatar(name: string, file: File): Promise<void> {
+  const form = new FormData();
+  form.append("file", file);
+  const token = useAuthStore.getState().token;
+  const r = await fetch(`${API_URL}/agents/${encodeURIComponent(name)}/avatar`, {
+    method: "PUT",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    body: form,
+  });
+  if (!r.ok) throw new Error("avatar upload failed");
+}
+
+export async function resetAgentAvatar(name: string): Promise<void> {
+  const token = useAuthStore.getState().token;
+  const r = await fetch(`${API_URL}/agents/${encodeURIComponent(name)}/avatar`, {
+    method: "DELETE",
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!r.ok) throw new Error("avatar reset failed");
 }
