@@ -2,7 +2,7 @@ import { Button, Select, Textarea } from "@mantine/core";
 import { useRef, useState } from "react";
 
 import { uploadAttachment } from "../api/endpoints";
-import { useSkills } from "../api/queries";
+import { useSessionFiles, useSkills } from "../api/queries";
 import { speechAvailable, startSpeech } from "./speech";
 
 type Attachment = { id: string; filename: string };
@@ -37,6 +37,18 @@ export function Composer({
     slash === null
       ? []
       : (skills ?? []).filter((s) => s.name.includes(slash)).slice(0, 8);
+
+  const at = value.lastIndexOf("@");
+  const atQuery = at >= 0 ? value.slice(at + 1) : null;
+  const atActive =
+    slash === null && atQuery !== null && atQuery !== "" && !/\s/.test(atQuery);
+  const { data: files } = useSessionFiles(sessionId, atActive ? atQuery : "");
+  const fileMatches = atActive ? (files ?? []).slice(0, 8) : [];
+
+  function pickFile(path: string) {
+    if (at < 0) return;
+    setValue(`${value.slice(0, at)}@${path} `);
+  }
 
   async function onFiles(files: FileList | null) {
     if (!files) return;
@@ -92,6 +104,20 @@ export function Composer({
               }}
             >
               /{s.name} — {s.description}
+            </button>
+          ))}
+        </div>
+      )}
+      {atActive && fileMatches.length > 0 && (
+        <div className="box" data-testid="file-menu">
+          {fileMatches.map((p) => (
+            <button
+              key={p}
+              type="button"
+              className="is-block"
+              onClick={() => pickFile(p)}
+            >
+              @{p}
             </button>
           ))}
         </div>

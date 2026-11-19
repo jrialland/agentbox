@@ -8,6 +8,7 @@ vi.mock("../api/queries", () => ({
   useMessages: () => ({ data: [] }),
   useSession: () => ({ data: { agent_name: "bot" } }),
   useSkills: () => ({ data: [] }),
+  useSessionFiles: () => ({ data: [] }),
 }));
 
 import { SessionPage } from "./SessionPage";
@@ -28,3 +29,4 @@ test("shows the agent avatar and name in the chat header", () => {
   expect(screen.getByTestId("session-agent")).toHaveTextContent("bot");
   expect(screen.getByRole("img", { name: "bot" })).toBeInTheDocument();
 });
+

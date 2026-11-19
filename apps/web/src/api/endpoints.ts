@@ -398,3 +398,13 @@ export async function saveSkill(
 export async function deleteSkill(name: string): Promise<void> {
   await api.DELETE("/skills/{name}", { params: { path: { name } } });
 }
+
+export async function fetchSessionFiles(
+  sid: string,
+  q: string,
+): Promise<string[]> {
+  const { data } = await api.GET("/sessions/{sid}/files", {
+    params: { path: { sid }, query: { q } },
+  });
+  return (data as { files?: string[] })?.files ?? [];
+}

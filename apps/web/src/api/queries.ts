@@ -33,6 +33,7 @@ import {
   fetchSkill,
   fetchSkills,
   fetchSession,
+  fetchSessionFiles,
   fetchSessions,
   fetchUserRoles,
   fetchUsers,
@@ -431,3 +432,12 @@ export function useDeleteSkill() {
   });
 }
 
+
+export function useSessionFiles(sid: string, q: string) {
+  return useQuery({
+    queryKey: ["session-files", sid, q],
+    queryFn: () => fetchSessionFiles(sid, q),
+    enabled: q.length > 0,
+    staleTime: 10_000,
+  });
+}
