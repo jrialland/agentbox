@@ -35,7 +35,7 @@ from sqlmodel import select
 
 from agentbox_api.config import Settings
 from agentbox_api.dev_seed import seed_admin
-from agentbox_api.runtime import build_registry, resolve_agent_runtime
+from agentbox_api.runtime import build_registry, delete_session_data, resolve_agent_runtime
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.run import Run
@@ -46,7 +46,6 @@ from agentbox_models.repos.message_log import SQLiteMessageLogStore
 from agentbox_models.tables.auth import User
 from agentbox_models.tables.core import (
     Project,
-    SessionAttachment,
     SessionRow,
     TurnRow,
 )
@@ -371,29 +370,7 @@ class AgentboxAcpAgent:
         return s.ResumeSessionResponse(modes=_modes(sess.spec, sess.mode))
 
     async def delete_session(self, session_id, **kwargs):
-        async with self._factory() as db:
-            row = (
-                await db.execute(select(SessionRow).where(SessionRow.id == session_id))
-            ).scalars().first()
-            if row is not None:
-                turns = (
-                    await db.execute(
-                        select(TurnRow).where(TurnRow.session_id == session_id)
-                    )
-                ).scalars().all()
-                for turn in turns:
-                    await db.delete(turn)
-                attachments = (
-                    await db.execute(
-                        select(SessionAttachment).where(
-                            SessionAttachment.session_id == session_id
-                        )
-                    )
-                ).scalars().all()
-                for attachment in attachments:
-                    await db.delete(attachment)
-                await db.delete(row)
-                await db.commit()
+        await delete_session_data(self._factory, session_id)
         self._sessions.pop(session_id, None)
         return s.DeleteSessionResponse()
 

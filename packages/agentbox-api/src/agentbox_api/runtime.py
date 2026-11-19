@@ -8,7 +8,14 @@ from agentbox_harness.spec import AgentSpec
 from agentbox_harness.tools.filesystem import FilesystemToolbox
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_models.repos.agents import AgentRepository
-from agentbox_models.tables.core import Agent, Model, Provider
+from agentbox_models.tables.core import (
+    Agent,
+    Model,
+    Provider,
+    SessionAttachment,
+    SessionRow,
+    TurnRow,
+)
 from agentbox_providers.resolver import resolve_model
 
 
@@ -51,3 +58,26 @@ async def resolve_agent_runtime(factory, agent_name: str) -> AgentRuntime:
         spec=spec,
         model=resolve_model(provider, model.name),
     )
+
+
+async def delete_session_data(factory, session_id: str) -> None:
+    """Delete a session's turns, attachments, and row."""
+    async with factory() as s:
+        for turn in (
+            await s.execute(select(TurnRow).where(TurnRow.session_id == session_id))
+        ).scalars().all():
+            await s.delete(turn)
+        for attachment in (
+            await s.execute(
+                select(SessionAttachment).where(
+                    SessionAttachment.session_id == session_id
+                )
+            )
+        ).scalars().all():
+            await s.delete(attachment)
+        row = (
+            await s.execute(select(SessionRow).where(SessionRow.id == session_id))
+        ).scalars().first()
+        if row is not None:
+            await s.delete(row)
+        await s.commit()

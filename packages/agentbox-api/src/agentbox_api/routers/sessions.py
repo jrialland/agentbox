@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
-from agentbox_api.runtime import build_registry, resolve_agent_runtime
+from agentbox_api.runtime import build_registry, delete_session_data, resolve_agent_runtime
 from agentbox_api.streaming import agui_response
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
@@ -93,6 +93,21 @@ async def get_session(
         head_turn_id=row.head_turn_id,
         created_at=row.created_at.isoformat() if row.created_at else "",
     )
+
+
+@router.delete("/{sid}")
+async def delete_session(
+    sid: str, request: Request, _=Depends(require_permission("sessions:create"))
+):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        row = (
+            await s.execute(select(SessionRow).where(SessionRow.id == sid))
+        ).scalars().first()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Not found")
+    await delete_session_data(factory, sid)
+    return {"ok": True}
 
 
 class MessageRead(BaseModel):

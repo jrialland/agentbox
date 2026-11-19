@@ -128,6 +128,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/providers/{pid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update Provider */
+        put: operations["update_provider_providers__pid__put"];
+        post?: never;
+        /** Delete Provider */
+        delete: operations["delete_provider_providers__pid__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/providers/{pid}/models/refresh": {
         parameters: {
             query?: never;
@@ -145,23 +163,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/providers/{pid}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        /** Delete Provider */
-        delete: operations["delete_provider_providers__pid__delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/models": {
         parameters: {
             query?: never;
@@ -172,8 +173,26 @@ export interface paths {
         /** List Models Endpoint */
         get: operations["list_models_endpoint_models_get"];
         put?: never;
-        post?: never;
+        /** Create Model */
+        post: operations["create_model_models_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/models/{mid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete Model */
+        delete: operations["delete_model_models__mid__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -280,7 +299,8 @@ export interface paths {
         get: operations["get_session_sessions__sid__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete Session */
+        delete: operations["delete_session_sessions__sid__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -491,8 +511,8 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete Api Key */
-        delete: operations["delete_api_key_api_keys__kid__delete"];
+        /** Revoke Api Key */
+        delete: operations["revoke_api_key_api_keys__kid__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -656,7 +676,10 @@ export interface components {
         };
         /** McpToolBinding */
         McpToolBinding: {
-            /** Server Url */
+            /**
+             * Server Url
+             * @default
+             */
             server_url: string;
             /**
              * Tool Prefix
@@ -668,6 +691,17 @@ export interface components {
              * @default
              */
             id: string;
+            /**
+             * Command
+             * @default
+             */
+            command: string;
+            /** Args */
+            args?: string[];
+            /** Env */
+            env?: {
+                [key: string]: string;
+            };
         };
         /** MeResponse */
         MeResponse: {
@@ -734,6 +768,13 @@ export interface components {
             model: string;
             /** Provider */
             provider: string;
+        };
+        /** ModelCreate */
+        ModelCreate: {
+            /** Provider Id */
+            provider_id: string;
+            /** Name */
+            name: string;
         };
         /** NativeToolBinding */
         NativeToolBinding: {
@@ -829,6 +870,19 @@ export interface components {
              * @default false
              */
             is_builtin: boolean;
+        };
+        /** ProviderUpdate */
+        ProviderUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** Base Url */
+            base_url?: string | null;
+            /** Api Key */
+            api_key?: string | null;
+            /** Models Url */
+            models_url?: string | null;
         };
         /** ReadResourceBody */
         ReadResourceBody: {
@@ -1315,7 +1369,7 @@ export interface operations {
             };
         };
     };
-    refresh_models_providers__pid__models_refresh_post: {
+    update_provider_providers__pid__put: {
         parameters: {
             query?: never;
             header?: never;
@@ -1324,7 +1378,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderUpdate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -1332,7 +1390,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Model"][];
+                    "application/json": components["schemas"]["ProviderRead"];
                 };
             };
             /** @description Validation Error */
@@ -1377,6 +1435,37 @@ export interface operations {
             };
         };
     };
+    refresh_models_providers__pid__models_refresh_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Model"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_models_endpoint_models_get: {
         parameters: {
             query?: never;
@@ -1393,6 +1482,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Model"][];
+                };
+            };
+        };
+    };
+    create_model_models_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Model"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_model_models__mid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -1702,6 +1855,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SessionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_session_sessions__sid__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
                 };
             };
             /** @description Validation Error */
@@ -2311,7 +2495,7 @@ export interface operations {
             };
         };
     };
-    delete_api_key_api_keys__kid__delete: {
+    revoke_api_key_api_keys__kid__delete: {
         parameters: {
             query?: never;
             header?: never;
