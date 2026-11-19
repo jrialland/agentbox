@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -47,9 +48,11 @@ async def create_role(
     body: RoleCreate, request: Request, _=Depends(require_permission("roles:manage"))
 ):
     repo = RoleRepository(request.app.state.session_factory)
-    return await repo.create(
+    role = await repo.create(
         Role(id=uuid.uuid4().hex, name=body.name, description=body.description)
     )
+    logger.info("role created name={}", role.name)
+    return role
 
 
 @router.get("", response_model=list[RoleRead])
@@ -82,6 +85,7 @@ async def update_role(
         s.add(role)
         await s.commit()
         await s.refresh(role)
+        logger.info("role updated name={}", role.name)
     return role
 
 
@@ -131,6 +135,7 @@ async def set_role_permissions(
         for pid in body.permission_ids:
             s.add(RolePermissionLink(role_id=rid, permission_id=pid))
         await s.commit()
+        logger.info("role permissions set role={} count={}", rid, len(body.permission_ids))
         rows = (
             await s.execute(
                 select(Permission)
@@ -164,5 +169,6 @@ async def delete_role(
                 await s.delete(link)
             await s.delete(role)
             await s.commit()
+            logger.info("role deleted id={}", rid)
     return {"ok": True}
 

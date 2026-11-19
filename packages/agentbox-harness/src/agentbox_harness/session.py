@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from loguru import logger
+
 from agentbox_harness.spec import AgentSpec
 
 
@@ -46,6 +48,7 @@ class Session:
     async def append(self, turn: Turn, parent_id: str | None) -> None:
         await self.store.append(turn)
         self.head_id = turn.id
+        logger.debug("session turn appended session={} role={}", self.session_id, turn.role)
 
     async def history(self) -> list[Turn]:
         if self.head_id is None:

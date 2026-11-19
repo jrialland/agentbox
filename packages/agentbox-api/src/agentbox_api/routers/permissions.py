@@ -2,6 +2,7 @@ import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -71,6 +72,7 @@ async def create_permission(
         s.add(perm)
         await s.commit()
         await s.refresh(perm)
+        logger.info("permission created name={}", perm.name)
     return perm
 
 
@@ -100,6 +102,7 @@ async def update_permission(
         s.add(perm)
         await s.commit()
         await s.refresh(perm)
+        logger.info("permission updated name={}", perm.name)
     return perm
 
 
@@ -120,4 +123,5 @@ async def delete_permission(
             await s.delete(link)
         await s.delete(perm)
         await s.commit()
+        logger.info("permission deleted id={}", pid)
     return {"ok": True}

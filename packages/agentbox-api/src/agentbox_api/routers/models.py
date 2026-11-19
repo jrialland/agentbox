@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -48,6 +49,7 @@ async def create_model(
         s.add(model)
         await s.commit()
         await s.refresh(model)
+        logger.info("model created provider={} name={}", model.provider_id, model.name)
     return model
 
 
@@ -68,4 +70,5 @@ async def delete_model(
             raise HTTPException(status_code=409, detail="Model in use")
         await s.delete(model)
         await s.commit()
+        logger.info("model deleted id={}", mid)
     return {"ok": True}

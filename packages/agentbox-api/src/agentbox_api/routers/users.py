@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -65,6 +66,7 @@ async def create_user(
         s.add(user)
         await s.commit()
         await s.refresh(user)
+        logger.info("user created username={}", user.username)
     return user
 
 
@@ -93,6 +95,7 @@ async def update_user(
         s.add(user)
         await s.commit()
         await s.refresh(user)
+        logger.info("user updated username={}", user.username)
     return user
 
 
@@ -136,6 +139,7 @@ async def set_user_roles(
         for rid in body.role_ids:
             s.add(UserRoleLink(user_id=uid, role_id=rid))
         await s.commit()
+        logger.info("user roles set user={} count={}", uid, len(body.role_ids))
         rows = (
             await s.execute(
                 select(Role)
@@ -167,4 +171,5 @@ async def delete_user(
                 await s.delete(key)
             await s.delete(user)
             await s.commit()
+            logger.info("user deleted id={}", uid)
     return {"ok": True}

@@ -1,10 +1,12 @@
 from collections.abc import Callable
 
+from loguru import logger
 from pydantic_ai import Agent, RunContext
 
 
 def build_subagent_tool(sub_agent: Agent) -> Callable:
     async def delegate(ctx: RunContext, task: str) -> str:
+        logger.debug("subagent delegated name={}", sub_agent.name)
         result = await sub_agent.run(task, usage=ctx.usage)
         return str(result.output)
 
