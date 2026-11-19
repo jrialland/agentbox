@@ -13,7 +13,9 @@ vi.mock("../api/queries", () => ({
   useDeleteRole: () => ({ mutateAsync: vi.fn() }),
   useRolePermissions: () => ({ data: [] }),
   useSetRolePermissions: () => ({ mutateAsync: vi.fn() }),
-  useUsers: () => ({ data: [] }),
+  useUsers: () => ({
+    data: [{ id: "u1", username: "bob", email: "b@x", is_active: true }],
+  }),
   useCreateUser: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useUpdateUser: () => ({ mutateAsync: vi.fn() }),
   useDeleteUser: () => ({ mutateAsync: vi.fn() }),
@@ -41,4 +43,10 @@ test("renders roles tab", () => {
   renderPage();
   fireEvent.click(screen.getByRole("tab", { name: "Roles" }));
   expect(screen.getByText("viewer")).toBeInTheDocument();
+});
+
+test("renders users tab", () => {
+  renderPage();
+  fireEvent.click(screen.getByRole("tab", { name: "Users" }));
+  expect(screen.getByText("bob")).toBeInTheDocument();
 });

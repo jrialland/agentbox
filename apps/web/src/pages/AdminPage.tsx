@@ -2,6 +2,8 @@ import {
   Button,
   Modal,
   MultiSelect,
+  PasswordInput,
+  Switch,
   Table,
   Tabs,
   Textarea,
@@ -10,18 +12,24 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 
-import type { Permission, Role } from "../api/endpoints";
+import type { Permission, Role, User } from "../api/endpoints";
 import {
   useCreatePermission,
   useCreateRole,
+  useCreateUser,
   useDeletePermission,
   useDeleteRole,
+  useDeleteUser,
   usePermissions,
   useRolePermissions,
   useRoles,
   useSetRolePermissions,
+  useSetUserRoles,
   useUpdatePermission,
   useUpdateRole,
+  useUpdateUser,
+  useUserRoles,
+  useUsers,
 } from "../api/queries";
 
 export function AdminPage() {
@@ -286,5 +294,157 @@ function RolePermissionsModal({
 }
 
 function UsersTab() {
-  return null;
+  const { data: users } = useUsers();
+  const { data: roles } = useRoles();
+  const create = useCreateUser();
+  const del = useDeleteUser();
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [editUser, setEditUser] = useState<User | null>(null);
+  const [rolesUser, setRolesUser] = useState<User | null>(null);
+
+  async function onCreate() {
+    try {
+      await create.mutateAsync({ username, email, password });
+      setUsername("");
+      setEmail("");
+      setPassword("");
+    } catch {
+      notifications.show({ message: "Failed to create user", color: "red" });
+    }
+  }
+
+  return (
+    <div>
+      <div className="box">
+        <TextInput
+          label="Username"
+          value={username}
+          onChange={(e) => setUsername(e.currentTarget.value)}
+        />
+        <TextInput
+          label="Email"
+          value={email}
+          onChange={(e) => setEmail(e.currentTarget.value)}
+        />
+        <PasswordInput
+          label="Password"
+          value={password}
+          onChange={(e) => setPassword(e.currentTarget.value)}
+        />
+        <Button mt="md" onClick={onCreate} loading={create.isPending}>
+          Create user
+        </Button>
+      </div>
+      <Table>
+        <Table.Thead>
+          <Table.Tr>
+            <Table.Th>Username</Table.Th>
+            <Table.Th>Email</Table.Th>
+            <Table.Th>Active</Table.Th>
+            <Table.Th>Actions</Table.Th>
+          </Table.Tr>
+        </Table.Thead>
+        <Table.Tbody>
+          {(users ?? []).map((u) => (
+            <Table.Tr key={u.id}>
+              <Table.Td>{u.username}</Table.Td>
+              <Table.Td>{u.email}</Table.Td>
+              <Table.Td>{u.is_active ? "yes" : "no"}</Table.Td>
+              <Table.Td>
+                <Button size="xs" onClick={() => setEditUser(u)}>
+                  Edit
+                </Button>{" "}
+                <Button size="xs" onClick={() => setRolesUser(u)}>
+                  Roles
+                </Button>{" "}
+                <Button size="xs" color="red" onClick={() => del.mutateAsync(u.id)}>
+                  Delete
+                </Button>
+              </Table.Td>
+            </Table.Tr>
+          ))}
+        </Table.Tbody>
+      </Table>
+      {editUser && (
+        <UserEditModal user={editUser} onClose={() => setEditUser(null)} />
+      )}
+      {rolesUser && (
+        <UserRolesModal
+          user={rolesUser}
+          roles={roles ?? []}
+          onClose={() => setRolesUser(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function UserEditModal({ user, onClose }: { user: User; onClose: () => void }) {
+  const update = useUpdateUser();
+  const [email, setEmail] = useState(user.email);
+  const [isActive, setIsActive] = useState(user.is_active);
+  const [password, setPassword] = useState("");
+  async function onSave() {
+    await update.mutateAsync({
+      uid: user.id,
+      body: { email, is_active: isActive, ...(password ? { password } : {}) },
+    });
+    onClose();
+  }
+  return (
+    <Modal opened onClose={onClose} title="Edit user">
+      <TextInput
+        label="Email"
+        value={email}
+        onChange={(e) => setEmail(e.currentTarget.value)}
+      />
+      <Switch
+        label="Active"
+        checked={isActive}
+        onChange={(e) => setIsActive(e.currentTarget.checked)}
+      />
+      <PasswordInput
+        label="New password"
+        value={password}
+        onChange={(e) => setPassword(e.currentTarget.value)}
+      />
+      <Button mt="md" onClick={onSave}>
+        Save
+      </Button>
+    </Modal>
+  );
+}
+
+function UserRolesModal({
+  user,
+  roles,
+  onClose,
+}: {
+  user: User;
+  roles: Role[];
+  onClose: () => void;
+}) {
+  const { data: current } = useUserRoles(user.id);
+  const save = useSetUserRoles();
+  const [selected, setSelected] = useState<string[] | null>(null);
+  const value = selected ?? (current ?? []).map((r) => r.id);
+  async function onSave() {
+    await save.mutateAsync({ uid: user.id, ids: value });
+    onClose();
+  }
+  return (
+    <Modal opened onClose={onClose} title={`Roles for ${user.username}`}>
+      <MultiSelect
+        label="Roles"
+        data={roles.map((r) => ({ value: r.id, label: r.name }))}
+        value={value}
+        onChange={setSelected}
+      />
+      <Button mt="md" onClick={onSave}>
+        Save
+      </Button>
+    </Modal>
+  );
 }
