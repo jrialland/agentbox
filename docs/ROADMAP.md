@@ -85,8 +85,8 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 
 | Requirement | Status | Notes |
 |---|---|---|
-| Render MCP Apps from MCP servers | DEFERRED | Sub-project: backend emits app events; frontend hosts via `@mcp-ui/client`. |
-| Shown as tabs **on the right of the conversation** (corrected from the original "left"; Claude.ai style) | DEFERRED | Same sub-project. |
+| Render MCP Apps from MCP servers | DONE | Backend MCP relay + `@mcp-ui/client` `AppRenderer` in no-client mode; app content proxied by the backend. |
+| Shown as tabs **on the right of the conversation** (corrected from the original "left"; Claude.ai style) | DONE | `AppPanel` halves the chat when a tab is open; tabs closable. |
 
 ## Technical stack
 
@@ -113,17 +113,17 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 6 | Frontend auth | `specs/2026-11-17-web-auth-design.md` | `plans/2026-11-17-web-auth.md` |
 | 7 | Projects + session tree | `specs/2026-11-17-web-projects-tree-design.md` | `plans/2026-11-17-web-projects-tree.md` |
 | 8 | Agents + providers management (E2E) | `specs/2026-11-17-web-management-design.md` | `plans/2026-11-17-web-management.md` |
-| 9 | Chat (core + edit/fork + composer) | *current* | *next* |
+| 9 | Chat (core + edit/fork + composer) | `specs/2026-11-17-web-chat-design.md` | `plans/2026-11-17-web-chat.md` |
+| 10 | MCP Apps (right-side tabs + relay + sandbox) | `specs/2026-11-17-web-mcp-apps-design.md` | `plans/2026-11-17-web-mcp-apps.md` |
 
 ## Deferred backlog (not yet scheduled)
 
 1. **Skills system** + `/` autocomplete.
 2. **`@` file autocomplete** (needs a project file-listing endpoint).
 3. **RoboHash avatars** (set #1, with required copyright notices) + avatar UI.
-4. **MCP Apps** rendered as left-hand tabs.
-5. **ACP** adapter (IDE over STDIO).
-6. **A2A** adapter + agent cards + A2A enablement per agent.
-7. **Permissions CRUD** router (admin UI for permissions).
-8. **API-key lifetime** exposure in the create endpoint/UI.
-9. **loguru** wiring in the backend.
-10. Provider **edit (PUT)** endpoints; **session delete**.
+4. **ACP** adapter (IDE over STDIO).
+5. **A2A** adapter + agent cards + A2A enablement per agent.
+6. **Permissions CRUD** router (admin UI for permissions).
+7. **API-key lifetime** exposure in the create endpoint/UI.
+8. **loguru** wiring in the backend.
+9. Provider **edit (PUT)** endpoints; **session delete**.
