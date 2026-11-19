@@ -1,9 +1,15 @@
 import { Button } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { modals } from "@mantine/modals";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { useDeleteProject, useProjects, useSessions } from "../../api/queries";
+import {
+  useDeleteProject,
+  useDeleteSession,
+  useProjects,
+  useSessions,
+} from "../../api/queries";
 import { NewProjectModal } from "./NewProjectModal";
 import { NewSessionModal } from "./NewSessionModal";
 
@@ -11,8 +17,23 @@ export function ProjectTree() {
   const { data: projects, isLoading, error } = useProjects();
   const { data: sessions } = useSessions();
   const del = useDeleteProject();
+  const deleteSession = useDeleteSession();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [projectOpen, projectModal] = useDisclosure(false);
   const [sessionProject, setSessionProject] = useState<string | null>(null);
+
+  function onDeleteSession(id: string) {
+    modals.openConfirmModal({
+      title: "Delete session?",
+      labels: { confirm: "Delete", cancel: "Cancel" },
+      confirmProps: { color: "red" },
+      onConfirm: async () => {
+        await deleteSession.mutateAsync(id);
+        if (location.pathname === `/sessions/${id}`) navigate("/");
+      },
+    });
+  }
 
   if (isLoading) return <p className="menu-label">Loading…</p>;
   if (error) return <p className="menu-label">Failed to load projects</p>;
@@ -50,8 +71,18 @@ export function ProjectTree() {
               </div>
               <ul>
                 {projectSessions.map((s, i) => (
-                  <li key={s.id}>
+                  <li
+                    key={s.id}
+                    className="is-flex is-justify-content-space-between"
+                  >
                     <Link to={`/sessions/${s.id}`}>Session {i + 1}</Link>
+                    <button
+                      type="button"
+                      aria-label={`Delete session ${s.id}`}
+                      onClick={() => onDeleteSession(s.id)}
+                    >
+                      ×
+                    </button>
                   </li>
                 ))}
               </ul>

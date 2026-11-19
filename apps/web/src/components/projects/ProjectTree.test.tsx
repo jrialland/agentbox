@@ -7,6 +7,18 @@ import { vi } from "vitest";
 import * as endpoints from "../../api/endpoints";
 import { ProjectTree } from "./ProjectTree";
 
+vi.mock("@mantine/modals", () => ({
+  modals: {
+    openConfirmModal: (opts: { onConfirm?: () => void }) => opts.onConfirm?.(),
+  },
+}));
+
+const deleteSessionMock = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+vi.mock("../../api/queries", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../api/queries")>();
+  return { ...actual, useDeleteSession: () => ({ mutateAsync: deleteSessionMock }) };
+});
+
 function renderTree() {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -57,4 +69,11 @@ test("creates a project via the modal", async () => {
   await waitFor(() =>
     expect(created).toHaveBeenCalledWith({ name: "New", path: "/n" }, expect.anything()),
   );
+});
+
+
+test("deletes a session", async () => {
+  renderTree();
+  fireEvent.click(await screen.findByLabelText("Delete session s1"));
+  await waitFor(() => expect(deleteSessionMock).toHaveBeenCalledWith("s1"));
 });
