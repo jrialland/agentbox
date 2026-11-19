@@ -10,7 +10,15 @@ import {
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 
-import { useAgents, useCreateAgent, useDeleteAgent, useModels } from "../api/queries";
+import {
+  useAgents,
+  useCreateAgent,
+  useDeleteAgent,
+  useModels,
+  useResetAvatar,
+  useUploadAvatar,
+} from "../api/queries";
+import { AgentAvatar } from "../components/agents/AgentAvatar";
 
 const NATIVE_TOOLS = ["read_text_file", "write_file", "list_directory"];
 
@@ -19,6 +27,8 @@ export function AgentsPage() {
   const { data: models } = useModels();
   const create = useCreateAgent();
   const del = useDeleteAgent();
+  const upload = useUploadAvatar();
+  const reset = useResetAvatar();
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -32,6 +42,8 @@ export function AgentsPage() {
     { name: "ask", write: false },
     { name: "agent", write: true },
   ]);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [versions, setVersions] = useState<Record<string, number>>({});
 
   async function onCreate() {
     if (!model) return;
@@ -44,7 +56,7 @@ export function AgentsPage() {
       flags: { write: m.write },
     }));
     try {
-      await create.mutateAsync({
+      const created = await create.mutateAsync({
         name,
         description,
         instructions,
@@ -53,6 +65,11 @@ export function AgentsPage() {
         mode_definitions,
         sub_agent_ids: subAgents,
       });
+      if (photo) {
+        await upload.mutateAsync({ name: created.name, file: photo });
+        setVersions((v) => ({ ...v, [created.name]: (v[created.name] ?? 0) + 1 }));
+      }
+      setPhoto(null);
       setName("");
       setDescription("");
       setInstructions("");
@@ -166,6 +183,15 @@ export function AgentsPage() {
           value={subAgents}
           onChange={setSubAgents}
         />
+        <div>
+          <p className="label">Photo</p>
+          <input
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            aria-label="Photo"
+            onChange={(e) => setPhoto(e.currentTarget.files?.[0] ?? null)}
+          />
+        </div>
         <Button mt="md" onClick={onCreate} loading={create.isPending}>
           Create agent
         </Button>
@@ -174,6 +200,7 @@ export function AgentsPage() {
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Name</Table.Th>
+            <Table.Th>Avatar</Table.Th>
             <Table.Th>Description</Table.Th>
             <Table.Th>Actions</Table.Th>
           </Table.Tr>
@@ -182,8 +209,53 @@ export function AgentsPage() {
           {(agents ?? []).map((a) => (
             <Table.Tr key={a.name}>
               <Table.Td>{a.name}</Table.Td>
+              <Table.Td>
+                <AgentAvatar name={a.name} version={versions[a.name] ?? 0} />
+              </Table.Td>
               <Table.Td>{a.description}</Table.Td>
               <Table.Td>
+                <input
+                  id={`avatar-${a.name}`}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  aria-label={`Change photo ${a.name}`}
+                  style={{ display: "none" }}
+                  onChange={async (e) => {
+                    const file = e.currentTarget.files?.[0];
+                    if (!file) return;
+                    try {
+                      await upload.mutateAsync({ name: a.name, file });
+                      setVersions((v) => ({
+                        ...v,
+                        [a.name]: (v[a.name] ?? 0) + 1,
+                      }));
+                    } catch {
+                      notifications.show({
+                        message: "Failed to upload photo",
+                        color: "red",
+                      });
+                    }
+                  }}
+                />
+                <Button
+                  size="xs"
+                  onClick={() => document.getElementById(`avatar-${a.name}`)?.click()}
+                >
+                  Change photo
+                </Button>{" "}
+                <Button
+                  size="xs"
+                  variant="light"
+                  onClick={async () => {
+                    await reset.mutateAsync(a.name);
+                    setVersions((v) => ({
+                      ...v,
+                      [a.name]: (v[a.name] ?? 0) + 1,
+                    }));
+                  }}
+                >
+                  Remove photo
+                </Button>{" "}
                 <Button size="xs" color="red" onClick={() => del.mutate(a.name)}>
                   Delete
                 </Button>
