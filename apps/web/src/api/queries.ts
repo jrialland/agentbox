@@ -38,6 +38,7 @@ import {
   fetchSessions,
   fetchUserRoles,
   fetchUsers,
+  previewPrompt,
   refreshModels,
   resetAgentAvatar,
   saveSkill,
@@ -75,6 +76,10 @@ export function useModels() {
 
 export function useLabels() {
   return useQuery({ queryKey: ["labels"], queryFn: fetchLabels });
+}
+
+export function usePreviewPrompt() {
+  return useMutation({ mutationFn: previewPrompt });
 }
 
 export function useSetModelLabels() {

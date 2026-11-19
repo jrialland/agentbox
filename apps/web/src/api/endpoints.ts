@@ -120,6 +120,23 @@ export async function setModelLabels(
   return data as Model;
 }
 
+export type PromptPreview = {
+  rendered: string;
+  missing: string[];
+  error: { message: string; line?: number | null } | null;
+  context: Record<string, string>;
+  variables: string[];
+};
+
+export async function previewPrompt(body: {
+  template: string;
+  context: Record<string, string>;
+}): Promise<PromptPreview> {
+  const { data, error } = await api.POST("/prompts/preview", { body });
+  if (error) throw new Error("Failed to preview prompt");
+  return data as PromptPreview;
+}
+
 export async function createAgent(body: {
   name: string;
   description: string;
