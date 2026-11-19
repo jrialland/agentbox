@@ -82,3 +82,36 @@ async def test_provider_delete_cascades_models():
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def test_model_create_duplicate_and_delete():
+    engine, client, factory = await _setup()
+    try:
+        h = await _auth(client)
+        r = await client.post(
+            "/models", json={"provider_id": "prov", "name": "m2"}, headers=h
+        )
+        assert r.status_code == 200
+        mid = r.json()["id"]
+        dup = await client.post(
+            "/models", json={"provider_id": "prov", "name": "m2"}, headers=h
+        )
+        assert dup.status_code == 409
+        assert (await client.delete(f"/models/{mid}", headers=h)).status_code == 200
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_model_delete_blocked_when_in_use():
+    engine, client, factory = await _setup()
+    try:
+        h = await _auth(client)
+        async with factory() as s:
+            s.add(Agent(id="ag", name="a", description="", instructions="", model_id="m1"))
+            await s.commit()
+        r = await client.delete("/models/m1", headers=h)
+        assert r.status_code == 409
+    finally:
+        await client.aclose()
+        await engine.dispose()
