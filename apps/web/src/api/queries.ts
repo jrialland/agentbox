@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createAgent,
   createApiKey,
+  createModel,
   createPermission,
   createProject,
   createProvider,
@@ -10,10 +11,12 @@ import {
   createSession,
   createUser,
   deleteAgent,
+  deleteModel,
   deletePermission,
   deleteProject,
   deleteProvider,
   deleteRole,
+  deleteSession,
   deleteUser,
   fetchAgents,
   fetchApiKeys,
@@ -34,6 +37,7 @@ import {
   setRolePermissions,
   setUserRoles,
   updatePermission,
+  updateProvider,
   updateRole,
   updateUser,
   uploadAgentAvatar,
@@ -288,6 +292,44 @@ export function useDeleteUser() {
   return useMutation({
     mutationFn: deleteUser,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useUpdateProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      pid,
+      body,
+    }: {
+      pid: string;
+      body: Parameters<typeof updateProvider>[1];
+    }) => updateProvider(pid, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
+  });
+}
+
+export function useCreateModel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createModel,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["models"] }),
+  });
+}
+
+export function useDeleteModel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteModel,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["models"] }),
+  });
+}
+
+export function useDeleteSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteSession,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["sessions"] }),
   });
 }
 

@@ -301,3 +301,38 @@ export async function createApiKey(body: {
 export async function revokeApiKey(id: string): Promise<void> {
   await api.DELETE("/api-keys/{kid}", { params: { path: { kid: id } } });
 }
+
+export async function updateProvider(
+  pid: string,
+  body: {
+    name?: string;
+    kind?: string;
+    base_url?: string;
+    api_key?: string;
+    models_url?: string;
+  },
+): Promise<Provider> {
+  const { data, error } = await api.PUT("/providers/{pid}", {
+    params: { path: { pid } },
+    body,
+  });
+  if (error) throw new Error("Failed to update provider");
+  return data as Provider;
+}
+
+export async function createModel(body: {
+  provider_id: string;
+  name: string;
+}): Promise<Model> {
+  const { data, error } = await api.POST("/models", { body });
+  if (error) throw new Error("Failed to create model");
+  return data as Model;
+}
+
+export async function deleteModel(mid: string): Promise<void> {
+  await api.DELETE("/models/{mid}", { params: { path: { mid } } });
+}
+
+export async function deleteSession(sid: string): Promise<void> {
+  await api.DELETE("/sessions/{sid}", { params: { path: { sid } } });
+}
