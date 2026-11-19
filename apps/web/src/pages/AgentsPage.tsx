@@ -1,4 +1,5 @@
 import {
+  Badge,
   Button,
   Checkbox,
   Modal,
@@ -17,7 +18,9 @@ import {
   useCreateAgent,
   useDeleteAgentCard,
   useDeleteAgent,
+  useLabels,
   useModels,
+  useProviders,
   useResetAvatar,
   useSetAgentCard,
   useUploadAvatar,
@@ -46,6 +49,8 @@ export const NATIVE_TOOLS = [
 export function AgentsPage() {
   const { data: agents } = useAgents();
   const { data: models } = useModels();
+  const { data: labels } = useLabels();
+  const { data: providers } = useProviders();
   const create = useCreateAgent();
   const del = useDeleteAgent();
   const upload = useUploadAvatar();
@@ -54,7 +59,19 @@ export function AgentsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [instructions, setInstructions] = useState("");
-  const [model, setModel] = useState<string | null>(null);
+  const [modelRef, setModelRef] = useState<string | null>(null);
+  const providerName = (id: string) =>
+    providers?.find((provider) => provider.id === id)?.name ?? id;
+  const modelOptions = [
+    ...(models ?? []).map((model) => ({
+      value: `model:${model.id}`,
+      label: `${providerName(model.provider_id)} · ${model.name}`,
+    })),
+    ...(labels ?? []).map((label) => ({
+      value: `label:${label.name}`,
+      label: `label: ${label.name}`,
+    })),
+  ];
   const [tools, setTools] = useState<string[]>([]);
   const [mcpServers, setMcpServers] = useState<string[]>([]);
   const [mcpInput, setMcpInput] = useState("");
@@ -68,7 +85,11 @@ export function AgentsPage() {
   const [cardAgent, setCardAgent] = useState<string | null>(null);
 
   async function onCreate() {
-    if (!model) return;
+    if (!modelRef) return;
+    const isLabel = modelRef.startsWith("label:");
+    const modelName = isLabel
+      ? undefined
+      : models?.find((model) => `model:${model.id}` === modelRef)?.name;
     const tool_bindings = [
       ...tools.map((t) => ({ name: t })),
       ...mcpServers.map((url) => ({ server_url: url })),
@@ -82,7 +103,8 @@ export function AgentsPage() {
         name,
         description,
         instructions,
-        model,
+        model: modelName,
+        model_label: isLabel ? modelRef.slice("label:".length) : undefined,
         tool_bindings,
         mode_definitions,
         sub_agent_ids: subAgents,
@@ -95,7 +117,7 @@ export function AgentsPage() {
       setName("");
       setDescription("");
       setInstructions("");
-      setModel(null);
+      setModelRef(null);
       setTools([]);
       setMcpServers([]);
       setSubAgents([]);
@@ -121,9 +143,10 @@ export function AgentsPage() {
         />
         <Select
           label="Model"
-          data={[...new Set((models ?? []).map((m) => m.name))]}
-          value={model}
-          onChange={setModel}
+          data={modelOptions}
+          value={modelRef}
+          onChange={setModelRef}
+          searchable
         />
         <div>
           <p className="label">Native tools</p>
@@ -224,6 +247,8 @@ export function AgentsPage() {
             <Table.Th>Name</Table.Th>
             <Table.Th>Avatar</Table.Th>
             <Table.Th>Description</Table.Th>
+            <Table.Th>Model</Table.Th>
+            <Table.Th>Label</Table.Th>
             <Table.Th>Actions</Table.Th>
           </Table.Tr>
         </Table.Thead>
@@ -235,6 +260,8 @@ export function AgentsPage() {
                 <AgentAvatar name={a.name} version={versions[a.name] ?? 0} />
               </Table.Td>
               <Table.Td>{a.description}</Table.Td>
+              <Table.Td>{a.model_binding.model}</Table.Td>
+              <Table.Td>{a.model_label ? <Badge>{a.model_label}</Badge> : null}</Table.Td>
               <Table.Td>
                 <input
                   id={`avatar-${a.name}`}
