@@ -24,7 +24,7 @@ def _serialize_modes(modes) -> str:
 def _parse_bindings(raw: str):
     bindings = []
     for item in json.loads(raw or "[]"):
-        if "server_url" in item:
+        if "server_url" in item or "command" in item:
             bindings.append(McpToolBinding(**item))
         else:
             bindings.append(NativeToolBinding(**item))

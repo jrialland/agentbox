@@ -1,3 +1,5 @@
+from dataclasses import field
+
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass
 
@@ -25,9 +27,12 @@ class NativeToolBinding:
 
 @dataclass(frozen=True)
 class McpToolBinding:
-    server_url: str
+    server_url: str = ""
     tool_prefix: str = ""
     id: str = ""
+    command: str = ""
+    args: list[str] = field(default_factory=list)
+    env: dict[str, str] = field(default_factory=dict)
 
 
 ToolBinding = NativeToolBinding | McpToolBinding

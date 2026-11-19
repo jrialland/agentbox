@@ -41,7 +41,7 @@ class AgentCreate(BaseModel):
 def _to_spec(body: AgentCreate) -> AgentSpec:
     bindings = []
     for b in body.tool_bindings:
-        if "server_url" in b:
+        if "server_url" in b or "command" in b:
             bindings.append(McpToolBinding(**b))
         else:
             bindings.append(NativeToolBinding(**b))

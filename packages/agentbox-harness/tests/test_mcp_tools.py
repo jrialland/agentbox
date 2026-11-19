@@ -17,3 +17,12 @@ def test_mcp_toolset_id_uses_explicit_id():
     binding = McpToolBinding(server_url="http://localhost:9000/mcp", id="test-app")
     assert mcp_toolset_id(binding) == "test-app"
     assert build_mcp_toolset(binding).id == "test-app"
+
+
+def test_stdio_binding_builds_toolset():
+    from agentbox_harness.spec import McpToolBinding
+    from agentbox_harness.tools.mcp import build_mcp_toolset, mcp_toolset_id
+
+    binding = McpToolBinding(id="fs", command="python", args=["-m", "srv"], env={"K": "V"})
+    assert mcp_toolset_id(binding) == "fs"
+    assert build_mcp_toolset(binding) is not None
