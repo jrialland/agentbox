@@ -24,7 +24,24 @@ import {
 } from "../api/queries";
 import { AgentAvatar } from "../components/agents/AgentAvatar";
 
-const NATIVE_TOOLS = ["read_text_file", "write_file", "list_directory"];
+export const NATIVE_TOOLS = [
+  "read_text_file",
+  "read_media_file",
+  "read_multiple_files",
+  "list_directory",
+  "list_directory_with_sizes",
+  "directory_tree",
+  "search_files",
+  "get_file_info",
+  "list_allowed_directories",
+  "write_file",
+  "append_file",
+  "edit_file",
+  "create_directory",
+  "move_file",
+  "copy_file",
+  "delete_path",
+];
 
 export function AgentsPage() {
   const { data: agents } = useAgents();
