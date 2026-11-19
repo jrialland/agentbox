@@ -6,6 +6,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { AppShell } from "./components/layout/AppShell";
+import { AdminPage } from "./pages/AdminPage";
 import { AgentsPage } from "./pages/AgentsPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
@@ -28,6 +29,7 @@ export function App() {
               <Route element={<RequireAuth />}>
                 <Route element={<AppShell />}>
                   <Route index element={<HomePage />} />
+                  <Route path="admin" element={<AdminPage />} />
                   <Route path="agents" element={<AgentsPage />} />
                   <Route path="providers" element={<ProvidersPage />} />
                   <Route path="sessions/:id" element={<SessionPage />} />

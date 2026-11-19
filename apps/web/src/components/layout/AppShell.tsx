@@ -7,6 +7,9 @@ export function AppShell() {
   const user = useAuthStore((s) => s.user);
   const clear = useAuthStore((s) => s.clear);
   const navigate = useNavigate();
+  const canAdmin =
+    user?.permissions.includes("roles:manage") ||
+    user?.permissions.includes("users:manage");
 
   function logout() {
     clear();
@@ -29,6 +32,11 @@ export function AppShell() {
             <Link className="navbar-item" to="/providers">
               Providers
             </Link>
+            {canAdmin && (
+              <Link className="navbar-item" to="/admin">
+                Admin
+              </Link>
+            )}
           </div>
           <div className="navbar-end">
             <span className="navbar-item">{user?.username}</span>
