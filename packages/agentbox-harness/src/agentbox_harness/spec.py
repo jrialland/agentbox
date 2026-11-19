@@ -46,6 +46,7 @@ class AgentSpec(BaseModel):
     sub_agent_ids: list[str] = []
     mode_definitions: list[Mode] = []
     model_binding: ModelBinding
+    model_label: str | None = None
 
 
 DEFAULT_MODES = (

@@ -36,7 +36,8 @@ class AgentCreate(BaseModel):
     name: str
     description: str = ""
     instructions: str = ""
-    model: str
+    model: str | None = None
+    model_label: str | None = None
     tool_bindings: list[dict] = []
     mode_definitions: list[dict] = []
     sub_agent_ids: list[str] = []
@@ -56,7 +57,8 @@ def _to_spec(body: AgentCreate) -> AgentSpec:
         tool_bindings=bindings,
         mode_definitions=[Mode(**m) for m in body.mode_definitions],
         sub_agent_ids=body.sub_agent_ids,
-        model_binding=ModelBinding(model=body.model, provider=""),
+        model_binding=ModelBinding(model=body.model or "", provider=""),
+        model_label=body.model_label,
     )
 
 
@@ -64,8 +66,16 @@ def _to_spec(body: AgentCreate) -> AgentSpec:
 async def create_agent(
     body: AgentCreate, request: Request, _=Depends(require_permission("agents:create"))
 ):
+    if bool(body.model) == bool(body.model_label):
+        raise HTTPException(
+            status_code=400,
+            detail="Exactly one of model or model_label is required",
+        )
     repo = AgentRepository(request.app.state.session_factory)
-    spec = await repo.save(_to_spec(body))
+    try:
+        spec = await repo.save(_to_spec(body))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     logger.info("agent created agent={}", spec.name)
     return spec
 

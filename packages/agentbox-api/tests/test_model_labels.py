@@ -131,3 +131,67 @@ async def test_delete_model_and_provider_remove_links():
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def test_agent_binds_to_label_and_reresolves():
+    engine, client, _ = await _setup()
+    try:
+        h = await _auth(client)
+        await client.put(
+            "/models/m1/labels",
+            json={"labels": [{"label": "fast", "priority": 10}]},
+            headers=h,
+        )
+        await client.put(
+            "/models/m2/labels",
+            json={"labels": [{"label": "fast", "priority": 1}]},
+            headers=h,
+        )
+        r = await client.post(
+            "/agents", json={"name": "a", "model_label": "fast"}, headers=h
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["model_label"] == "fast"
+        assert body["model_binding"]["model"] == "beta"
+
+        await client.put(
+            "/models/m1/labels",
+            json={"labels": [{"label": "fast", "priority": 1}]},
+            headers=h,
+        )
+        await client.put(
+            "/models/m2/labels",
+            json={"labels": [{"label": "fast", "priority": 10}]},
+            headers=h,
+        )
+        r = await client.get("/agents", headers=h)
+        agent = next(item for item in r.json() if item["name"] == "a")
+        assert agent["model_binding"]["model"] == "alpha"
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_agent_requires_exactly_one_model_reference():
+    engine, client, _ = await _setup()
+    try:
+        h = await _auth(client)
+        assert (
+            await client.post("/agents", json={"name": "none"}, headers=h)
+        ).status_code == 400
+        assert (
+            await client.post(
+                "/agents",
+                json={"name": "both", "model": "alpha", "model_label": "fast"},
+                headers=h,
+            )
+        ).status_code == 400
+        assert (
+            await client.post(
+                "/agents", json={"name": "bad", "model_label": "missing"}, headers=h
+            )
+        ).status_code == 400
+    finally:
+        await client.aclose()
+        await engine.dispose()

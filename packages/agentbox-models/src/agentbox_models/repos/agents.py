@@ -11,6 +11,10 @@ from agentbox_harness.spec import (
     ModelBinding,
     NativeToolBinding,
 )
+from agentbox_models.repos.model_labels import (
+    canonical_label,
+    resolve_model_label,
+)
 from agentbox_models.tables.core import Agent, Model, Provider
 
 
@@ -42,13 +46,22 @@ class AgentRepository:
 
     async def save(self, spec: AgentSpec) -> AgentSpec:
         async with self._factory() as s:
-            model = (
-                await s.execute(
-                    select(Model).where(Model.name == spec.model_binding.model)
-                )
+            label = canonical_label(spec.model_label) if spec.model_label else None
+            if label:
+                model = await resolve_model_label(s, label)
+                if model is None:
+                    raise ValueError(f"No model for label: {label}")
+            else:
+                model = (
+                    await s.execute(
+                        select(Model).where(Model.name == spec.model_binding.model)
+                    )
+                ).scalars().first()
+                if model is None:
+                    raise ValueError(f"Unknown model: {spec.model_binding.model}")
+            provider = (
+                await s.execute(select(Provider).where(Provider.id == model.provider_id))
             ).scalars().first()
-            if model is None:
-                raise ValueError(f"Unknown model: {spec.model_binding.model}")
 
             existing = (
                 await s.execute(select(Agent).where(Agent.name == spec.name))
@@ -63,13 +76,19 @@ class AgentRepository:
             row.description = spec.description
             row.instructions = spec.instructions
             row.model_id = model.id
+            row.model_label = label
             row.tool_bindings = _serialize_bindings(spec.tool_bindings)
             row.mode_definitions = _serialize_modes(spec.mode_definitions)
             row.sub_agent_ids = json.dumps(spec.sub_agent_ids)
             s.add(row)
             await s.commit()
             logger.info("agent saved name={}", spec.name)
-        return spec
+        return spec.model_copy(
+            update={
+                "model_binding": ModelBinding(model=model.name, provider=provider.name),
+                "model_label": label,
+            }
+        )
 
     async def load(self, name: str) -> AgentSpec | None:
         async with self._factory() as s:
@@ -78,9 +97,15 @@ class AgentRepository:
             ).scalars().first()
             if row is None:
                 return None
-            model = (
-                await s.execute(select(Model).where(Model.id == row.model_id))
-            ).scalars().first()
+            model = None
+            if row.model_label:
+                model = await resolve_model_label(s, row.model_label)
+            if model is None:
+                model = (
+                    await s.execute(select(Model).where(Model.id == row.model_id))
+                ).scalars().first()
+            if model is None:
+                raise ValueError(f"Unknown model for agent: {name}")
             provider = (
                 await s.execute(select(Provider).where(Provider.id == model.provider_id))
             ).scalars().first()
@@ -92,6 +117,7 @@ class AgentRepository:
                 mode_definitions=_parse_modes(row.mode_definitions),
                 sub_agent_ids=json.loads(row.sub_agent_ids or "[]"),
                 model_binding=ModelBinding(model=model.name, provider=provider.name),
+                model_label=row.model_label,
             )
 
     async def list(self) -> list[AgentSpec]:
