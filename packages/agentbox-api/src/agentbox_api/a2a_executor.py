@@ -18,7 +18,7 @@ from pydantic_ai.messages import PartDeltaEvent, PartStartEvent, TextPart, TextP
 from sqlmodel import select
 
 from agentbox_api.a2a_server import a2a_user
-from agentbox_api.runtime import build_registry, resolve_agent_runtime
+from agentbox_api.skills import prepare_agent
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.session import Session, Turn
@@ -76,9 +76,11 @@ class AgentboxA2AExecutor(AgentExecutor):
         updater = TaskUpdater(event_queue, task.id, task.context_id)
         await updater.start_work()
         session_id = task.context_id
-        runtime = await resolve_agent_runtime(self._factory, self._agent_name)
-        owner = await self._owner()
         workspace = self._settings.a2a_workspace
+        prepared = await prepare_agent(
+            self._factory, self._agent_name, workspace, self._settings.skills_user_dir
+        )
+        owner = await self._owner()
         async with self._factory() as s:
             project = (
                 await s.execute(select(Project).where(Project.path == workspace))
@@ -97,21 +99,21 @@ class AgentboxA2AExecutor(AgentExecutor):
             if existing is None:
                 s.add(
                     SessionRow(
-                        id=session_id, project_id=project.id, agent_id=runtime.agent_id
+                        id=session_id, project_id=project.id, agent_id=prepared.runtime.agent_id
                     )
                 )
             await s.commit()
         session = Session(
             session_id=session_id,
             project_root=workspace,
-            agent_spec=runtime.spec,
+            agent_spec=prepared.spec,
             store=SQLiteMessageLogStore(self._factory, session_id),
             head_id=await _latest_leaf(self._factory, session_id),
             mode_name="agent",
         )
         harness = Harness(
-            registry=build_registry(workspace),
-            model=runtime.model,
+            registry=prepared.registry,
+            model=prepared.runtime.model,
             store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
         )
         bus = EventBus()

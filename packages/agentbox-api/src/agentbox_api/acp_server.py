@@ -35,12 +35,14 @@ from sqlmodel import select
 
 from agentbox_api.config import Settings
 from agentbox_api.dev_seed import seed_admin
-from agentbox_api.runtime import build_registry, delete_session_data, resolve_agent_runtime
+from agentbox_api.runtime import delete_session_data, resolve_agent_runtime
+from agentbox_api.skills import prepare_agent
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.run import Run
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.spec import DEFAULT_MODES, AgentSpec, McpToolBinding
+from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.repos.message_log import SQLiteMessageLogStore
 from agentbox_models.tables.auth import User
@@ -130,6 +132,7 @@ class AcpSession:
     agent_id: str
     spec: AgentSpec
     model: PydanticModel
+    registry: ToolRegistry
     mode: str
     run: Run | None = None
 
@@ -167,9 +170,10 @@ async def _latest_leaf(factory, session_id: str):
 
 
 class AgentboxAcpAgent:
-    def __init__(self, agent_name: str, factory):
+    def __init__(self, agent_name: str, factory, settings):
         self._agent_name = agent_name
         self._factory = factory
+        self._settings = settings
         self._client: acp.Client | None = None
         self._sessions: dict[str, AcpSession] = {}
 
@@ -200,7 +204,10 @@ class AgentboxAcpAgent:
     async def new_session(
         self, cwd, additional_directories=None, mcp_servers=None, **kwargs
     ):
-        runtime = await resolve_agent_runtime(self._factory, self._agent_name)
+        prepared = await prepare_agent(
+            self._factory, self._agent_name, cwd, self._settings.skills_user_dir
+        )
+        runtime = prepared.runtime
         owner = runtime.created_by or await self._admin_id()
         session_id = uuid.uuid4().hex
         async with self._factory() as db:
@@ -222,10 +229,11 @@ class AgentboxAcpAgent:
             )
             await db.commit()
             project_id = project.id
-        spec = self._with_servers(runtime.spec, mcp_servers)
+        spec = self._with_servers(prepared.spec, mcp_servers)
         mode = _default_mode(spec)
         self._sessions[session_id] = AcpSession(
-            session_id, cwd, project_id, runtime.agent_id, spec, runtime.model, mode
+            session_id, cwd, project_id, runtime.agent_id, spec, runtime.model,
+            prepared.registry, mode,
         )
         return s.NewSessionResponse(session_id=session_id, modes=_modes(spec, mode))
 
@@ -248,7 +256,7 @@ class AgentboxAcpAgent:
             mode_name=sess.mode,
         )
         harness = Harness(
-            registry=build_registry(sess.project_root),
+            registry=sess.registry,
             model=sess.model,
             store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
         )
@@ -381,24 +389,29 @@ class AgentboxAcpAgent:
         return s.CloseSessionResponse()
 
     async def _restore(self, session_id: str, mcp_servers) -> AcpSession:
-        runtime = await resolve_agent_runtime(self._factory, self._agent_name)
         async with self._factory() as db:
             row = (
                 await db.execute(select(SessionRow).where(SessionRow.id == session_id))
             ).scalars().first()
-            if row is None or row.agent_id != runtime.agent_id:
+            if row is None:
                 raise acp.RequestError(-32002, "unknown session")
             project = (
                 await db.execute(select(Project).where(Project.id == row.project_id))
             ).scalars().first()
-        spec = self._with_servers(runtime.spec, mcp_servers)
+        prepared = await prepare_agent(
+            self._factory, self._agent_name, project.path, self._settings.skills_user_dir
+        )
+        if row.agent_id != prepared.runtime.agent_id:
+            raise acp.RequestError(-32002, "unknown session")
+        spec = self._with_servers(prepared.spec, mcp_servers)
         sess = AcpSession(
             session_id,
             project.path,
             project.id,
-            runtime.agent_id,
+            prepared.runtime.agent_id,
             spec,
-            runtime.model,
+            prepared.runtime.model,
+            prepared.registry,
             _default_mode(spec),
         )
         self._sessions[session_id] = sess
@@ -436,7 +449,7 @@ async def _serve(agent_name: str) -> None:
     engine, factory = create_engine_and_sessionmaker(settings.database_url)
     await init_db(engine)
     await seed_admin(factory)
-    agent = cast(acp.Agent, AgentboxAcpAgent(agent_name, factory))
+    agent = cast(acp.Agent, AgentboxAcpAgent(agent_name, factory, settings))
     await run_agent(agent)
 
 

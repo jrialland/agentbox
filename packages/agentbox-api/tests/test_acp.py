@@ -118,7 +118,13 @@ async def test_acp_lifecycle(tmp_path):
     await init_db(engine)
     await _seed_acp(factory)
     try:
-        agent = AgentboxAcpAgent("acp-test", factory)
+        from agentbox_api.config import Settings
+
+        agent = AgentboxAcpAgent(
+            "acp-test",
+            factory,
+            Settings(jwt_secret="s" * 32, skills_user_dir=str(tmp_path / "skills")),
+        )
         conn = _FakeConn()
         agent.on_connect(conn)  # ty: ignore[invalid-argument-type]
 
