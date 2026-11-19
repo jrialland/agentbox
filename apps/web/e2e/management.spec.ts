@@ -33,7 +33,9 @@ test("manage provider and agent end-to-end", async ({ page }) => {
   await page.getByRole("option", { name: "e2e-model" }).click();
   await page.getByLabel("write_file").check();
   await page.getByRole("button", { name: "Create agent" }).click();
-  await expect(page.getByRole("cell", { name: agentName })).toBeVisible();
+  await expect(
+    page.getByRole("row", { name: new RegExp(agentName) }),
+  ).toBeVisible();
 
   await page
     .getByRole("row", { name: new RegExp(agentName) })
