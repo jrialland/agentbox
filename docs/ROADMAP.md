@@ -127,6 +127,22 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 20 | Loguru sink configuration (console/file, rotation, stdlib) | `specs/2026-11-19-loguru-sinks-design.md` | `plans/2026-11-19-loguru-sinks.md` |
 | 21 | Filesystem tools parity (reference toolset + media + hooks) | `specs/2026-11-19-filesystem-tools-design.md` | `plans/2026-11-19-filesystem-tools.md` |
 
-## Deferred backlog (not yet scheduled)
+## Deferred backlog (future evolutions)
 
-None — all tracked items are done.
+Captured ideas, not yet specified. Each will get its own spec → plan → implementation cycle when scheduled. Status = **DEFERRED** unless noted.
+
+| ID | Future evolution | Notes / intended scope |
+|---|---|---|
+| D1 | **Automatic LSP diagnostics** | Detect the project language stack from files (`pyproject.toml`/`*.py` → Python, e.g. `uvx ty server`; `Cargo.toml` → rust-analyzer; `package.json`/`tsconfig.json` → TypeScript; etc.) via a configurable pattern → language-server command map. Start and keep the matching LSP process alive per project/session, and use the post-tool hook seam from #21 to append scoped diagnostics to `write_file`/`edit_file` results so the model can self-correct. |
+| D2 | **Templating language in system prompts** | Let agent authors use a template language (e.g. Jinja2) in instructions, rendered with a safe context (project, user, session, skills, date) before the agent is built. |
+| D3 | **Automatic RAG over `/docs`** | Configurable embedding model; when "RAG on documentation" is opted in, chunk Markdown under the project's `/docs/`, embed into a local vector DB (e.g. Qdrant), and inject retrieved context as a system message immediately after the user message. |
+| D4 | **Web search + URL fetch tools** | A Google-like search tool, plus a fetch tool using Trafilatura cleanup and HTML → Markdown. For a bare domain (`domain.com`), try `https://domain.com/llms.txt` first; fall back to the requested URL when `llms.txt` is 404. |
+| D5 | **Complex agent workflows** | Move beyond the current ReAct loop: a graphical graph builder with nodes such as post-turn code checks, "ralph mode" re-run completion, and a decision model choosing the next step. |
+| D6 | **Duo mode** | Two-agent pairing: the primary receives the user message; the secondary answers the primary's questions. Turns continue automatically until a stop condition is met. |
+| D7 | **Model labelling** | Labels on models ("cheap", "fast", "highend", ...) to support selection and routing. |
+| D8 | **Sub-agent sessions** | Tools that let an agent start sub-sessions and monitor their progress (beyond the current agent-as-tool delegation). |
+| D9 | **Automatic session shrinking** | Drop past tool results that are no longer needed; strip multimodal content after a few turns; keep the context lean. |
+| D10 | **Automatic compaction** | Ask the model to summarize when the context window fills, then continue the session from the compacted context. |
+| D11 | **Terminal session management** | Let agents run bash/PowerShell programs with timeouts, promote long-running work to background jobs, and manage the jobs they started. |
+| D12 | **Agent plugins** | Support the standardized `.agents/plugins/` folder format that mixes skills, MCP configuration, and hooks. |
+| D13 | **Toolset packaging hygiene** | Declare each toolset as a separate artifact/package where possible; keep native toolsets embedded in Agentbox and, where possible, also expose them as standalone FastMCP stdio tools. |
