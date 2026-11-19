@@ -1,16 +1,28 @@
-import { Button, Modal, Select, Table, Tabs, TextInput } from "@mantine/core";
+import {
+  Badge,
+  Button,
+  Group,
+  Modal,
+  NumberInput,
+  Select,
+  Table,
+  Tabs,
+  TextInput,
+} from "@mantine/core";
 import { notifications } from "@mantine/notifications";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { Provider } from "../api/endpoints";
+import type { Model, Provider } from "../api/endpoints";
 import {
   useCreateModel,
   useCreateProvider,
   useDeleteModel,
   useDeleteProvider,
+  useLabels,
   useModels,
   useProviders,
   useRefreshModels,
+  useSetModelLabels,
   useUpdateProvider,
 } from "../api/queries";
 
@@ -181,6 +193,113 @@ function ProviderEditModal({
   );
 }
 
+function ModelLabelsModal({
+  model,
+  opened,
+  onClose,
+}: {
+  model: Model | null;
+  opened: boolean;
+  onClose: () => void;
+}) {
+  const { data: labels } = useLabels();
+  const setLabels = useSetModelLabels();
+  const [rows, setRows] = useState<{ label: string; priority: number }[]>([]);
+
+  useEffect(() => {
+    setRows(
+      model
+        ? model.labels.map((label) => ({
+            label: label.name,
+            priority: label.priority,
+          }))
+        : [],
+    );
+  }, [model]);
+
+  async function onSave() {
+    if (!model) return;
+    try {
+      await setLabels.mutateAsync({
+        mid: model.id,
+        labels: rows.filter((row) => row.label.trim()),
+      });
+      onClose();
+    } catch {
+      notifications.show({ message: "Failed to save labels", color: "red" });
+    }
+  }
+
+  const used = new Set(rows.map((row) => row.label.trim().toLowerCase()));
+  const suggestions = (labels ?? []).filter((label) => !used.has(label.name));
+
+  return (
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title={model ? `Labels — ${model.name}` : "Labels"}
+    >
+      {rows.map((row, index) => (
+        <Group key={index} align="end">
+          <TextInput
+            label="Label"
+            value={row.label}
+            onChange={(e) =>
+              setRows((prev) =>
+                prev.map((item, i) =>
+                  i === index ? { ...item, label: e.currentTarget.value } : item,
+                ),
+              )
+            }
+          />
+          <NumberInput
+            label="Priority"
+            value={row.priority}
+            onChange={(value) =>
+              setRows((prev) =>
+                prev.map((item, i) =>
+                  i === index ? { ...item, priority: Number(value) || 0 } : item,
+                ),
+              )
+            }
+          />
+          <Button
+            color="red"
+            variant="subtle"
+            onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))}
+          >
+            Remove
+          </Button>
+        </Group>
+      ))}
+      <Button
+        variant="light"
+        onClick={() => setRows((prev) => [...prev, { label: "", priority: 0 }])}
+      >
+        Add label
+      </Button>
+      {suggestions.length > 0 && (
+        <Group mt="sm">
+          {suggestions.map((label) => (
+            <Badge
+              key={label.id}
+              style={{ cursor: "pointer" }}
+              onClick={() =>
+                setRows((prev) => [...prev, { label: label.name, priority: 0 }])
+              }
+            >
+              {label.name}
+            </Badge>
+          ))}
+        </Group>
+      )}
+      <Button mt="md" onClick={onSave} loading={setLabels.isPending}>
+        Save
+      </Button>
+    </Modal>
+  );
+}
+
 function ModelsTab() {
   const { data: models } = useModels();
   const { data: providers } = useProviders();
@@ -188,6 +307,15 @@ function ModelsTab() {
   const del = useDeleteModel();
   const [providerId, setProviderId] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const { data: labels } = useLabels();
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Model | null>(null);
+  const [labelsOpen, setLabelsOpen] = useState(false);
+
+  const visibleModels = (models ?? []).filter(
+    (model) =>
+      !labelFilter || model.labels.some((label) => label.name === labelFilter),
+  );
 
   function providerName(id: string) {
     return providers?.find((p) => p.id === id)?.name ?? id;
@@ -221,20 +349,46 @@ function ModelsTab() {
           Create model
         </Button>
       </div>
+      <Select
+        label="Filter by label"
+        clearable
+        data={(labels ?? []).map((label) => label.name)}
+        value={labelFilter}
+        onChange={setLabelFilter}
+      />
       <Table>
         <Table.Thead>
           <Table.Tr>
             <Table.Th>Provider</Table.Th>
             <Table.Th>Name</Table.Th>
+            <Table.Th>Labels</Table.Th>
             <Table.Th>Actions</Table.Th>
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
-          {(models ?? []).map((m) => (
+          {visibleModels.map((m) => (
             <Table.Tr key={m.id}>
               <Table.Td>{providerName(m.provider_id)}</Table.Td>
               <Table.Td>{m.name}</Table.Td>
               <Table.Td>
+                {m.labels.map((label) => (
+                  <Badge key={label.id} mr={4}>
+                    {label.name}
+                  </Badge>
+                ))}
+              </Table.Td>
+              <Table.Td>
+                <Button
+                  size="xs"
+                  variant="light"
+                  mr={4}
+                  onClick={() => {
+                    setEditing(m);
+                    setLabelsOpen(true);
+                  }}
+                >
+                  Edit labels
+                </Button>
                 <Button size="xs" color="red" onClick={() => del.mutateAsync(m.id)}>
                   Delete
                 </Button>
@@ -243,6 +397,11 @@ function ModelsTab() {
           ))}
         </Table.Tbody>
       </Table>
+      <ModelLabelsModal
+        model={editing}
+        opened={labelsOpen}
+        onClose={() => setLabelsOpen(false)}
+      />
     </div>
   );
 }
