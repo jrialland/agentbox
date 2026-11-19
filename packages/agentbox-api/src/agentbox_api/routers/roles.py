@@ -2,7 +2,6 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from sqlalchemy import delete
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
@@ -94,10 +93,7 @@ async def get_role_permissions(
         rows = (
             await s.execute(
                 select(Permission)
-                .join(
-                    RolePermissionLink,
-                    RolePermissionLink.permission_id == Permission.id,
-                )
+                .join(RolePermissionLink)
                 .where(RolePermissionLink.role_id == rid)
             )
         ).scalars().all()
@@ -125,19 +121,20 @@ async def set_role_permissions(
             ).scalars().all()
             if set(found) != set(body.permission_ids):
                 raise HTTPException(status_code=400, detail="Unknown permission id")
-        await s.execute(
-            delete(RolePermissionLink).where(RolePermissionLink.role_id == rid)
-        )
+        existing = (
+            await s.execute(
+                select(RolePermissionLink).where(RolePermissionLink.role_id == rid)
+            )
+        ).scalars().all()
+        for link in existing:
+            await s.delete(link)
         for pid in body.permission_ids:
             s.add(RolePermissionLink(role_id=rid, permission_id=pid))
         await s.commit()
         rows = (
             await s.execute(
                 select(Permission)
-                .join(
-                    RolePermissionLink,
-                    RolePermissionLink.permission_id == Permission.id,
-                )
+                .join(RolePermissionLink)
                 .where(RolePermissionLink.role_id == rid)
             )
         ).scalars().all()
@@ -151,10 +148,21 @@ async def delete_role(
     async with request.app.state.session_factory() as s:
         role = (await s.execute(select(Role).where(Role.id == rid))).scalars().first()
         if role is not None:
-            await s.execute(
-                delete(RolePermissionLink).where(RolePermissionLink.role_id == rid)
-            )
-            await s.execute(delete(UserRoleLink).where(UserRoleLink.role_id == rid))
+            perm_links = (
+                await s.execute(
+                    select(RolePermissionLink).where(RolePermissionLink.role_id == rid)
+                )
+            ).scalars().all()
+            for link in perm_links:
+                await s.delete(link)
+            user_links = (
+                await s.execute(
+                    select(UserRoleLink).where(UserRoleLink.role_id == rid)
+                )
+            ).scalars().all()
+            for link in user_links:
+                await s.delete(link)
             await s.delete(role)
             await s.commit()
     return {"ok": True}
+

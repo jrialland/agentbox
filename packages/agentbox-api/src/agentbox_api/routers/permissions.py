@@ -3,7 +3,6 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from sqlalchemy import delete
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
@@ -110,9 +109,15 @@ async def delete_permission(
 ):
     async with request.app.state.session_factory() as s:
         perm = await _get_or_404(s, pid)
-        await s.execute(
-            delete(RolePermissionLink).where(RolePermissionLink.permission_id == pid)
-        )
+        links = (
+            await s.execute(
+                select(RolePermissionLink).where(
+                    RolePermissionLink.permission_id == pid
+                )
+            )
+        ).scalars().all()
+        for link in links:
+            await s.delete(link)
         await s.delete(perm)
         await s.commit()
     return {"ok": True}

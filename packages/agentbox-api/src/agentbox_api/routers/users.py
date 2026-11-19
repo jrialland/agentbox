@@ -2,7 +2,6 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
-from sqlalchemy import delete
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
@@ -105,7 +104,7 @@ async def get_user_roles(
         rows = (
             await s.execute(
                 select(Role)
-                .join(UserRoleLink, UserRoleLink.role_id == Role.id)
+                .join(UserRoleLink)
                 .where(UserRoleLink.user_id == uid)
             )
         ).scalars().all()
@@ -129,14 +128,18 @@ async def set_user_roles(
             ).scalars().all()
             if set(found) != set(body.role_ids):
                 raise HTTPException(status_code=400, detail="Unknown role id")
-        await s.execute(delete(UserRoleLink).where(UserRoleLink.user_id == uid))
+        existing = (
+            await s.execute(select(UserRoleLink).where(UserRoleLink.user_id == uid))
+        ).scalars().all()
+        for link in existing:
+            await s.delete(link)
         for rid in body.role_ids:
             s.add(UserRoleLink(user_id=uid, role_id=rid))
         await s.commit()
         rows = (
             await s.execute(
                 select(Role)
-                .join(UserRoleLink, UserRoleLink.role_id == Role.id)
+                .join(UserRoleLink)
                 .where(UserRoleLink.user_id == uid)
             )
         ).scalars().all()
@@ -150,8 +153,18 @@ async def delete_user(
     async with request.app.state.session_factory() as s:
         user = (await s.execute(select(User).where(User.id == uid))).scalars().first()
         if user is not None:
-            await s.execute(delete(UserRoleLink).where(UserRoleLink.user_id == uid))
-            await s.execute(delete(ApiKey).where(ApiKey.user_id == uid))
+            links = (
+                await s.execute(
+                    select(UserRoleLink).where(UserRoleLink.user_id == uid)
+                )
+            ).scalars().all()
+            for link in links:
+                await s.delete(link)
+            keys = (
+                await s.execute(select(ApiKey).where(ApiKey.user_id == uid))
+            ).scalars().all()
+            for key in keys:
+                await s.delete(key)
             await s.delete(user)
             await s.commit()
     return {"ok": True}
