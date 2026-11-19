@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -40,6 +41,7 @@ async def login(body: LoginRequest, request: Request):
             await s.execute(select(User).where(User.username == body.username))
         ).scalars().first()
         if user is None or not verify_password(body.password, user.password_hash):
+            logger.warning("login failed user={}", body.username)
             raise HTTPException(status_code=401, detail="Invalid credentials")
     settings = request.app.state.settings
     token = create_jwt(
@@ -48,6 +50,7 @@ async def login(body: LoginRequest, request: Request):
         settings.jwt_algorithm,
         settings.jwt_expiry_seconds,
     )
+    logger.info("login ok user={}", user.username)
     return {"access_token": token, "token_type": "bearer"}  # nosec B105
 
 
@@ -63,6 +66,7 @@ async def register(body: RegisterRequest, request: Request):
         )
         s.add(user)
         await s.commit()
+    logger.info("registered user={}", user.username)
     return {"id": user.id, "username": user.username}
 
 

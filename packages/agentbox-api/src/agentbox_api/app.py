@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 from starlette.middleware.authentication import AuthenticationMiddleware
 
 from agentbox_api.auth_backend import JWTAuthenticationBackend
@@ -25,7 +26,9 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        logger.info("agentbox api starting")
         yield
+        logger.info("agentbox api stopping")
         await engine.dispose()
 
     app = FastAPI(lifespan=lifespan)
