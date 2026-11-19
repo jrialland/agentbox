@@ -1,5 +1,4 @@
 import asyncio
-import pathlib
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
@@ -8,25 +7,21 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
+from agentbox_api.runtime import build_registry, resolve_agent_runtime
 from agentbox_api.streaming import agui_response
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.session import Session, Turn
-from agentbox_harness.tools.filesystem import FilesystemToolbox
-from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.repos.crud import SessionRepository
 from agentbox_models.repos.message_log import SQLiteMessageLogStore
 from agentbox_models.tables.core import (
     Agent,
-    Model,
     Project,
-    Provider,
     SessionAttachment,
     SessionRow,
     TurnRow,
 )
-from agentbox_providers.resolver import resolve_model
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -228,15 +223,6 @@ async def call_app_tool(
         raise HTTPException(status_code=404, detail="MCP server not found") from None
 
 
-def _build_registry(project_root: str) -> ToolRegistry:
-    box = FilesystemToolbox(pathlib.Path(project_root))
-    registry = ToolRegistry()
-    registry.register_native("read_text_file", box.read_text_file, required_flags=("read",))
-    registry.register_native("write_file", box.write_file, required_flags=("write",))
-    registry.register_native("list_directory", box.list_directory, required_flags=("read",))
-    return registry
-
-
 @router.post("/{sid}/messages")
 async def chat(
     sid: str,
@@ -254,18 +240,13 @@ async def chat(
         agent = (
             await s.execute(select(Agent).where(Agent.id == srow.agent_id))
         ).scalars().first()
-        model = (
-            await s.execute(select(Model).where(Model.id == agent.model_id))
-        ).scalars().first()
-        provider = (
-            await s.execute(select(Provider).where(Provider.id == model.provider_id))
-        ).scalars().first()
         project = (
             await s.execute(select(Project).where(Project.id == srow.project_id))
         ).scalars().first()
 
-    spec = await AgentRepository(factory).load(agent.name)
-    resolved = resolve_model(provider, model.name)
+    runtime = await resolve_agent_runtime(factory, agent.name)
+    spec = runtime.spec
+    resolved = runtime.model
 
     store = SQLiteMessageLogStore(factory, sid)
     session = Session(
@@ -303,7 +284,7 @@ async def chat(
             prompt_override = [body.content, *binary]
 
     harness = Harness(
-        registry=_build_registry(project.path),
+        registry=build_registry(project.path),
         model=resolved,
         store_factory=lambda: SQLiteMessageLogStore(factory, sid),
     )
