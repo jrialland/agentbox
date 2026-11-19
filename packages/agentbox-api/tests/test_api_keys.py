@@ -104,3 +104,63 @@ async def test_create_rejects_past_expiry():
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def test_revoke_soft_and_blocks_auth():
+    engine, client, factory = await _setup()
+    try:
+        h = await _auth(client)
+        raw = (
+            await client.post(
+                "/api-keys", json={"scopes": ["projects:read"]}, headers=h
+            )
+        ).json()["key"]
+        key_h = {"Authorization": f"Bearer {raw}"}
+        kid = (await client.get("/api-keys", headers=h)).json()[0]["id"]
+        r = await client.delete(f"/api-keys/{kid}", headers=h)
+        assert r.status_code == 200
+        async with factory() as s:
+            row = await s.get(ApiKey, kid)
+        assert row is not None and row.revoked_at is not None
+        assert (await client.get("/projects", headers=key_h)).status_code == 401
+        listed = (await client.get("/api-keys", headers=h)).json()
+        assert any(k["id"] == kid and k["revoked_at"] for k in listed)
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_expired_key_is_rejected():
+    engine, client, factory = await _setup()
+    try:
+        h = await _auth(client)
+        raw = (
+            await client.post(
+                "/api-keys", json={"scopes": ["projects:read"]}, headers=h
+            )
+        ).json()["key"]
+        kid = (await client.get("/api-keys", headers=h)).json()[0]["id"]
+        async with factory() as s:
+            row = await s.get(ApiKey, kid)
+            row.expires_at = datetime.now(UTC) - timedelta(seconds=1)
+            s.add(row)
+            await s.commit()
+        r = await client.get("/projects", headers={"Authorization": f"Bearer {raw}"})
+        assert r.status_code == 401
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_cannot_revoke_others_key():
+    engine, client, factory = await _setup()
+    try:
+        h = await _auth(client)
+        async with factory() as s:
+            s.add(ApiKey(id="other", user_id="u2", key_hash="h"))
+            await s.commit()
+        r = await client.delete("/api-keys/other", headers=h)
+        assert r.status_code == 404
+    finally:
+        await client.aclose()
+        await engine.dispose()

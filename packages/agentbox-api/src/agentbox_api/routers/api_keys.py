@@ -4,12 +4,12 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
 from agentbox_api.security import hash_api_key
-from agentbox_models.repos.crud import ApiKeyRepository
 from agentbox_models.tables.auth import ApiKey
 
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
@@ -67,7 +67,6 @@ async def create_api_key(
         )
     expires_at = _normalize_expiry(body.expires_at)
     raw = secrets.token_urlsafe(32)
-    repo = ApiKeyRepository(request.app.state.session_factory)
     key = ApiKey(
         id=uuid.uuid4().hex,
         user_id=request.user.identity,
@@ -75,7 +74,11 @@ async def create_api_key(
         scopes=json.dumps(scopes),
         expires_at=expires_at,
     )
-    await repo.create(key)
+    async with request.app.state.session_factory() as s:
+        s.add(key)
+        await s.commit()
+        await s.refresh(key)
+    logger.info("api key created key={}", key.id)
     return ApiKeyCreated(key=raw, **_read(key).model_dump())
 
 
@@ -93,8 +96,18 @@ async def list_api_keys(
 
 
 @router.delete("/{kid}")
-async def delete_api_key(
+async def revoke_api_key(
     kid: str, request: Request, _=Depends(require_permission("api_keys:manage"))
 ):
-    await ApiKeyRepository(request.app.state.session_factory).delete(kid)
+    async with request.app.state.session_factory() as s:
+        row = (
+            await s.execute(select(ApiKey).where(ApiKey.id == kid))
+        ).scalars().first()
+        if row is None or row.user_id != request.user.identity:
+            raise HTTPException(status_code=404, detail="Not found")
+        if row.revoked_at is None:
+            row.revoked_at = datetime.now(UTC)
+            s.add(row)
+            await s.commit()
+            logger.info("api key revoked key={}", kid)
     return {"ok": True}

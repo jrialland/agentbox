@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 
 import jwt
 from sqlmodel import select
@@ -95,6 +96,13 @@ class JWTAuthenticationBackend(AuthenticationBackend):
                 await s.execute(select(User).where(User.id == key_row.user_id))
             ).scalars().first()
             if user is None:
+                return None
+            expires = key_row.expires_at
+            if expires is not None and expires.tzinfo is None:
+                expires = expires.replace(tzinfo=UTC)
+            if key_row.revoked_at is not None or (
+                expires is not None and expires <= datetime.now(UTC)
+            ):
                 return None
             scopes = json.loads(key_row.scopes or "[]")
             return AuthCredentials(scopes=scopes), CurrentUser(user.id, user.username, set(scopes))

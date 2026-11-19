@@ -12,6 +12,8 @@ async def get_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
 
 def require_permission(name: str):
     async def checker(request: Request):
+        if not request.user.is_authenticated:
+            raise HTTPException(status_code=401, detail="Unauthorized")
         scopes = request.auth.scopes if request.auth is not None else []
         if name not in scopes:
             raise HTTPException(status_code=403, detail="Forbidden")

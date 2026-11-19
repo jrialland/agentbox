@@ -56,7 +56,7 @@ async def test_create_and_list_user():
 
 
 async def test_create_api_key_returns_secret():
-    engine, client = await _make_app(["api_keys:manage"])
+    engine, client = await _make_app(["api_keys:manage", "agents:read"])
     try:
         token = await _login(client)
         h = {"Authorization": f"Bearer {token}"}
