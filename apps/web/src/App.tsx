@@ -13,6 +13,7 @@ import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { SessionPage } from "./pages/SessionPage";
+import { SkillsPage } from "./pages/SkillsPage";
 import { ThemeSync } from "./theme/ThemeSync";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ export function App() {
                   <Route path="agents" element={<AgentsPage />} />
                   <Route path="api-keys" element={<ApiKeysPage />} />
                   <Route path="providers" element={<ProvidersPage />} />
+                  <Route path="skills" element={<SkillsPage />} />
                   <Route path="sessions/:id" element={<SessionPage />} />
                 </Route>
               </Route>

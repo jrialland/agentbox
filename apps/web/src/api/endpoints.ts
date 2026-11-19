@@ -362,3 +362,39 @@ export async function setAgentCard(
 export async function deleteAgentCard(name: string): Promise<void> {
   await api.DELETE("/agents/{name}/card", { params: { path: { name } } });
 }
+
+export type SkillInfo = { name: string; description: string; scope: string };
+export type SkillDetail = SkillInfo & { body: string };
+
+export async function fetchSkills(projectId?: string): Promise<SkillInfo[]> {
+  const { data } = await api.GET("/skills", {
+    params: { query: projectId ? { project_id: projectId } : {} },
+  });
+  return (data as SkillInfo[]) ?? [];
+}
+
+export async function fetchSkill(
+  name: string,
+  projectId?: string,
+): Promise<SkillDetail> {
+  const { data, error } = await api.GET("/skills/{name}", {
+    params: { path: { name }, query: projectId ? { project_id: projectId } : {} },
+  });
+  if (error) throw new Error("Failed to fetch skill");
+  return data as SkillDetail;
+}
+
+export async function saveSkill(
+  name: string,
+  body: { description: string; body: string },
+): Promise<void> {
+  const { error } = await api.PUT("/skills/{name}", {
+    params: { path: { name } },
+    body,
+  });
+  if (error) throw new Error("Failed to save skill");
+}
+
+export async function deleteSkill(name: string): Promise<void> {
+  await api.DELETE("/skills/{name}", { params: { path: { name } } });
+}

@@ -2,6 +2,7 @@ import { Button, Select, Textarea } from "@mantine/core";
 import { useRef, useState } from "react";
 
 import { uploadAttachment } from "../api/endpoints";
+import { useSkills } from "../api/queries";
 import { speechAvailable, startSpeech } from "./speech";
 
 type Attachment = { id: string; filename: string };
@@ -14,6 +15,7 @@ export function Composer({
   setMode,
   running,
   onSend,
+  onSelectSkill,
 }: {
   sessionId: string;
   value: string;
@@ -22,11 +24,19 @@ export function Composer({
   setMode: (m: string | null) => void;
   running: boolean;
   onSend: (attachmentIds: string[]) => void;
+  onSelectSkill: (name: string) => void;
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [listening, setListening] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const stopSpeechRef = useRef<(() => void) | null>(null);
+  const { data: skills } = useSkills();
+
+  const slash = value.startsWith("/") ? value.slice(1) : null;
+  const matches =
+    slash === null
+      ? []
+      : (skills ?? []).filter((s) => s.name.includes(slash)).slice(0, 8);
 
   async function onFiles(files: FileList | null) {
     if (!files) return;
@@ -69,6 +79,23 @@ export function Composer({
         onChange={(e) => setValue(e.currentTarget.value)}
         rows={3}
       />
+      {slash !== null && matches.length > 0 && (
+        <div className="box" data-testid="skill-menu">
+          {matches.map((s) => (
+            <button
+              key={s.name}
+              type="button"
+              className="is-block"
+              onClick={() => {
+                setValue(`/${s.name} `);
+                onSelectSkill(s.name);
+              }}
+            >
+              /{s.name} — {s.description}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="mt-2">
         {attachments.map((a) => (
           <span key={a.id} className="tag is-light mr-2">

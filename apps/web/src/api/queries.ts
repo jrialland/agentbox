@@ -18,6 +18,7 @@ import {
   deleteProvider,
   deleteRole,
   deleteSession,
+  deleteSkill,
   deleteUser,
   fetchAgentCard,
   fetchAgents,
@@ -29,12 +30,15 @@ import {
   fetchProviders,
   fetchRolePermissions,
   fetchRoles,
+  fetchSkill,
+  fetchSkills,
   fetchSession,
   fetchSessions,
   fetchUserRoles,
   fetchUsers,
   refreshModels,
   resetAgentAvatar,
+  saveSkill,
   revokeApiKey,
   setAgentCard,
   setRolePermissions,
@@ -397,6 +401,33 @@ export function useRevokeApiKey() {
   return useMutation({
     mutationFn: revokeApiKey,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
+}
+
+
+export function useSkills() {
+  return useQuery({ queryKey: ["skills"], queryFn: () => fetchSkills() });
+}
+
+export function useSaveSkill() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      name,
+      body,
+    }: {
+      name: string;
+      body: { description: string; body: string };
+    }) => saveSkill(name, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["skills"] }),
+  });
+}
+
+export function useDeleteSkill() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteSkill,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["skills"] }),
   });
 }
 

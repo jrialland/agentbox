@@ -26,6 +26,7 @@ export function SessionPage() {
   const [mode, setMode] = useState<string | null>("agent");
   const [forkFromTurnId, setForkFromTurnId] = useState<string | null>(null);
   const [forkMode, setForkMode] = useState(false);
+  const [skill, setSkill] = useState<string | null>(null);
 
   async function handleSend(attachmentIds: string[]) {
     const content = input.trim();
@@ -40,7 +41,9 @@ export function SessionPage() {
       fork: doFork,
       forkFromTurnId: forkFrom,
       attachmentIds,
+      skill,
     });
+    setSkill(null);
     await qc.refetchQueries({ queryKey: ["messages", id] });
     chat.reset();
   }
@@ -104,6 +107,7 @@ export function SessionPage() {
           setMode={setMode}
           running={chat.running}
           onSend={handleSend}
+          onSelectSkill={(name) => setSkill(name)}
         />
       </div>
       {chat.appTabs.length > 0 && (

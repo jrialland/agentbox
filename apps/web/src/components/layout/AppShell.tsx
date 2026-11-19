@@ -11,6 +11,7 @@ export function AppShell() {
     user?.permissions.includes("roles:manage") ||
     user?.permissions.includes("users:manage");
   const canApiKeys = user?.permissions.includes("api_keys:manage");
+  const canSkills = user?.permissions.includes("agents:create");
 
   function logout() {
     clear();
@@ -41,6 +42,11 @@ export function AppShell() {
             {canApiKeys && (
               <Link className="navbar-item" to="/api-keys">
                 API keys
+              </Link>
+            )}
+            {canSkills && (
+              <Link className="navbar-item" to="/skills">
+                Skills
               </Link>
             )}
           </div>
