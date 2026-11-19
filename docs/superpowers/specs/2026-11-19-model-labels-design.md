@@ -58,7 +58,7 @@ canonical name, so `Fast`, `fast`, and ` fast ` are the same label.
 New module `agentbox_models/repos/model_labels.py`:
 
 ```python
-async def resolve_model_label(factory, label: str, provider: str | None = None):
+async def resolve_model_label(session, label: str, provider: str | None = None):
     # join Model -> ModelLabelLink -> Label -> Provider
     # where lower(Label.name) == canonical_label(label)
     # optional Provider.name == provider
