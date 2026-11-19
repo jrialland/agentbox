@@ -119,3 +119,25 @@ async def test_directory_tree(root):
     tree = await box.directory_tree(".")
     assert "a.txt" in tree
     assert "b.txt" in tree
+
+
+def test_reads_extra_root_but_blocks_write(tmp_path):
+    import asyncio
+
+    from agentbox_harness.tools.filesystem import FilesystemToolbox
+
+    root = tmp_path / "proj"
+    root.mkdir()
+    skill = tmp_path / "skill"
+    skill.mkdir()
+    (skill / "ref.md").write_text("hi", encoding="utf-8")
+    box = FilesystemToolbox(root, extra_read_roots=[skill])
+    assert asyncio.run(box.read_text_file(str(skill / "ref.md"))) == "hi"
+    from agentbox_harness.tools.filesystem import PathEscapesRootError
+
+    try:
+        asyncio.run(box.write_file(str(skill / "x.txt"), "x"))
+    except PathEscapesRootError:
+        pass
+    else:
+        raise AssertionError("write outside root should fail")

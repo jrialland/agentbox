@@ -14,12 +14,22 @@ class FileEdit:
 
 
 class FilesystemToolbox:
-    def __init__(self, root_dir: pathlib.Path):
+    def __init__(
+        self, root_dir: pathlib.Path, extra_read_roots: list[pathlib.Path] | None = None
+    ):
         self.root_dir = pathlib.Path(root_dir).resolve()
+        self._read_roots = [
+            self.root_dir,
+            *[pathlib.Path(r).resolve() for r in (extra_read_roots or [])],
+        ]
 
-    def _resolve(self, path: str) -> pathlib.Path:
-        p = (self.root_dir / path).resolve()
-        if not (p == self.root_dir or self.root_dir in p.parents):
+    def _resolve(self, path: str, *, write: bool = False) -> pathlib.Path:
+        candidate = pathlib.Path(path)
+        p = (
+            candidate if candidate.is_absolute() else self.root_dir / candidate
+        ).resolve()
+        roots = [self.root_dir] if write else self._read_roots
+        if not any(p == r or r in p.parents for r in roots):
             raise PathEscapesRootError(path)
         return p
 
@@ -34,13 +44,13 @@ class FilesystemToolbox:
         return "\n".join(parts)
 
     async def write_file(self, path: str, content: str) -> str:
-        p = self._resolve(path)
+        p = self._resolve(path, write=True)
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(content, encoding="utf-8")
         return f"Wrote {len(content)} bytes to {path}"
 
     async def append_file(self, path: str, content: str) -> str:
-        p = self._resolve(path)
+        p = self._resolve(path, write=True)
         p.parent.mkdir(parents=True, exist_ok=True)
         with p.open("a", encoding="utf-8") as f:
             f.write(content)
@@ -49,7 +59,7 @@ class FilesystemToolbox:
     async def edit_file(
         self, path: str, edits: list[FileEdit], dry_run: bool = False
     ) -> str:
-        p = self._resolve(path)
+        p = self._resolve(path, write=True)
         content = p.read_text(encoding="utf-8")
         for edit in edits:
             if edit.old_text not in content:
@@ -60,20 +70,20 @@ class FilesystemToolbox:
         return f"Edited {path}" if not dry_run else f"Dry-run edit for {path}"
 
     async def create_directory(self, path: str) -> str:
-        p = self._resolve(path)
+        p = self._resolve(path, write=True)
         p.mkdir(parents=True, exist_ok=True)
         return f"Created directory {path}"
 
     async def move_file(self, source: str, destination: str) -> str:
-        src = self._resolve(source)
-        dst = self._resolve(destination)
+        src = self._resolve(source, write=True)
+        dst = self._resolve(destination, write=True)
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.move(str(src), str(dst))
         return f"Moved {source} to {destination}"
 
     async def copy_file(self, source: str, destination: str) -> str:
-        src = self._resolve(source)
-        dst = self._resolve(destination)
+        src = self._resolve(source, write=True)
+        dst = self._resolve(destination, write=True)
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(str(src), str(dst))
         return f"Copied {source} to {destination}"
