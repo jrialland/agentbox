@@ -12,6 +12,7 @@ from agentbox_api.deps import require_permission
 from agentbox_api.runtime import delete_session_data
 from agentbox_api.skills import prepare_agent, render_skill
 from agentbox_api.streaming import agui_response
+from agentbox_api.templating import PromptTemplateError
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.session import Session, Turn
@@ -263,14 +264,20 @@ async def chat(
             await s.execute(select(Project).where(Project.id == srow.project_id))
         ).scalars().first()
 
-    prepared = await prepare_agent(
-        factory,
-        agent.name,
-        project.path,
-        request.app.state.settings.skills_user_dir,
-        media_max_dimension=request.app.state.settings.media_max_dimension,
-        media_max_bytes=request.app.state.settings.media_max_bytes,
-    )
+    try:
+        prepared = await prepare_agent(
+            factory,
+            agent.name,
+            project.path,
+            request.app.state.settings.skills_user_dir,
+            user_name=getattr(request.user, "username", None),
+            session_id=sid,
+            session_mode=body.mode or "agent",
+            media_max_dimension=request.app.state.settings.media_max_dimension,
+            media_max_bytes=request.app.state.settings.media_max_bytes,
+        )
+    except PromptTemplateError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
     spec = prepared.spec
     resolved = prepared.runtime.model
 

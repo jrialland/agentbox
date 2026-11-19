@@ -10,8 +10,10 @@ from loguru import logger
 from skills_ref import read_properties, to_prompt
 
 from agentbox_api.runtime import AgentRuntime, build_registry, resolve_agent_runtime
+from agentbox_api.templating import build_context, render_prompt
 from agentbox_harness.spec import AgentSpec, NativeToolBinding
 from agentbox_harness.tools.registry import ToolRegistry
+from agentbox_models.tables.auth import User
 
 _BUILTIN = pathlib.Path(__file__).parent / "skills_builtin"
 
@@ -135,12 +137,33 @@ async def prepare_agent(
     agent_name: str,
     project_root: str,
     user_dir: str,
+    user_name: str | None = None,
+    session_id: str | None = None,
+    session_mode: str | None = None,
     media_max_dimension: int = 1568,
     media_max_bytes: int = 1_500_000,
 ) -> PreparedAgent:
     runtime = await resolve_agent_runtime(factory, agent_name)
     skills = discover_skills(project_root, user_dir)
-    spec = augment_spec(runtime.spec, skills)
+    resolved_user = user_name
+    if resolved_user is None and runtime.created_by:
+        async with factory() as s:
+            owner = await s.get(User, runtime.created_by)
+            resolved_user = owner.username if owner else None
+    context = build_context(
+        agent_name=runtime.spec.name,
+        agent_description=runtime.spec.description,
+        project_root=project_root,
+        user_name=resolved_user,
+        session_id=session_id,
+        session_mode=session_mode,
+        model_name=runtime.spec.model_binding.model,
+        model_provider=runtime.spec.model_binding.provider,
+        skills=skills,
+    )
+    rendered = render_prompt(runtime.spec.instructions, context, agent=agent_name)
+    spec = runtime.spec.model_copy(update={"instructions": rendered})
+    spec = augment_spec(spec, skills)
     extra_tools = {"activate_skill": make_activate_tool(skills)} if skills else None
     registry = build_registry(
         project_root,

@@ -206,17 +206,19 @@ class AgentboxAcpAgent:
     async def new_session(
         self, cwd, additional_directories=None, mcp_servers=None, **kwargs
     ):
+        session_id = uuid.uuid4().hex
         prepared = await prepare_agent(
             self._factory,
             self._agent_name,
             cwd,
             self._settings.skills_user_dir,
+            session_id=session_id,
+            session_mode="agent",
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
         )
         runtime = prepared.runtime
         owner = runtime.created_by or await self._admin_id()
-        session_id = uuid.uuid4().hex
         async with self._factory() as db:
             project = (
                 await db.execute(select(Project).where(Project.path == cwd))
@@ -413,6 +415,8 @@ class AgentboxAcpAgent:
             self._agent_name,
             project.path,
             self._settings.skills_user_dir,
+            session_id=session_id,
+            session_mode="agent",
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
         )

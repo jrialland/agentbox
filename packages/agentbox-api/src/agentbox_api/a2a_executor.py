@@ -84,6 +84,8 @@ class AgentboxA2AExecutor(AgentExecutor):
             self._agent_name,
             workspace,
             self._settings.skills_user_dir,
+            session_id=session_id,
+            session_mode="agent",
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
         )
