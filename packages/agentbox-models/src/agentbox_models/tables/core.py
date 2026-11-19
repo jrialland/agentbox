@@ -34,6 +34,10 @@ class Agent(SQLModel, table=True):
     mode_definitions: str = "[]"
     sub_agent_ids: str = "[]"
     avatar_url: str | None = None
+    avatar_data: bytes | None = Field(
+        default=None, sa_column=Column(LargeBinary, nullable=True)
+    )
+    avatar_media_type: str | None = None
     created_by: str | None = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=utcnow)
 
