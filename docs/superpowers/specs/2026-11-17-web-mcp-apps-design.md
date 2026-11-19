@@ -19,7 +19,7 @@ Pydantic AI already detects MCP Apps and, via its AG-UI adapter, emits an `ACTIV
 ### 1.2 Boundaries / notes
 
 - **All MCP app content is proxied by the backend** (HTTP- or stdio-hosted): the browser never contacts the MCP server directly. (Matches the `jrialland` example.)
-- The `MCPToolset` does not advertise the `io.modelcontextprotocol/ui` extension by default; servers that gate app tools on advertising may not expose them (documented limitation).
+- MCP Apps work with **no manual/specific configuration**: a server declares `_meta.ui.resourceUri` on a tool and serves a `ui://` resource; Pydantic AI detects it, attaches the app record to the tool result, and the AG-UI adapter emits the `mcp-apps` snapshot. (Verified end-to-end with a plain MCP server.) The only edge case is a server that *explicitly* withholds app tools unless the client advertises the `io.modelcontextprotocol/ui` extension; Pydantic AI's client doesn't register that extension, but ordinary servers expose app tools/resources regardless.
 - Deferred: none new (this completes MCP Apps in the roadmap).
 
 ### 1.3 Dependencies
@@ -87,7 +87,7 @@ Pydantic AI already detects MCP Apps and, via its AG-UI adapter, emits an `ACTIV
 
 ## 7. Open Items / Future Work
 
-- Advertise the `io.modelcontextprotocol/ui` extension from the backend MCP client (for servers that gate app tools on advertising) — future.
+- Register the `io.modelcontextprotocol/ui` client extension only if a target server explicitly requires clients to advertise it (not needed for normal servers; verified E2E without it).
 - Strict SEP-1865 separate-origin in prod (sandbox subdomain) — deployment config.
 
 ## References
