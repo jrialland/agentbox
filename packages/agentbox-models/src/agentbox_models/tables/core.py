@@ -24,6 +24,17 @@ class Model(SQLModel, table=True):
     name: str
 
 
+class Label(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    name: str = Field(index=True, unique=True)
+
+
+class ModelLabelLink(SQLModel, table=True):
+    model_id: str = Field(foreign_key="model.id", primary_key=True)
+    label_id: str = Field(foreign_key="label.id", primary_key=True)
+    priority: int = 0
+
+
 class Agent(SQLModel, table=True):
     id: str = Field(primary_key=True)
     name: str
