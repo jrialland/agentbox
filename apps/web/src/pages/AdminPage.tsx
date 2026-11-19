@@ -100,7 +100,7 @@ function PermissionsTab() {
     <div>
       <div className="box">
         <TextInput
-          label="Name"
+          label="Permission name"
           value={name}
           onChange={(e) => setName(e.currentTarget.value)}
         />
@@ -181,7 +181,7 @@ function RolesTab() {
     <div>
       <div className="box">
         <TextInput
-          label="Name"
+          label="Role name"
           value={name}
           onChange={(e) => setName(e.currentTarget.value)}
         />
