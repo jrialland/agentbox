@@ -7,7 +7,8 @@ export type Project = components["schemas"]["Project"];
 export type Session = components["schemas"]["SessionRow"];
 export type Agent = components["schemas"]["AgentSpec"];
 export type Provider = components["schemas"]["ProviderRead"];
-export type Model = components["schemas"]["Model"];
+export type Model = components["schemas"]["ModelRead"];
+export type Label = components["schemas"]["LabelRead"];
 
 export async function fetchProjects(): Promise<Project[]> {
   const { data } = await api.GET("/projects");
@@ -102,11 +103,29 @@ export async function fetchModels(): Promise<Model[]> {
   return data ?? [];
 }
 
+export async function fetchLabels(): Promise<Label[]> {
+  const { data } = await api.GET("/labels");
+  return data ?? [];
+}
+
+export async function setModelLabels(
+  mid: string,
+  labels: { label: string; priority: number }[],
+): Promise<Model> {
+  const { data, error } = await api.PUT("/models/{mid}/labels", {
+    params: { path: { mid } },
+    body: { labels },
+  });
+  if (error) throw new Error("Failed to set labels");
+  return data as Model;
+}
+
 export async function createAgent(body: {
   name: string;
   description: string;
   instructions: string;
-  model: string;
+  model?: string;
+  model_label?: string;
   tool_bindings: Record<string, unknown>[];
   mode_definitions: Record<string, unknown>[];
   sub_agent_ids: string[];
@@ -323,6 +342,7 @@ export async function updateProvider(
 export async function createModel(body: {
   provider_id: string;
   name: string;
+  labels: { label: string; priority: number }[];
 }): Promise<Model> {
   const { data, error } = await api.POST("/models", { body });
   if (error) throw new Error("Failed to create model");

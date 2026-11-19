@@ -200,6 +200,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/models/{mid}/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Model Labels */
+        put: operations["set_model_labels_models__mid__labels_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/models/{mid}": {
         parameters: {
             query?: never;
@@ -554,6 +571,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/labels": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Labels */
+        get: operations["list_labels_labels_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/skills": {
         parameters: {
             query?: never;
@@ -609,7 +643,9 @@ export interface components {
              */
             instructions: string;
             /** Model */
-            model: string;
+            model?: string | null;
+            /** Model Label */
+            model_label?: string | null;
             /**
              * Tool Bindings
              * @default []
@@ -651,6 +687,8 @@ export interface components {
              */
             mode_definitions: components["schemas"]["Mode"][];
             model_binding: components["schemas"]["ModelBinding"];
+            /** Model Label */
+            model_label?: string | null;
         };
         /** ApiKeyCreate */
         ApiKeyCreate: {
@@ -731,6 +769,23 @@ export interface components {
         HTTPValidationError: {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
+        };
+        /** LabelAssignment */
+        LabelAssignment: {
+            /** Label */
+            label: string;
+            /**
+             * Priority
+             * @default 0
+             */
+            priority: number;
+        };
+        /** LabelRead */
+        LabelRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** LoginRequest */
         LoginRequest: {
@@ -827,15 +882,6 @@ export interface components {
                 [key: string]: boolean;
             };
         };
-        /** Model */
-        Model: {
-            /** Id */
-            id: string;
-            /** Provider Id */
-            provider_id: string;
-            /** Name */
-            name: string;
-        };
         /** ModelBinding */
         ModelBinding: {
             /** Model */
@@ -849,6 +895,42 @@ export interface components {
             provider_id: string;
             /** Name */
             name: string;
+            /**
+             * Labels
+             * @default []
+             */
+            labels: components["schemas"]["LabelAssignment"][];
+        };
+        /** ModelLabelRead */
+        ModelLabelRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Priority */
+            priority: number;
+        };
+        /** ModelLabelsUpdate */
+        ModelLabelsUpdate: {
+            /**
+             * Labels
+             * @default []
+             */
+            labels: components["schemas"]["LabelAssignment"][];
+        };
+        /** ModelRead */
+        ModelRead: {
+            /** Id */
+            id: string;
+            /** Provider Id */
+            provider_id: string;
+            /** Name */
+            name: string;
+            /**
+             * Labels
+             * @default []
+             */
+            labels: components["schemas"]["ModelLabelRead"][];
         };
         /** NativeToolBinding */
         NativeToolBinding: {
@@ -1632,7 +1714,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Model"][];
+                    "application/json": components["schemas"]["ModelRead"][];
                 };
             };
             /** @description Validation Error */
@@ -1661,7 +1743,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Model"][];
+                    "application/json": components["schemas"]["ModelRead"][];
                 };
             };
         };
@@ -1685,7 +1767,42 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Model"];
+                    "application/json": components["schemas"]["ModelRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_model_labels_models__mid__labels_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                mid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ModelLabelsUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ModelRead"];
                 };
             };
             /** @description Validation Error */
@@ -2735,6 +2852,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_labels_labels_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LabelRead"][];
                 };
             };
         };

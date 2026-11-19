@@ -196,7 +196,7 @@ function ModelsTab() {
   async function onCreate() {
     if (!providerId || !name) return;
     try {
-      await create.mutateAsync({ provider_id: providerId, name });
+      await create.mutateAsync({ provider_id: providerId, name, labels: [] });
       setName("");
     } catch {
       notifications.show({ message: "Failed to create model", color: "red" });

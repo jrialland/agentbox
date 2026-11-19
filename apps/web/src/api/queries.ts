@@ -23,6 +23,7 @@ import {
   fetchAgentCard,
   fetchAgents,
   fetchApiKeys,
+  fetchLabels,
   fetchMessages,
   fetchModels,
   fetchPermissions,
@@ -42,6 +43,7 @@ import {
   saveSkill,
   revokeApiKey,
   setAgentCard,
+  setModelLabels,
   setRolePermissions,
   setUserRoles,
   updatePermission,
@@ -69,6 +71,24 @@ export function useProviders() {
 
 export function useModels() {
   return useQuery({ queryKey: ["models"], queryFn: fetchModels });
+}
+
+export function useLabels() {
+  return useQuery({ queryKey: ["labels"], queryFn: fetchLabels });
+}
+
+export function useSetModelLabels() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      mid: string;
+      labels: { label: string; priority: number }[];
+    }) => setModelLabels(input.mid, input.labels),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["models"] });
+      void qc.invalidateQueries({ queryKey: ["labels"] });
+    },
+  });
 }
 
 export function useMessages(sessionId: string) {

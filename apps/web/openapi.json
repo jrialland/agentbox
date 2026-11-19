@@ -684,7 +684,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/Model"
+                    "$ref": "#/components/schemas/ModelRead"
                   },
                   "title": "Response Refresh Models Providers  Pid  Models Refresh Post"
                 }
@@ -718,7 +718,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/Model"
+                    "$ref": "#/components/schemas/ModelRead"
                   },
                   "type": "array",
                   "title": "Response List Models Endpoint Models Get"
@@ -750,7 +750,59 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Model"
+                  "$ref": "#/components/schemas/ModelRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/models/{mid}/labels": {
+      "put": {
+        "tags": [
+          "models"
+        ],
+        "summary": "Set Model Labels",
+        "operationId": "set_model_labels_models__mid__labels_put",
+        "parameters": [
+          {
+            "name": "mid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Mid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModelLabelsUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelRead"
                 }
               }
             }
@@ -2176,6 +2228,31 @@
         }
       }
     },
+    "/labels": {
+      "get": {
+        "tags": [
+          "labels"
+        ],
+        "summary": "List Labels",
+        "operationId": "list_labels_labels_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/LabelRead"
+                  },
+                  "type": "array",
+                  "title": "Response List Labels Labels Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/skills": {
       "get": {
         "tags": [
@@ -2385,8 +2462,26 @@
             "default": ""
           },
           "model": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Model"
+          },
+          "model_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Label"
           },
           "tool_bindings": {
             "items": {
@@ -2417,8 +2512,7 @@
         },
         "type": "object",
         "required": [
-          "name",
-          "model"
+          "name"
         ],
         "title": "AgentCreate"
       },
@@ -2468,6 +2562,17 @@
           },
           "model_binding": {
             "$ref": "#/components/schemas/ModelBinding"
+          },
+          "model_label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Label"
           }
         },
         "type": "object",
@@ -2696,6 +2801,42 @@
         "type": "object",
         "title": "HTTPValidationError"
       },
+      "LabelAssignment": {
+        "properties": {
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "label"
+        ],
+        "title": "LabelAssignment"
+      },
+      "LabelRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "LabelRead"
+      },
       "LoginRequest": {
         "properties": {
           "username": {
@@ -2917,29 +3058,6 @@
         ],
         "title": "Mode"
       },
-      "Model": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "provider_id": {
-            "type": "string",
-            "title": "Provider Id"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "provider_id",
-          "name"
-        ],
-        "title": "Model"
-      },
       "ModelBinding": {
         "properties": {
           "model": {
@@ -2967,6 +3085,14 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/LabelAssignment"
+            },
+            "type": "array",
+            "title": "Labels",
+            "default": []
           }
         },
         "type": "object",
@@ -2975,6 +3101,74 @@
           "name"
         ],
         "title": "ModelCreate"
+      },
+      "ModelLabelRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "priority": {
+            "type": "integer",
+            "title": "Priority"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "priority"
+        ],
+        "title": "ModelLabelRead"
+      },
+      "ModelLabelsUpdate": {
+        "properties": {
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/LabelAssignment"
+            },
+            "type": "array",
+            "title": "Labels",
+            "default": []
+          }
+        },
+        "type": "object",
+        "title": "ModelLabelsUpdate"
+      },
+      "ModelRead": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "provider_id": {
+            "type": "string",
+            "title": "Provider Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "labels": {
+            "items": {
+              "$ref": "#/components/schemas/ModelLabelRead"
+            },
+            "type": "array",
+            "title": "Labels",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "provider_id",
+          "name"
+        ],
+        "title": "ModelRead"
       },
       "NativeToolBinding": {
         "properties": {
