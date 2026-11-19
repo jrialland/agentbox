@@ -11,6 +11,7 @@ import {
   createSession,
   createUser,
   deleteAgent,
+  deleteAgentCard,
   deleteModel,
   deletePermission,
   deleteProject,
@@ -18,6 +19,7 @@ import {
   deleteRole,
   deleteSession,
   deleteUser,
+  fetchAgentCard,
   fetchAgents,
   fetchApiKeys,
   fetchMessages,
@@ -34,6 +36,7 @@ import {
   refreshModels,
   resetAgentAvatar,
   revokeApiKey,
+  setAgentCard,
   setRolePermissions,
   setUserRoles,
   updatePermission,
@@ -333,6 +336,38 @@ export function useDeleteSession() {
   });
 }
 
+export function useAgentCard(name: string | null) {
+  return useQuery({
+    queryKey: ["agent-card", name],
+    queryFn: () => fetchAgentCard(name as string),
+    enabled: !!name,
+  });
+}
+
+export function useSetAgentCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      name,
+      card,
+    }: {
+      name: string;
+      card: Record<string, unknown>;
+    }) => setAgentCard(name, card),
+    onSuccess: (_d, v) =>
+      qc.invalidateQueries({ queryKey: ["agent-card", v.name] }),
+  });
+}
+
+export function useDeleteAgentCard() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteAgentCard,
+    onSuccess: (_d, name) =>
+      qc.invalidateQueries({ queryKey: ["agent-card", name] }),
+  });
+}
+
 export function useSetUserRoles() {
   const qc = useQueryClient();
   return useMutation({
@@ -364,3 +399,4 @@ export function useRevokeApiKey() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
   });
 }
+

@@ -336,3 +336,29 @@ export async function deleteModel(mid: string): Promise<void> {
 export async function deleteSession(sid: string): Promise<void> {
   await api.DELETE("/sessions/{sid}", { params: { path: { sid } } });
 }
+
+export type AgentCard = Record<string, unknown>;
+
+export async function fetchAgentCard(name: string): Promise<AgentCard | null> {
+  const { data, response } = await api.GET("/agents/{name}/card", {
+    params: { path: { name } },
+  });
+  if (response.status === 404) return null;
+  return (data as AgentCard) ?? null;
+}
+
+export async function setAgentCard(
+  name: string,
+  card: AgentCard,
+): Promise<AgentCard> {
+  const { data, error } = await api.PUT("/agents/{name}/card", {
+    params: { path: { name } },
+    body: card as never,
+  });
+  if (error) throw new Error("Failed to save agent card");
+  return data as AgentCard;
+}
+
+export async function deleteAgentCard(name: string): Promise<void> {
+  await api.DELETE("/agents/{name}/card", { params: { path: { name } } });
+}

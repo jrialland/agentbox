@@ -1,6 +1,7 @@
 import {
   Button,
   Checkbox,
+  Modal,
   MultiSelect,
   Select,
   Table,
@@ -11,11 +12,14 @@ import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 
 import {
+  useAgentCard,
   useAgents,
   useCreateAgent,
+  useDeleteAgentCard,
   useDeleteAgent,
   useModels,
   useResetAvatar,
+  useSetAgentCard,
   useUploadAvatar,
 } from "../api/queries";
 import { AgentAvatar } from "../components/agents/AgentAvatar";
@@ -44,6 +48,7 @@ export function AgentsPage() {
   ]);
   const [photo, setPhoto] = useState<File | null>(null);
   const [versions, setVersions] = useState<Record<string, number>>({});
+  const [cardAgent, setCardAgent] = useState<string | null>(null);
 
   async function onCreate() {
     if (!model) return;
@@ -256,6 +261,9 @@ export function AgentsPage() {
                 >
                   Remove photo
                 </Button>{" "}
+                <Button size="xs" variant="light" onClick={() => setCardAgent(a.name)}>
+                  A2A
+                </Button>{" "}
                 <Button size="xs" color="red" onClick={() => del.mutate(a.name)}>
                   Delete
                 </Button>
@@ -264,6 +272,64 @@ export function AgentsPage() {
           ))}
         </Table.Tbody>
       </Table>
+      {cardAgent && (
+        <AgentCardModal name={cardAgent} onClose={() => setCardAgent(null)} />
+      )}
     </div>
+  );
+}
+
+
+function AgentCardModal({
+  name,
+  onClose,
+}: {
+  name: string;
+  onClose: () => void;
+}) {
+  const { data: card } = useAgentCard(name);
+  const save = useSetAgentCard();
+  const remove = useDeleteAgentCard();
+  const [text, setText] = useState<string | null>(null);
+  const initial = JSON.stringify(
+    card ?? { name, description: "", version: "1.0.0", skills: [] },
+    null,
+    2,
+  );
+  const value = text ?? initial;
+
+  async function onSave() {
+    try {
+      const parsed = JSON.parse(value);
+      await save.mutateAsync({ name, card: parsed });
+      onClose();
+    } catch {
+      notifications.show({ message: "Invalid agent card JSON", color: "red" });
+    }
+  }
+
+  return (
+    <Modal opened onClose={onClose} title={`A2A card: ${name}`} size="lg">
+      <Textarea
+        label="Agent card (JSON)"
+        minRows={12}
+        value={value}
+        onChange={(e) => setText(e.currentTarget.value)}
+      />
+      <Button mt="md" onClick={onSave}>
+        Save
+      </Button>{" "}
+      <Button
+        mt="md"
+        variant="light"
+        color="red"
+        onClick={async () => {
+          await remove.mutateAsync(name);
+          onClose();
+        }}
+      >
+        Remove
+      </Button>
+    </Modal>
   );
 }
