@@ -126,6 +126,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 19 | @ file autocomplete | `specs/2026-11-17-file-mentions-design.md` | `plans/2026-11-17-file-mentions.md` |
 | 20 | Loguru sink configuration (console/file, rotation, stdlib) | `specs/2026-11-19-loguru-sinks-design.md` | `plans/2026-11-19-loguru-sinks.md` |
 | 21 | Filesystem tools parity (reference toolset + media + hooks) | `specs/2026-11-19-filesystem-tools-design.md` | `plans/2026-11-19-filesystem-tools.md` |
+| 22 | Model labels + label-based model routing | `specs/2026-11-19-model-labels-design.md` | `plans/2026-11-19-model-labels.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -139,7 +140,6 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D4 | **Web search + URL fetch tools** | A Google-like search tool, plus a fetch tool using Trafilatura cleanup and HTML → Markdown. For a bare domain (`domain.com`), try `https://domain.com/llms.txt` first; fall back to the requested URL when `llms.txt` is 404. |
 | D5 | **Complex agent workflows** | Move beyond the current ReAct loop: a graphical graph builder with nodes such as post-turn code checks, "ralph mode" re-run completion, and a decision model choosing the next step. |
 | D6 | **Duo mode** | Two-agent pairing: the primary receives the user message; the secondary answers the primary's questions. Turns continue automatically until a stop condition is met. |
-| D7 | **Model labelling** | Labels on models ("cheap", "fast", "highend", ...) to support selection and routing. |
 | D8 | **Sub-agent sessions** | Tools that let an agent start sub-sessions and monitor their progress (beyond the current agent-as-tool delegation). |
 | D9 | **Automatic session shrinking** | Drop past tool results that are no longer needed; strip multimodal content after a few turns; keep the context lean. |
 | D10 | **Automatic compaction** | Ask the model to summarize when the context window fills, then continue the session from the compacted context. |
