@@ -3,7 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { useMessages } from "../api/queries";
+import { useMessages, useSession } from "../api/queries";
 import { AppPanel } from "../chat/AppPanel";
 import "../chat/apps.css";
 import { Composer } from "../chat/Composer";
@@ -11,6 +11,7 @@ import { MarkdownBlock } from "../chat/MarkdownBlock";
 import { ReasoningBlock } from "../chat/ReasoningBlock";
 import { ToolCallBlock } from "../chat/ToolCallBlock";
 import { useChat } from "../chat/useChat";
+import { AgentAvatar } from "../components/agents/AgentAvatar";
 import { API_URL } from "../config";
 import { useAuthStore } from "../store/auth";
 
@@ -18,6 +19,7 @@ export function SessionPage() {
   const { id = "" } = useParams();
   const token = useAuthStore((s) => s.token);
   const { data: messages } = useMessages(id);
+  const { data: session } = useSession(id);
   const chat = useChat(API_URL, token, id);
   const qc = useQueryClient();
   const [input, setInput] = useState("");
@@ -46,6 +48,16 @@ export function SessionPage() {
   return (
     <div className={chat.appTabs.length > 0 ? "session-layout" : undefined}>
       <div className={chat.appTabs.length > 0 ? "session-main" : "session-full"}>
+        {session && (
+          <div
+            className="is-flex is-align-items-center"
+            style={{ gap: 8, marginBottom: "0.75rem" }}
+            data-testid="session-agent"
+          >
+            <AgentAvatar name={session.agent_name} />
+            <span className="has-text-weight-semibold">{session.agent_name}</span>
+          </div>
+        )}
         <h1 className="title">Session</h1>
         <div className="session-messages">
           {(messages ?? []).map((m) => (

@@ -9,6 +9,9 @@ import { SessionPage } from "./SessionPage";
 
 test("renders the chat composer", async () => {
   vi.spyOn(endpoints, "fetchMessages").mockResolvedValue([]);
+  vi.spyOn(endpoints, "fetchSession").mockResolvedValue({
+    agent_name: "bot",
+  } as never);
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
     <MantineProvider>
