@@ -34,7 +34,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Requirement | Status | Where / Notes |
 |---|---|---|
 | Agent = system prompt + tools | DONE | Harness + agents router + management UI. |
-| File tools (Codex / MCP FileSystem parity) | DONE | `FilesystemToolbox` mirrors MCP FileSystem tool set, sandboxed to project root. |
+| File tools (Codex / MCP FileSystem parity) | DONE | 17 native tools in `FilesystemToolbox` (read/write/tree/search/info/media/delete), guarded delete, post-tool hooks. |
 | Agent definition (name, description, prompt, tools, sub-agents, model) | DONE | `AgentSpec` + full agent create form. |
 | Sub-agents | DONE | Harness agents-as-tools (isolated runs). |
 | Agent avatar (attach photo) | DONE | `GET/PUT/DELETE /agents/{name}/avatar`; normalized 300×300 PNG upload; create-form picker + per-row change/remove. |
@@ -125,6 +125,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 18 | Agent Skills (discovery, activation, UI) | `specs/2026-11-17-skills-design.md` | `plans/2026-11-17-skills.md` |
 | 19 | @ file autocomplete | `specs/2026-11-17-file-mentions-design.md` | `plans/2026-11-17-file-mentions.md` |
 | 20 | Loguru sink configuration (console/file, rotation, stdlib) | `specs/2026-11-19-loguru-sinks-design.md` | `plans/2026-11-19-loguru-sinks.md` |
+| 21 | Filesystem tools parity (reference toolset + media + hooks) | `specs/2026-11-19-filesystem-tools-design.md` | `plans/2026-11-19-filesystem-tools.md` |
 
 ## Deferred backlog (not yet scheduled)
 
