@@ -124,15 +124,19 @@ class AgentboxA2AExecutor(AgentExecutor):
             bus.close()
 
         closer = asyncio.create_task(finish())
+        artifact_id = uuid.uuid4().hex
+        first = True
         try:
             async for event in sub.stream():
                 chunk = _text_chunk(event.event)
                 if chunk:
                     await updater.add_artifact(
                         parts=[new_text_part(text=chunk)],
-                        append=True,
+                        artifact_id=artifact_id,
+                        append=not first,
                         last_chunk=False,
                     )
+                    first = False
         finally:
             closer.cancel()
         outcome = await run.await_outcome()
