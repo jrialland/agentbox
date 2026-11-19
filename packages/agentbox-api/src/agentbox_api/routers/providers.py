@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from agentbox_api.deps import require_permission
 from agentbox_models.repos.crud import ProviderRepository
-from agentbox_models.tables.core import Model, Provider
+from agentbox_models.tables.core import Agent, Model, Provider
 from agentbox_providers.models import list_models
 
 router = APIRouter(prefix="/providers", tags=["providers"])
@@ -30,6 +30,14 @@ class ProviderRead(BaseModel):
     is_builtin: bool = False
 
 
+class ProviderUpdate(BaseModel):
+    name: str | None = None
+    kind: str | None = None
+    base_url: str | None = None
+    api_key: str | None = None
+    models_url: str | None = None
+
+
 @router.post("", response_model=ProviderRead)
 async def create_provider(
     body: ProviderCreate, request: Request, _=Depends(require_permission("providers:create"))
@@ -44,6 +52,29 @@ async def create_provider(
 @router.get("", response_model=list[ProviderRead])
 async def list_providers(request: Request, _=Depends(require_permission("providers:read"))):
     return await ProviderRepository(request.app.state.session_factory).list()
+
+
+@router.put("/{pid}", response_model=ProviderRead)
+async def update_provider(
+    pid: str,
+    body: ProviderUpdate,
+    request: Request,
+    _=Depends(require_permission("providers:create")),
+):
+    async with request.app.state.session_factory() as s:
+        provider = (
+            await s.execute(select(Provider).where(Provider.id == pid))
+        ).scalars().first()
+        if provider is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        for field in ("name", "kind", "base_url", "api_key", "models_url"):
+            value = getattr(body, field)
+            if value is not None:
+                setattr(provider, field, value)
+        s.add(provider)
+        await s.commit()
+        await s.refresh(provider)
+    return provider
 
 
 @router.post("/{pid}/models/refresh", response_model=list[Model])
@@ -75,5 +106,28 @@ async def refresh_models(
 async def delete_provider(
     pid: str, request: Request, _=Depends(require_permission("providers:delete"))
 ):
-    await ProviderRepository(request.app.state.session_factory).delete(pid)
+    async with request.app.state.session_factory() as s:
+        provider = (
+            await s.execute(select(Provider).where(Provider.id == pid))
+        ).scalars().first()
+        if provider is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        models = (
+            await s.execute(select(Model).where(Model.provider_id == pid))
+        ).scalars().all()
+        model_ids = [m.id for m in models]
+        if model_ids:
+            in_use = (
+                await s.execute(
+                    select(Agent).where(
+                        Agent.model_id.in_(model_ids)  # ty: ignore[missing-attribute]
+                    )
+                )
+            ).scalars().first()
+            if in_use is not None:
+                raise HTTPException(status_code=409, detail="Model in use")
+        for model in models:
+            await s.delete(model)
+        await s.delete(provider)
+        await s.commit()
     return {"ok": True}
