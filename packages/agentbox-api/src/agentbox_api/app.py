@@ -16,6 +16,7 @@ from agentbox_api.routers.labels import router as labels_router
 from agentbox_api.routers.models import router as models_router
 from agentbox_api.routers.permissions import router as permissions_router
 from agentbox_api.routers.projects import router as projects_router
+from agentbox_api.routers.prompts import router as prompts_router
 from agentbox_api.routers.providers import router as providers_router
 from agentbox_api.routers.roles import router as roles_router
 from agentbox_api.routers.sessions import router as sessions_router
@@ -58,6 +59,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
     app.include_router(models_router)
     app.include_router(permissions_router)
     app.include_router(projects_router)
+    app.include_router(prompts_router)
     app.include_router(sessions_router)
     app.include_router(users_router)
     app.include_router(roles_router)
