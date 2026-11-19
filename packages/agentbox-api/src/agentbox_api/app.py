@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from loguru import logger
 from starlette.middleware.authentication import AuthenticationMiddleware
 
+from agentbox_api.a2a_server import A2ADispatcher
 from agentbox_api.auth_backend import JWTAuthenticationBackend
 from agentbox_api.config import Settings
 from agentbox_api.routers.agents import router as agents_router
@@ -61,5 +62,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
     @app.get("/sandbox", include_in_schema=False)
     async def sandbox_page(csp: str | None = None):
         return sandbox_response(csp)
+
+    app.mount("/a2a", A2ADispatcher(session_factory, settings))
 
     return app
