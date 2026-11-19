@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createAgent,
+  createApiKey,
   createPermission,
   createProject,
   createProvider,
@@ -15,6 +16,7 @@ import {
   deleteRole,
   deleteUser,
   fetchAgents,
+  fetchApiKeys,
   fetchMessages,
   fetchModels,
   fetchPermissions,
@@ -28,6 +30,7 @@ import {
   fetchUsers,
   refreshModels,
   resetAgentAvatar,
+  revokeApiKey,
   setRolePermissions,
   setUserRoles,
   updatePermission,
@@ -297,5 +300,25 @@ export function useSetUserRoles() {
       qc.invalidateQueries({ queryKey: ["user-roles", v.uid] });
       qc.invalidateQueries({ queryKey: ["users"] });
     },
+  });
+}
+
+export function useApiKeys() {
+  return useQuery({ queryKey: ["api-keys"], queryFn: fetchApiKeys });
+}
+
+export function useCreateApiKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createApiKey,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
+  });
+}
+
+export function useRevokeApiKey() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: revokeApiKey,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["api-keys"] }),
   });
 }

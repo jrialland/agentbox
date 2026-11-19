@@ -10,6 +10,7 @@ export function AppShell() {
   const canAdmin =
     user?.permissions.includes("roles:manage") ||
     user?.permissions.includes("users:manage");
+  const canApiKeys = user?.permissions.includes("api_keys:manage");
 
   function logout() {
     clear();
@@ -35,6 +36,11 @@ export function AppShell() {
             {canAdmin && (
               <Link className="navbar-item" to="/admin">
                 Admin
+              </Link>
+            )}
+            {canApiKeys && (
+              <Link className="navbar-item" to="/api-keys">
+                API keys
               </Link>
             )}
           </div>

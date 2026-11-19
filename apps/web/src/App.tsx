@@ -8,6 +8,7 @@ import { RequireAuth } from "./components/auth/RequireAuth";
 import { AppShell } from "./components/layout/AppShell";
 import { AdminPage } from "./pages/AdminPage";
 import { AgentsPage } from "./pages/AgentsPage";
+import { ApiKeysPage } from "./pages/ApiKeysPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
@@ -31,6 +32,7 @@ export function App() {
                   <Route index element={<HomePage />} />
                   <Route path="admin" element={<AdminPage />} />
                   <Route path="agents" element={<AgentsPage />} />
+                  <Route path="api-keys" element={<ApiKeysPage />} />
                   <Route path="providers" element={<ProvidersPage />} />
                   <Route path="sessions/:id" element={<SessionPage />} />
                 </Route>

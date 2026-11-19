@@ -280,3 +280,24 @@ export async function setUserRoles(uid: string, roleIds: string[]): Promise<Role
   if (error) throw new Error("Failed to set user roles");
   return data ?? [];
 }
+
+export type ApiKey = components["schemas"]["ApiKeyRead"];
+export type ApiKeyCreated = components["schemas"]["ApiKeyCreated"];
+
+export async function fetchApiKeys(): Promise<ApiKey[]> {
+  const { data } = await api.GET("/api-keys");
+  return data ?? [];
+}
+
+export async function createApiKey(body: {
+  scopes: string[];
+  expires_at?: string | null;
+}): Promise<ApiKeyCreated> {
+  const { data, error } = await api.POST("/api-keys", { body });
+  if (error) throw new Error("Failed to create API key");
+  return data as ApiKeyCreated;
+}
+
+export async function revokeApiKey(id: string): Promise<void> {
+  await api.DELETE("/api-keys/{kid}", { params: { path: { kid: id } } });
+}
