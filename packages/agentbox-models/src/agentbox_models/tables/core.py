@@ -41,6 +41,7 @@ class Agent(SQLModel, table=True):
     description: str
     instructions: str
     model_id: str = Field(foreign_key="model.id")
+    model_label: str | None = None
     tool_bindings: str = "[]"
     mode_definitions: str = "[]"
     sub_agent_ids: str = "[]"
