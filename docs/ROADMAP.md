@@ -59,7 +59,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | AG-UI-compatible chat window | DONE | AG-UI client (`@ag-ui/client`). |
 | Input form with attachments (paperclip) | DONE | Multimodal attachments. |
 | Speech-to-text (Web Audio API, microphone) | DONE | Web Speech API. |
-| Autocomplete `/` for installed **skills** | DEFERRED | Skills system not built (deferred platform-wide); needs skills + autocomplete. |
+| Autocomplete `/` for installed **skills** | DONE | Composer `/` menu; `skill=<name>` explicit activation. |
 | Autocomplete `@` for filenames (project root) | DEFERRED | Needs a file-listing endpoint + autocomplete. |
 | Streamed tokens; visible reasoning; Markdown; Mermaid + pan/zoom + copy-source | DONE | Chat sub-project. |
 | Direct mode: closing browser ends the session | DEVIATION | Harness supports detach/re-attach (run continues); documented in the harness spec. |
@@ -122,10 +122,10 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 15 | ACP adapter (IDE over stdio) | `specs/2026-11-17-acp-design.md` | `plans/2026-11-17-acp.md` |
 | 16 | Provider edit + model management + session delete | `specs/2026-11-17-provider-model-admin-design.md` | `plans/2026-11-17-provider-model-admin.md` |
 | 17 | A2A adapter (agent cards, API-key auth) | `specs/2026-11-17-a2a-design.md` | `plans/2026-11-17-a2a.md` |
+| 18 | Agent Skills (discovery, activation, UI) | `specs/2026-11-17-skills-design.md` | `plans/2026-11-17-skills.md` |
 
 ## Deferred backlog (not yet scheduled)
 
-1. **Skills system** + `/` autocomplete.
-2. **`@` file autocomplete** (needs a project file-listing endpoint).
+1. **`@` file autocomplete** (needs a project file-listing endpoint).
 3. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
 
