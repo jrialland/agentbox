@@ -15,7 +15,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | ACP (Agent Client Protocol) adapter (IDE, JSON-RPC over STDIO) | DEFERRED | Future sub-project. |
 | A2A (Agent-to-Agent) adapter + agent cards + API-key auth | DEFERRED | Future sub-project (reuses API-key auth). |
 | MCP for external tools/resources | PARTIAL | Agent factory consumes MCP servers via pydantic-ai `MCPToolset`; no MCP server management UI yet. |
-| AG-UI streaming (agent → web UI) | DONE (backend) / CURRENT (frontend) | Backend uses pydantic-ai `AGUIAdapter`; frontend consumption in the chat sub-project. |
+| AG-UI streaming (agent → web UI) | DONE | Backend uses pydantic-ai `AGUIAdapter`; frontend consumes it via `@ag-ui/client`. |
 | Full compliance with the protocols (no homegrown protocol code) | DONE (AG-UI) / DEFERRED (ACP, A2A) | AG-UI uses pydantic-ai's adapter; MCP via pydantic-ai. |
 | Extensive research on libraries/protocols | DONE | Captured in the per-sub-project specs. |
 
@@ -55,17 +55,17 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 |---|---|---|
 | Project = folder on PC | DONE | Projects + tree. |
 | Left tree: projects → sessions | DONE | `ProjectTree`. |
-| Choose agent + chat interface | CURRENT | Chat sub-project. |
-| AG-UI-compatible chat window | CURRENT | AG-UI client (chat sub-project). |
-| Input form with attachments (paperclip) | CURRENT | Multimodal attachments (chat sub-project). |
-| Speech-to-text (Web Audio API, microphone) | CURRENT | Web Speech API (chat sub-project). |
+| Choose agent + chat interface | DONE | Chat sub-project. |
+| AG-UI-compatible chat window | DONE | AG-UI client (`@ag-ui/client`). |
+| Input form with attachments (paperclip) | DONE | Multimodal attachments. |
+| Speech-to-text (Web Audio API, microphone) | DONE | Web Speech API. |
 | Autocomplete `/` for installed **skills** | DEFERRED | Skills system not built (deferred platform-wide); needs skills + autocomplete. |
 | Autocomplete `@` for filenames (project root) | DEFERRED | Needs a file-listing endpoint + autocomplete. |
-| Streamed tokens; visible reasoning; Markdown; Mermaid + pan/zoom + copy-source | CURRENT | Chat sub-project. |
+| Streamed tokens; visible reasoning; Markdown; Mermaid + pan/zoom + copy-source | DONE | Chat sub-project. |
 | Direct mode: closing browser ends the session | DEVIATION | Harness supports detach/re-attach (run continues); documented in the harness spec. |
-| Resume existing session | CURRENT | Chat sub-project (loads history). |
-| Edit a previous question → conversation restarts | CURRENT | Chat sub-project (fork via `fork_from_turn_id`). |
-| Mode switching (Ask / Agent) | CURRENT | Mode selector in the chat sub-project. |
+| Resume existing session | DONE | Loads history. |
+| Edit a previous question → conversation restarts | DONE | Fork via `fork_from_turn_id`. |
+| Mode switching (Ask / Agent) | DONE | Mode selector. |
 | Agent modes defined in the agent config UI | DONE | Modes editor in the agent form. |
 
 ## Use case 4 — ACP
