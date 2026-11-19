@@ -37,7 +37,13 @@ class PermissionRead(BaseModel):
     description: str | None = None
 
 
-@router.post("")
+class RoleRead(BaseModel):
+    id: str
+    name: str
+    description: str | None = None
+
+
+@router.post("", response_model=RoleRead)
 async def create_role(
     body: RoleCreate, request: Request, _=Depends(require_permission("roles:manage"))
 ):
@@ -47,12 +53,12 @@ async def create_role(
     )
 
 
-@router.get("")
+@router.get("", response_model=list[RoleRead])
 async def list_roles(request: Request, _=Depends(require_permission("roles:manage"))):
     return await RoleRepository(request.app.state.session_factory).list()
 
 
-@router.put("/{rid}")
+@router.put("/{rid}", response_model=RoleRead)
 async def update_role(
     rid: str,
     body: RoleUpdate,
