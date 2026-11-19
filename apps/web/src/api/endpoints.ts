@@ -150,3 +150,133 @@ export async function resetAgentAvatar(name: string): Promise<void> {
   });
   if (!r.ok) throw new Error("avatar reset failed");
 }
+
+export type Permission = components["schemas"]["PermissionRead"];
+export type Role = components["schemas"]["RoleRead"];
+export type User = components["schemas"]["UserRead"];
+
+export async function fetchPermissions(): Promise<Permission[]> {
+  const { data } = await api.GET("/permissions");
+  return data ?? [];
+}
+
+export async function createPermission(body: {
+  name: string;
+  description?: string;
+}): Promise<Permission> {
+  const { data, error } = await api.POST("/permissions", { body });
+  if (error) throw new Error("Failed to create permission");
+  return data as Permission;
+}
+
+export async function updatePermission(
+  pid: string,
+  body: { name?: string; description?: string },
+): Promise<Permission> {
+  const { data, error } = await api.PUT("/permissions/{pid}", {
+    params: { path: { pid } },
+    body,
+  });
+  if (error) throw new Error("Failed to update permission");
+  return data as Permission;
+}
+
+export async function deletePermission(pid: string): Promise<void> {
+  await api.DELETE("/permissions/{pid}", { params: { path: { pid } } });
+}
+
+export async function fetchRoles(): Promise<Role[]> {
+  const { data } = await api.GET("/roles");
+  return data ?? [];
+}
+
+export async function createRole(body: {
+  name: string;
+  description?: string;
+}): Promise<Role> {
+  const { data, error } = await api.POST("/roles", { body });
+  if (error) throw new Error("Failed to create role");
+  return data as Role;
+}
+
+export async function deleteRole(rid: string): Promise<void> {
+  await api.DELETE("/roles/{rid}", { params: { path: { rid } } });
+}
+
+export async function updateRole(
+  rid: string,
+  body: { name?: string; description?: string },
+): Promise<Role> {
+  const { data, error } = await api.PUT("/roles/{rid}", {
+    params: { path: { rid } },
+    body,
+  });
+  if (error) throw new Error("Failed to update role");
+  return data as Role;
+}
+
+export async function fetchRolePermissions(rid: string): Promise<Permission[]> {
+  const { data } = await api.GET("/roles/{rid}/permissions", {
+    params: { path: { rid } },
+  });
+  return data ?? [];
+}
+
+export async function setRolePermissions(
+  rid: string,
+  permissionIds: string[],
+): Promise<Permission[]> {
+  const { data, error } = await api.PUT("/roles/{rid}/permissions", {
+    params: { path: { rid } },
+    body: { permission_ids: permissionIds },
+  });
+  if (error) throw new Error("Failed to set role permissions");
+  return data ?? [];
+}
+
+export async function fetchUsers(): Promise<User[]> {
+  const { data } = await api.GET("/users");
+  return data ?? [];
+}
+
+export async function createUser(body: {
+  username: string;
+  email: string;
+  password: string;
+}): Promise<User> {
+  const { data, error } = await api.POST("/users", { body });
+  if (error) throw new Error("Failed to create user");
+  return data as User;
+}
+
+export async function updateUser(
+  uid: string,
+  body: { email?: string; is_active?: boolean; password?: string },
+): Promise<User> {
+  const { data, error } = await api.PUT("/users/{uid}", {
+    params: { path: { uid } },
+    body,
+  });
+  if (error) throw new Error("Failed to update user");
+  return data as User;
+}
+
+export async function deleteUser(uid: string): Promise<void> {
+  await api.DELETE("/users/{uid}", { params: { path: { uid } } });
+}
+
+export async function fetchUserRoles(uid: string): Promise<Role[]> {
+  const { data } = await api.GET("/users/{uid}/roles", {
+    params: { path: { uid } },
+  });
+  return data ?? [];
+}
+
+export async function setUserRoles(uid: string, roleIds: string[]): Promise<Role[]> {
+  const { data, error } = await api.PUT("/users/{uid}/roles", {
+    params: { path: { uid } },
+    body: { role_ids: roleIds },
+  });
+  if (error) throw new Error("Failed to set user roles");
+  return data ?? [];
+}

@@ -2,21 +2,37 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import {
   createAgent,
+  createPermission,
   createProject,
   createProvider,
+  createRole,
   createSession,
+  createUser,
   deleteAgent,
+  deletePermission,
   deleteProject,
   deleteProvider,
+  deleteRole,
+  deleteUser,
   fetchAgents,
   fetchMessages,
   fetchModels,
+  fetchPermissions,
   fetchProjects,
   fetchProviders,
+  fetchRolePermissions,
+  fetchRoles,
   fetchSession,
   fetchSessions,
+  fetchUserRoles,
+  fetchUsers,
   refreshModels,
   resetAgentAvatar,
+  setRolePermissions,
+  setUserRoles,
+  updatePermission,
+  updateRole,
+  updateUser,
   uploadAgentAvatar,
 } from "./endpoints";
 
@@ -138,6 +154,148 @@ export function useResetAvatar() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["agents"] });
       qc.invalidateQueries({ queryKey: ["session"] });
+    },
+  });
+}
+
+export function usePermissions() {
+  return useQuery({ queryKey: ["permissions"], queryFn: fetchPermissions });
+}
+
+export function useRoles() {
+  return useQuery({ queryKey: ["roles"], queryFn: fetchRoles });
+}
+
+export function useUsers() {
+  return useQuery({ queryKey: ["users"], queryFn: fetchUsers });
+}
+
+export function useRolePermissions(rid: string | null) {
+  return useQuery({
+    queryKey: ["role-permissions", rid],
+    queryFn: () => fetchRolePermissions(rid as string),
+    enabled: !!rid,
+  });
+}
+
+export function useUserRoles(uid: string | null) {
+  return useQuery({
+    queryKey: ["user-roles", uid],
+    queryFn: () => fetchUserRoles(uid as string),
+    enabled: !!uid,
+  });
+}
+
+export function useCreatePermission() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createPermission,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["permissions"] }),
+  });
+}
+
+export function useUpdatePermission() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      pid,
+      body,
+    }: {
+      pid: string;
+      body: { name?: string; description?: string };
+    }) => updatePermission(pid, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["permissions"] }),
+  });
+}
+
+export function useDeletePermission() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deletePermission,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["permissions"] }),
+  });
+}
+
+export function useCreateRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createRole,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
+  });
+}
+
+export function useUpdateRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      rid,
+      body,
+    }: {
+      rid: string;
+      body: { name?: string; description?: string };
+    }) => updateRole(rid, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
+  });
+}
+
+export function useDeleteRole() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteRole,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["roles"] }),
+  });
+}
+
+export function useSetRolePermissions() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ rid, ids }: { rid: string; ids: string[] }) =>
+      setRolePermissions(rid, ids),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["role-permissions", v.rid] });
+      qc.invalidateQueries({ queryKey: ["roles"] });
+    },
+  });
+}
+
+export function useCreateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: createUser,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useUpdateUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      uid,
+      body,
+    }: {
+      uid: string;
+      body: { email?: string; is_active?: boolean; password?: string };
+    }) => updateUser(uid, body),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useDeleteUser() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: deleteUser,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["users"] }),
+  });
+}
+
+export function useSetUserRoles() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ uid, ids }: { uid: string; ids: string[] }) =>
+      setUserRoles(uid, ids),
+    onSuccess: (_d, v) => {
+      qc.invalidateQueries({ queryKey: ["user-roles", v.uid] });
+      qc.invalidateQueries({ queryKey: ["users"] });
     },
   });
 }
