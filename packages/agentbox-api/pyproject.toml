@@ -19,6 +19,9 @@ dependencies = [
     "agentbox-harness",
 ]
 
+[project.scripts]
+agentbox-acp = "agentbox_api.acp_server:main"
+
 [dependency-groups]
 dev = [
     "pytest>=8.0",

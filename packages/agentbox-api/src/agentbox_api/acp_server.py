@@ -1,21 +1,52 @@
 """ACP (Agent Client Protocol) adapter for Agentbox.
 
-Maps ACP prompt content and Pydantic AI stream events to ACP schema models.
-The ACP agent + CLI are added below (Task 4).
+Runs Agentbox as an ACP v1 agent over stdio (``agentbox-acp --agent <name>``),
+driving the harness and adapting the core session storage.
 """
 
 from __future__ import annotations
 
+import argparse
+import asyncio
 import base64
+import pathlib
+import re
+import uuid
+from dataclasses import dataclass
+from typing import cast
 
+import acp
+from acp import PROTOCOL_VERSION, run_agent
 from acp import schema as s
 from pydantic_ai.messages import (
     BinaryContent,
     FunctionToolCallEvent,
     FunctionToolResultEvent,
     PartDeltaEvent,
+    PartStartEvent,
+    TextPart,
     TextPartDelta,
+    ThinkingPart,
     ThinkingPartDelta,
+)
+from pydantic_ai.models import Model as PydanticModel
+from sqlmodel import select
+
+from agentbox_api.config import Settings
+from agentbox_api.runtime import build_registry, resolve_agent_runtime
+from agentbox_harness.events import EventBus
+from agentbox_harness.harness import Harness
+from agentbox_harness.run import Run
+from agentbox_harness.session import Session, Turn
+from agentbox_harness.spec import DEFAULT_MODES, AgentSpec, McpToolBinding
+from agentbox_models.db import create_engine_and_sessionmaker, init_db
+from agentbox_models.repos.message_log import SQLiteMessageLogStore
+from agentbox_models.tables.auth import User
+from agentbox_models.tables.core import (
+    Project,
+    SessionAttachment,
+    SessionRow,
+    TurnRow,
 )
 
 
@@ -44,10 +75,7 @@ def prompt_parts(blocks) -> list:
                     getattr(resource, "mime_type", None) or "application/octet-stream"
                 )
                 parts.append(
-                    BinaryContent(
-                        data=base64.b64decode(blob),
-                        media_type=media,
-                    )
+                    BinaryContent(data=base64.b64decode(blob), media_type=media)
                 )
             else:
                 raise ValueError("invalid embedded resource")
@@ -58,6 +86,13 @@ def prompt_parts(blocks) -> list:
 
 def update_for_event(event):
     """Map a Pydantic AI stream event to an ACP ``session/update`` payload (or None)."""
+    if isinstance(event, PartStartEvent):
+        part = event.part
+        if isinstance(part, TextPart) and part.content:
+            return s.AgentMessageChunk(content=s.TextContentBlock(text=part.content))
+        if isinstance(part, ThinkingPart) and part.content:
+            return s.AgentThoughtChunk(content=s.TextContentBlock(text=part.content))
+        return None
     if isinstance(event, PartDeltaEvent):
         delta = event.delta
         text = getattr(delta, "content_delta", None)
@@ -84,3 +119,350 @@ def update_for_event(event):
             content=[s.ContentToolCallContent(content=s.TextContentBlock(text=text))],
         )
     return None
+
+
+@dataclass
+class AcpSession:
+    session_id: str
+    project_root: str
+    project_id: str
+    agent_id: str
+    spec: AgentSpec
+    model: PydanticModel
+    mode: str
+    run: Run | None = None
+
+
+def _slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
+
+
+def _default_mode(spec) -> str:
+    names = [m.name for m in spec.mode_definitions] or ["ask", "agent"]
+    return "agent" if "agent" in names else names[0]
+
+
+def _modes(spec, current: str) -> s.SessionModeState:
+    modes = spec.mode_definitions or list(DEFAULT_MODES)
+    return s.SessionModeState(
+        current_mode_id=current,
+        available_modes=[s.SessionMode(id=m.name, name=m.name.capitalize()) for m in modes],
+    )
+
+
+async def _latest_leaf(factory, session_id: str):
+    async with factory() as db:
+        turns = (
+            await db.execute(
+                select(TurnRow).where(TurnRow.session_id == session_id)
+            )
+        ).scalars().all()
+    turns = sorted(turns, key=lambda t: t.created_at)
+    if not turns:
+        return None
+    parents = {t.parent_id for t in turns if t.parent_id}
+    leaves = [t for t in turns if t.id not in parents]
+    return leaves[-1].id if leaves else None
+
+
+class AgentboxAcpAgent:
+    def __init__(self, agent_name: str, factory):
+        self._agent_name = agent_name
+        self._factory = factory
+        self._client: acp.Client | None = None
+        self._sessions: dict[str, AcpSession] = {}
+
+    def on_connect(self, conn: acp.Client) -> None:
+        self._client = conn
+
+    async def initialize(
+        self, protocol_version, client_capabilities=None, client_info=None, **kwargs
+    ):
+        return s.InitializeResponse(
+            protocol_version=PROTOCOL_VERSION,
+            agent_capabilities=s.AgentCapabilities(
+                load_session=True,
+                prompt_capabilities=s.PromptCapabilities(
+                    image=True, audio=True, embedded_context=True
+                ),
+                session_capabilities=s.SessionCapabilities(
+                    list=s.SessionListCapabilities(),
+                    delete=s.SessionDeleteCapabilities(),
+                    resume=s.SessionResumeCapabilities(),
+                    close=s.SessionCloseCapabilities(),
+                ),
+            ),
+            auth_methods=[],
+            agent_info=s.Implementation(name="agentbox", version="0.1.0"),
+        )
+
+    async def new_session(
+        self, cwd, additional_directories=None, mcp_servers=None, **kwargs
+    ):
+        runtime = await resolve_agent_runtime(self._factory, self._agent_name)
+        owner = runtime.created_by or await self._admin_id()
+        session_id = uuid.uuid4().hex
+        async with self._factory() as db:
+            project = (
+                await db.execute(select(Project).where(Project.path == cwd))
+            ).scalars().first()
+            if project is None:
+                project = Project(
+                    id=uuid.uuid4().hex,
+                    name=pathlib.Path(cwd).name or cwd,
+                    path=cwd,
+                    owner_id=owner,
+                )
+                db.add(project)
+            db.add(
+                SessionRow(
+                    id=session_id, project_id=project.id, agent_id=runtime.agent_id
+                )
+            )
+            await db.commit()
+            project_id = project.id
+        spec = self._with_servers(runtime.spec, mcp_servers)
+        mode = _default_mode(spec)
+        self._sessions[session_id] = AcpSession(
+            session_id, cwd, project_id, runtime.agent_id, spec, runtime.model, mode
+        )
+        return s.NewSessionResponse(session_id=session_id, modes=_modes(spec, mode))
+
+    async def prompt(self, session_id, prompt, **kwargs):
+        sess = self._sessions.get(session_id)
+        if sess is None:
+            raise acp.RequestError(-32002, "unknown session")
+        client = self._client
+        if client is None:
+            raise RuntimeError("ACP client not connected")
+        parts = prompt_parts(prompt)
+        text = "".join(p for p in parts if isinstance(p, str))
+        store = SQLiteMessageLogStore(self._factory, session_id)
+        session = Session(
+            session_id=session_id,
+            project_root=sess.project_root,
+            agent_spec=sess.spec,
+            store=store,
+            head_id=await _latest_leaf(self._factory, session_id),
+            mode_name=sess.mode,
+        )
+        harness = Harness(
+            registry=build_registry(sess.project_root),
+            model=sess.model,
+            store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
+        )
+        bus = EventBus()
+        sub = bus.subscribe()
+        run = await harness.run(session, text, bus, prompt_override=parts)
+        sess.run = run
+
+        async def finish():
+            await run.await_outcome()
+            bus.close()
+
+        closer = asyncio.create_task(finish())
+        try:
+            async for event in sub.stream():
+                update = update_for_event(event.event)
+                if update is not None:
+                    await client.session_update(session_id=session_id, update=update)
+        finally:
+            closer.cancel()
+        outcome = await run.await_outcome()
+        sess.run = None
+        if outcome.status == "success":
+            result = await run.await_result()
+            turn = Turn(
+                id=uuid.uuid4().hex,
+                role="assistant",
+                content=str(result.output),
+                parent_id=session.head_id,
+            )
+            await session.append(turn, parent_id=session.head_id)
+            return s.PromptResponse(stop_reason="end_turn")
+        if outcome.status == "cancelled":
+            return s.PromptResponse(stop_reason="cancelled")
+        await client.session_update(
+            session_id=session_id,
+            update=s.AgentMessageChunk(
+                content=s.TextContentBlock(text=f"[error] {outcome.message}")
+            ),
+        )
+        return s.PromptResponse(stop_reason="end_turn")
+
+    async def cancel(self, session_id, **kwargs):
+        sess = self._sessions.get(session_id)
+        if sess is not None and sess.run is not None:
+            sess.run.cancel()
+
+    async def set_session_mode(self, session_id, mode_id, **kwargs):
+        sess = self._sessions.get(session_id)
+        if sess is None:
+            raise acp.RequestError(-32002, "unknown session")
+        sess.mode = mode_id
+        return s.SetSessionModeResponse()
+
+    async def list_sessions(self, cwd=None, cursor=None, **kwargs):
+        runtime = await resolve_agent_runtime(self._factory, self._agent_name)
+        async with self._factory() as db:
+            rows = (
+                await db.execute(
+                    select(SessionRow).where(SessionRow.agent_id == runtime.agent_id)
+                )
+            ).scalars().all()
+            infos = []
+            for row in rows:
+                project = (
+                    await db.execute(
+                        select(Project).where(Project.id == row.project_id)
+                    )
+                ).scalars().first()
+                if project is None or (cwd is not None and project.path != cwd):
+                    continue
+                turns = (
+                    await db.execute(
+                        select(TurnRow)
+                        .where(TurnRow.session_id == row.id)
+                    )
+                ).scalars().all()
+                turns = sorted(turns, key=lambda t: t.created_at)
+                title = next((t.content[:80] for t in turns if t.role == "user"), None)
+                updated = turns[-1].created_at.isoformat() if turns else None
+                infos.append(
+                    s.SessionInfo(
+                        session_id=row.id,
+                        cwd=project.path,
+                        title=title,
+                        updated_at=updated,
+                    )
+                )
+        return s.ListSessionsResponse(sessions=infos)
+
+    async def load_session(
+        self, cwd, session_id, mcp_servers=None, additional_directories=None, **kwargs
+    ):
+        sess = await self._restore(session_id, mcp_servers)
+        client = self._client
+        if client is None:
+            raise RuntimeError("ACP client not connected")
+        async with self._factory() as db:
+            turns = (
+                await db.execute(
+                    select(TurnRow).where(TurnRow.session_id == session_id)
+                )
+            ).scalars().all()
+        turns = sorted(turns, key=lambda t: t.created_at)
+        for turn in turns:
+            block = s.TextContentBlock(text=turn.content)
+            update = (
+                s.UserMessageChunk(content=block)
+                if turn.role == "user"
+                else s.AgentMessageChunk(content=block)
+            )
+            await client.session_update(session_id=session_id, update=update)
+        return s.LoadSessionResponse(modes=_modes(sess.spec, sess.mode))
+
+    async def resume_session(
+        self, session_id, cwd, additional_directories=None, mcp_servers=None, **kwargs
+    ):
+        sess = await self._restore(session_id, mcp_servers)
+        return s.ResumeSessionResponse(modes=_modes(sess.spec, sess.mode))
+
+    async def delete_session(self, session_id, **kwargs):
+        async with self._factory() as db:
+            row = (
+                await db.execute(select(SessionRow).where(SessionRow.id == session_id))
+            ).scalars().first()
+            if row is not None:
+                turns = (
+                    await db.execute(
+                        select(TurnRow).where(TurnRow.session_id == session_id)
+                    )
+                ).scalars().all()
+                for turn in turns:
+                    await db.delete(turn)
+                attachments = (
+                    await db.execute(
+                        select(SessionAttachment).where(
+                            SessionAttachment.session_id == session_id
+                        )
+                    )
+                ).scalars().all()
+                for attachment in attachments:
+                    await db.delete(attachment)
+                await db.delete(row)
+                await db.commit()
+        self._sessions.pop(session_id, None)
+        return s.DeleteSessionResponse()
+
+    async def close_session(self, session_id, **kwargs):
+        sess = self._sessions.pop(session_id, None)
+        if sess is not None and sess.run is not None:
+            sess.run.cancel()
+        return s.CloseSessionResponse()
+
+    async def _restore(self, session_id: str, mcp_servers) -> AcpSession:
+        runtime = await resolve_agent_runtime(self._factory, self._agent_name)
+        async with self._factory() as db:
+            row = (
+                await db.execute(select(SessionRow).where(SessionRow.id == session_id))
+            ).scalars().first()
+            if row is None or row.agent_id != runtime.agent_id:
+                raise acp.RequestError(-32002, "unknown session")
+            project = (
+                await db.execute(select(Project).where(Project.id == row.project_id))
+            ).scalars().first()
+        spec = self._with_servers(runtime.spec, mcp_servers)
+        sess = AcpSession(
+            session_id,
+            project.path,
+            project.id,
+            runtime.agent_id,
+            spec,
+            runtime.model,
+            _default_mode(spec),
+        )
+        self._sessions[session_id] = sess
+        return sess
+
+    async def _admin_id(self) -> str:
+        async with self._factory() as db:
+            user = (
+                await db.execute(select(User).where(User.username == "admin"))
+            ).scalars().first()
+        if user is None:
+            raise RuntimeError("no admin user to own ACP projects")
+        return user.id
+
+    def _with_servers(self, spec, mcp_servers):
+        extra = [
+            McpToolBinding(
+                id=_slug(server.name) or f"acp-{i}",
+                command=server.command,
+                args=list(server.args),
+                env={e.name: e.value for e in server.env},
+            )
+            for i, server in enumerate(mcp_servers or [])
+        ]
+        if not extra:
+            return spec
+        return spec.model_copy(
+            update={"tool_bindings": [*spec.tool_bindings, *extra]}
+        )
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--agent", required=True)
+    args = parser.parse_args()
+    settings = Settings()
+    engine, factory = create_engine_and_sessionmaker(settings.database_url)
+    asyncio.run(init_db(engine))
+    agent = cast(acp.Agent, AgentboxAcpAgent(args.agent, factory))
+    asyncio.run(run_agent(agent))
+
+
+if __name__ == "__main__":
+    main()
+
+
