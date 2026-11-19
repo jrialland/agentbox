@@ -26,7 +26,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Roles → permissions; users → roles | DONE | `agentbox-models` tables + `agentbox-api` auth backend. |
 | Admin CRUD users / roles | DONE | `users` + `roles` routers. |
 | Admin CRUD permissions | DONE | `/permissions` CRUD; role↔permission and user↔role assignment; role/user update; Admin UI (Permissions/Roles/Users tabs). |
-| Personal API keys (scoped, optional lifetime) | PARTIAL | `api_keys` router (create/list/delete, scopes). Lifetime (`expires_at`) is stored but not exposed by the create endpoint. |
+| Personal API keys (scoped, optional lifetime) | DONE | Optional `expires_at` (enforced at auth), scope-subset validation, soft revoke, personal no-hash reads, API-keys page. |
 | API keys authenticate the API | DONE | `JWTAuthenticationBackend` accepts API keys. |
 
 ## Use case 1 — Agent creation
@@ -118,6 +118,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 11 | Agent avatars (RoboHash set1 + custom photo) | `specs/2026-11-17-agent-avatars-design.md` | `plans/2026-11-17-agent-avatars.md` |
 | 12 | Backend loguru logging (usage) | `specs/2026-11-17-logging-design.md` | `plans/2026-11-17-logging.md` |
 | 13 | RBAC administration (permissions CRUD + assignments + admin UI) | `specs/2026-11-17-rbac-admin-design.md` | `plans/2026-11-17-rbac-admin.md` |
+| 14 | API keys (lifetime + scope validation + page) | `specs/2026-11-17-api-keys-design.md` | `plans/2026-11-17-api-keys.md` |
 
 ## Deferred backlog (not yet scheduled)
 
@@ -125,6 +126,5 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 2. **`@` file autocomplete** (needs a project file-listing endpoint).
 3. **ACP** adapter (IDE over STDIO).
 4. **A2A** adapter + agent cards + A2A enablement per agent.
-5. **API-key lifetime** exposure in the create endpoint/UI; validate scopes are a subset of the user's permissions.
-6. Provider **edit (PUT)** endpoints; **session delete**.
-7. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
+5. Provider **edit (PUT)** endpoints; **session delete**.
+6. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
