@@ -13,10 +13,10 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Requirement | Status | Where / Notes |
 |---|---|---|
 | ACP (Agent Client Protocol) adapter (IDE, JSON-RPC over STDIO) | DONE | `agentbox-acp` / `python -m agentbox_api.acp_server` (official `agent-client-protocol` v1). |
-| A2A (Agent-to-Agent) adapter + agent cards + API-key auth | DEFERRED | Future sub-project (reuses API-key auth). |
+| A2A (Agent-to-Agent) adapter + agent cards + API-key auth | DONE | `a2a-sdk` 1.3; `/a2a/{agent}` (card + JSON-RPC), API-key auth. |
 | MCP for external tools/resources | PARTIAL | Agent factory consumes MCP servers via pydantic-ai `MCPToolset`; no MCP server management UI yet. |
 | AG-UI streaming (agent → web UI) | DONE | Backend uses pydantic-ai `AGUIAdapter`; frontend consumes it via `@ag-ui/client`. |
-| Full compliance with the protocols (no homegrown protocol code) | DONE (AG-UI, ACP) / DEFERRED (A2A) | AG-UI + ACP use pydantic-ai/the official SDK; MCP via pydantic-ai. |
+| Full compliance with the protocols (no homegrown protocol code) | DONE (AG-UI, ACP, A2A) | AG-UI + ACP use pydantic-ai/the official SDK; MCP via pydantic-ai. |
 | Extensive research on libraries/protocols | DONE | Captured in the per-sub-project specs. |
 
 ## User privileges (RBAC)
@@ -78,8 +78,8 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 
 | Requirement | Status | Notes |
 |---|---|---|
-| Start an agentic session via A2A using an API key | DEFERRED | Future sub-project. |
-| Only designated agents (with an agent card) support A2A | DEFERRED | Needs agent-card management. |
+| Start an agentic session via A2A using an API key | DONE | API-key-authenticated `/a2a/{agent}`. |
+| Only designated agents (with an agent card) support A2A | DONE | `GET/PUT/DELETE /agents/{name}/card` + card UI. |
 
 ## MCP Apps
 
@@ -99,7 +99,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Monorepo via **Uv Workspaces** | DONE (Python) / DEVIATION (frontend) | Python packages are a Uv workspace; the React app is a separate Bun project in `apps/web`. |
 | UI: React + **Mantine** + **Bulma** + **RemixIcons**, light/dark (system) | DONE | `apps/web`; Mantine widgets, Bulma layout, RemixIcons, `ThemeSync`. |
 | Precise components, message bus, no oversimplification | DONE | Component split + typed `mitt` bus. |
-| Protocol compliance mandatory (no homegrown) | DONE (AG-UI, ACP) / DEFERRED (A2A) | — |
+| Protocol compliance mandatory (no homegrown) | DONE (AG-UI, ACP, A2A) | — |
 
 ## Sub-project history
 
@@ -121,6 +121,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 14 | API keys (lifetime + scope validation + page) | `specs/2026-11-17-api-keys-design.md` | `plans/2026-11-17-api-keys.md` |
 | 15 | ACP adapter (IDE over stdio) | `specs/2026-11-17-acp-design.md` | `plans/2026-11-17-acp.md` |
 | 16 | Provider edit + model management + session delete | `specs/2026-11-17-provider-model-admin-design.md` | `plans/2026-11-17-provider-model-admin.md` |
+| 17 | A2A adapter (agent cards, API-key auth) | `specs/2026-11-17-a2a-design.md` | `plans/2026-11-17-a2a.md` |
 
 ## Deferred backlog (not yet scheduled)
 
@@ -128,3 +129,4 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 2. **`@` file autocomplete** (needs a project file-listing endpoint).
 3. **A2A** adapter + agent cards + A2A enablement per agent.
 4. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
+
