@@ -268,6 +268,8 @@ async def chat(
         agent.name,
         project.path,
         request.app.state.settings.skills_user_dir,
+        media_max_dimension=request.app.state.settings.media_max_dimension,
+        media_max_bytes=request.app.state.settings.media_max_bytes,
     )
     spec = prepared.spec
     resolved = prepared.runtime.model

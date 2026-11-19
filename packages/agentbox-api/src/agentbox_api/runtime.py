@@ -25,16 +25,44 @@ def build_registry(
     project_root: str,
     extra_read_roots: list[pathlib.Path] | None = None,
     extra_tools: dict[str, Callable] | None = None,
+    hooks: list | None = None,
+    media_max_dimension: int = 1568,
+    media_max_bytes: int = 1_500_000,
 ) -> ToolRegistry:
     box = FilesystemToolbox(
-        pathlib.Path(project_root), extra_read_roots=list(extra_read_roots or [])
+        pathlib.Path(project_root),
+        extra_read_roots=list(extra_read_roots or []),
+        media_max_dimension=media_max_dimension,
+        media_max_bytes=media_max_bytes,
     )
-    registry = ToolRegistry()
-    registry.register_native("read_text_file", box.read_text_file, required_flags=("read",))
-    registry.register_native("write_file", box.write_file, required_flags=("write",))
-    registry.register_native("list_directory", box.list_directory, required_flags=("read",))
+    registry = ToolRegistry(hooks=hooks, root=box.root_dir)
+    read_tools = [
+        ("read_text_file", box.read_text_file),
+        ("read_file", box.read_file),
+        ("read_media_file", box.read_media_file),
+        ("read_multiple_files", box.read_multiple_files),
+        ("list_directory", box.list_directory),
+        ("list_directory_with_sizes", box.list_directory_with_sizes),
+        ("directory_tree", box.directory_tree),
+        ("search_files", box.search_files),
+        ("get_file_info", box.get_file_info),
+        ("list_allowed_directories", box.list_allowed_directories),
+    ]
+    write_tools = [
+        ("write_file", box.write_file),
+        ("append_file", box.append_file),
+        ("edit_file", box.edit_file),
+        ("create_directory", box.create_directory),
+        ("move_file", box.move_file),
+        ("copy_file", box.copy_file),
+        ("delete_path", box.delete_path),
+    ]
+    for name, fn in read_tools:
+        registry.register_native(name, fn, required_flags=("read",))
+    for name, fn in write_tools:
+        registry.register_native(name, fn, required_flags=("write",))
     for name, fn in (extra_tools or {}).items():
-        registry.register_native(name, fn, required_flags=())
+        registry.register_native(name, fn)
     return registry
 
 

@@ -131,7 +131,12 @@ class PreparedAgent:
 
 
 async def prepare_agent(
-    factory, agent_name: str, project_root: str, user_dir: str
+    factory,
+    agent_name: str,
+    project_root: str,
+    user_dir: str,
+    media_max_dimension: int = 1568,
+    media_max_bytes: int = 1_500_000,
 ) -> PreparedAgent:
     runtime = await resolve_agent_runtime(factory, agent_name)
     skills = discover_skills(project_root, user_dir)
@@ -141,5 +146,7 @@ async def prepare_agent(
         project_root,
         extra_read_roots=[s.location.parent for s in skills],
         extra_tools=extra_tools,
+        media_max_dimension=media_max_dimension,
+        media_max_bytes=media_max_bytes,
     )
     return PreparedAgent(runtime, spec, registry, skills)

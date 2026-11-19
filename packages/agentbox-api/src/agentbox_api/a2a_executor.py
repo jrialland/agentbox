@@ -80,7 +80,12 @@ class AgentboxA2AExecutor(AgentExecutor):
         logger.info("a2a run start agent={} session={}", self._agent_name, session_id)
         workspace = self._settings.a2a_workspace
         prepared = await prepare_agent(
-            self._factory, self._agent_name, workspace, self._settings.skills_user_dir
+            self._factory,
+            self._agent_name,
+            workspace,
+            self._settings.skills_user_dir,
+            media_max_dimension=self._settings.media_max_dimension,
+            media_max_bytes=self._settings.media_max_bytes,
         )
         owner = await self._owner()
         async with self._factory() as s:

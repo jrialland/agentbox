@@ -207,7 +207,12 @@ class AgentboxAcpAgent:
         self, cwd, additional_directories=None, mcp_servers=None, **kwargs
     ):
         prepared = await prepare_agent(
-            self._factory, self._agent_name, cwd, self._settings.skills_user_dir
+            self._factory,
+            self._agent_name,
+            cwd,
+            self._settings.skills_user_dir,
+            media_max_dimension=self._settings.media_max_dimension,
+            media_max_bytes=self._settings.media_max_bytes,
         )
         runtime = prepared.runtime
         owner = runtime.created_by or await self._admin_id()
@@ -404,7 +409,12 @@ class AgentboxAcpAgent:
                 await db.execute(select(Project).where(Project.id == row.project_id))
             ).scalars().first()
         prepared = await prepare_agent(
-            self._factory, self._agent_name, project.path, self._settings.skills_user_dir
+            self._factory,
+            self._agent_name,
+            project.path,
+            self._settings.skills_user_dir,
+            media_max_dimension=self._settings.media_max_dimension,
+            media_max_bytes=self._settings.media_max_bytes,
         )
         if row.agent_id != prepared.runtime.agent_id:
             raise acp.RequestError(-32002, "unknown session")

@@ -40,7 +40,7 @@ async def test_hook_appends_to_string_result():
     reg.register_native("read_file", read_file, required_flags=("read",))
     tools = reg.select_tools(Mode(name="ask", flags={}))
     assert await tools[0](path="a.txt") == "data\n\nhooked read_file a.txt"
-    assert tools[0].__name__ == "read_file"
+    assert tools[0].__name__ == "read_file"  # ty: ignore[missing-attribute]
 
 
 async def test_hook_error_is_isolated():
