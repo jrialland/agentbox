@@ -8,6 +8,7 @@ from starlette.middleware.authentication import AuthenticationMiddleware
 from agentbox_api.a2a_server import A2ADispatcher
 from agentbox_api.auth_backend import JWTAuthenticationBackend
 from agentbox_api.config import Settings
+from agentbox_api.logging import configure_logging
 from agentbox_api.routers.agents import router as agents_router
 from agentbox_api.routers.api_keys import router as api_keys_router
 from agentbox_api.routers.auth import router as auth_router
@@ -29,6 +30,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        configure_logging(settings)
         logger.info("agentbox api starting")
         yield
         logger.info("agentbox api stopping")

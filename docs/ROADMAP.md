@@ -95,7 +95,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Python + Pydantic AI harness | DONE | `agentbox-harness`. |
 | Agents/models/settings in SQLite | DONE | `agentbox-models`. |
 | Async wherever possible | DONE | Async throughout. |
-| Backend: FastAPI, SQLModel, **loguru** | DONE | FastAPI + SQLModel; `loguru.logger` used across the API (config/sinks deferred). |
+| Backend: FastAPI, SQLModel, **loguru** | DONE | FastAPI + SQLModel; `loguru.logger` used across the API (sinks configured in #20). |
 | Monorepo via **Uv Workspaces** | DONE (Python) / DEVIATION (frontend) | Python packages are a Uv workspace; the React app is a separate Bun project in `apps/web`. |
 | UI: React + **Mantine** + **Bulma** + **RemixIcons**, light/dark (system) | DONE | `apps/web`; Mantine widgets, Bulma layout, RemixIcons, `ThemeSync`. |
 | Precise components, message bus, no oversimplification | DONE | Component split + typed `mitt` bus. |
@@ -124,7 +124,8 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 17 | A2A adapter (agent cards, API-key auth) | `specs/2026-11-17-a2a-design.md` | `plans/2026-11-17-a2a.md` |
 | 18 | Agent Skills (discovery, activation, UI) | `specs/2026-11-17-skills-design.md` | `plans/2026-11-17-skills.md` |
 | 19 | @ file autocomplete | `specs/2026-11-17-file-mentions-design.md` | `plans/2026-11-17-file-mentions.md` |
+| 20 | Loguru sink configuration (console/file, rotation, stdlib) | `specs/2026-11-19-loguru-sinks-design.md` | `plans/2026-11-19-loguru-sinks.md` |
 
 ## Deferred backlog (not yet scheduled)
 
-1. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
+None — all tracked items are done.

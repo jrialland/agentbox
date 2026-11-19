@@ -36,6 +36,7 @@ from sqlmodel import select
 
 from agentbox_api.config import Settings
 from agentbox_api.dev_seed import seed_admin
+from agentbox_api.logging import configure_logging
 from agentbox_api.runtime import delete_session_data, resolve_agent_runtime
 from agentbox_api.skills import prepare_agent
 from agentbox_harness.events import EventBus
@@ -450,6 +451,7 @@ class AgentboxAcpAgent:
 async def _serve(agent_name: str) -> None:
     secret = os.environ.get("JWT_SECRET") or "agentbox-acp-local-development-secret"
     settings = Settings(jwt_secret=secret)
+    configure_logging(settings)
     engine, factory = create_engine_and_sessionmaker(settings.database_url)
     await init_db(engine)
     await seed_admin(factory)

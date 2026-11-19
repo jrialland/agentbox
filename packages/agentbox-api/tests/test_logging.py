@@ -223,3 +223,28 @@ async def test_relay_unknown_server_logs_error():
     with Capture() as cap, contextlib.suppress(KeyError):
         await mcp_relay.read_resource_for_app(spec, "missing", "ui://x/a.html")
     assert "mcp server not found" in cap.text()
+
+
+async def test_configure_logging_writes_file_and_intercepts(tmp_path):
+    import logging as stdlib_logging
+
+    from agentbox_api.logging import InterceptHandler, configure_logging
+
+    settings = Settings(jwt_secret="s" * 32, log_dir=str(tmp_path), log_level="DEBUG")
+    configure_logging(settings)
+    logger.info("hello sink")
+    target = stdlib_logging.getLogger("agentbox.test.intercept")
+    target.handlers = [InterceptHandler()]
+    target.propagate = False
+    target.disabled = False
+    target.setLevel(stdlib_logging.DEBUG)
+    target.info("intercepted stdlib")
+    await logger.complete()
+    import asyncio
+
+    await asyncio.sleep(0.2)
+    path = tmp_path / "agentbox.log"
+    assert path.exists()
+    text = path.read_text(encoding="utf-8")
+    assert "hello sink" in text
+    assert "intercepted stdlib" in text

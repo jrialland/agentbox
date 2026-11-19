@@ -11,5 +11,11 @@ class Settings(BaseSettings):
     a2a_workspace: str = "."
     a2a_public_url: str = "http://localhost:8000"
     skills_user_dir: str = "~/.agents/skills"
+    log_level: str = "INFO"
+    log_dir: str = "./logs"
+    log_rotation: str = "10 MB"
+    log_retention: str = "14 days"
+    log_compression: str = "zip"
+    log_intercept: bool = True
 
     model_config = SettingsConfigDict(env_file=".env")
