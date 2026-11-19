@@ -127,6 +127,5 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 
 1. **Skills system** + `/` autocomplete.
 2. **`@` file autocomplete** (needs a project file-listing endpoint).
-3. **A2A** adapter + agent cards + A2A enablement per agent.
-4. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
+3. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
 
