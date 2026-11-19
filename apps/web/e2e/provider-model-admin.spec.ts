@@ -67,6 +67,23 @@ test("manage providers/models and delete a session", async ({ page, request }) =
   await page.getByRole("link", { name: "Agents" }).click();
   await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible();
   await page.getByLabel("Name", { exact: true }).fill(labelAgent);
+  await page
+    .getByLabel("Instructions", { exact: true })
+    .fill("Hello {{ user.username }}");
+  await page.getByRole("button", { name: "Test template" }).click();
+  const previewDialog = page.getByRole("dialog", {
+    name: "Test prompt template",
+  });
+  await previewDialog.getByRole("button", { name: "Render" }).click();
+  await expect(
+    previewDialog.getByLabel("Rendered", { exact: true }),
+  ).toHaveValue("Hello alice");
+  await previewDialog
+    .getByRole("button", { name: "Apply to instructions" })
+    .click();
+  await expect(page.getByLabel("Instructions", { exact: true })).toHaveValue(
+    "Hello {{ user.username }}",
+  );
   await page.getByRole("combobox", { name: "Model", exact: true }).click();
   await page.getByRole("option", { name: "label: fast" }).click();
   await page.getByRole("button", { name: "Create agent" }).click();
