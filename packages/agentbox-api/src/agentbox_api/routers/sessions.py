@@ -1,4 +1,6 @@
 import asyncio
+import os
+import pathlib
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
@@ -352,3 +354,52 @@ async def chat(
             closer.cancel()
 
     return agui_response(raw_events())
+
+
+_SKIP = {
+    ".git", "node_modules", ".venv", "dist", "build", "__pycache__",
+    ".tox", ".mypy_cache", ".pytest_cache",
+}
+_MAX_FILES = 1000
+_MAX_DEPTH = 8
+
+
+@router.get("/{sid}/files")
+async def list_session_files(
+    sid: str,
+    request: Request,
+    q: str = "",
+    _=Depends(require_permission("sessions:read")),
+):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        row = (
+            await s.execute(select(SessionRow).where(SessionRow.id == sid))
+        ).scalars().first()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+        project = (
+            await s.execute(select(Project).where(Project.id == row.project_id))
+        ).scalars().first()
+    root = pathlib.Path(project.path).resolve()
+    ql = q.lower()
+    results: list[str] = []
+    for dirpath, dirnames, filenames in os.walk(root, followlinks=False):
+        rel_dir = pathlib.Path(dirpath).resolve().relative_to(root)
+        if len(rel_dir.parts) >= _MAX_DEPTH:
+            dirnames[:] = []
+        dirnames[:] = [d for d in dirnames if d not in _SKIP]
+        for name in filenames:
+            try:
+                rel = (
+                    pathlib.Path(dirpath, name).resolve().relative_to(root).as_posix()
+                )
+            except ValueError:
+                continue
+            if ql and ql not in rel.lower():
+                continue
+            results.append(rel)
+            if len(results) >= _MAX_FILES:
+                return {"files": sorted(results)}
+    return {"files": sorted(results)}
+
