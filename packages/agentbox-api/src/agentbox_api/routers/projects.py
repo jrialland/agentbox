@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel
 
 from agentbox_api.deps import require_permission
@@ -25,7 +26,9 @@ async def create_project(
         path=body.path,
         owner_id=request.user.identity,
     )
-    return await ProjectRepository(request.app.state.session_factory).create(project)
+    project = await ProjectRepository(request.app.state.session_factory).create(project)
+    logger.info("project created project={}", project.id)
+    return project
 
 
 @router.get("", response_model=list[Project])
@@ -46,4 +49,5 @@ async def delete_project(
     pid: str, request: Request, _=Depends(require_permission("projects:delete"))
 ):
     await ProjectRepository(request.app.state.session_factory).delete(pid)
+    logger.info("project deleted project={}", pid)
     return {"ok": True}

@@ -1,6 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -33,9 +34,11 @@ class ProviderRead(BaseModel):
 async def create_provider(
     body: ProviderCreate, request: Request, _=Depends(require_permission("providers:create"))
 ):
-    return await ProviderRepository(request.app.state.session_factory).create(
+    provider = await ProviderRepository(request.app.state.session_factory).create(
         Provider(id=uuid.uuid4().hex, **body.model_dump())
     )
+    logger.info("provider created provider={} kind={}", provider.id, provider.kind)
+    return provider
 
 
 @router.get("", response_model=list[ProviderRead])
@@ -52,6 +55,7 @@ async def refresh_models(
     if provider is None:
         raise HTTPException(status_code=404, detail="Not found")
     names = await list_models(provider)
+    logger.info("models refreshed provider={} count={}", pid, len(names))
     async with factory() as s:
         existing = (
             await s.execute(select(Model).where(Model.provider_id == pid))

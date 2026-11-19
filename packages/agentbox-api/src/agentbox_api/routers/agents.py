@@ -9,6 +9,7 @@ from fastapi import (
     Response,
     UploadFile,
 )
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -60,7 +61,9 @@ async def create_agent(
     body: AgentCreate, request: Request, _=Depends(require_permission("agents:create"))
 ):
     repo = AgentRepository(request.app.state.session_factory)
-    return await repo.save(_to_spec(body))
+    spec = await repo.save(_to_spec(body))
+    logger.info("agent created agent={}", spec.name)
+    return spec
 
 
 @router.get("", response_model=list[AgentSpec])
@@ -84,6 +87,7 @@ async def delete_agent(
 ):
     repo = AgentRepository(request.app.state.session_factory)
     await repo.delete(name)
+    logger.info("agent deleted agent={}", name)
     return {"ok": True}
 
 
@@ -120,9 +124,11 @@ async def upload_avatar(
     _=Depends(require_permission("agents:create")),
 ):
     if file.content_type not in avatars.ALLOWED_UPLOAD_TYPES:
+        logger.warning("avatar upload rejected agent={} reason=type", name)
         raise HTTPException(status_code=415, detail="Unsupported image type")
     data = await file.read()
     if len(data) > avatars.MAX_UPLOAD_BYTES:
+        logger.warning("avatar upload rejected agent={} reason=size", name)
         raise HTTPException(status_code=413, detail="Image too large")
     try:
         normalized = avatars.normalize_upload(data)
@@ -139,6 +145,7 @@ async def upload_avatar(
         agent.avatar_media_type = "image/png"
         s.add(agent)
         await s.commit()
+    logger.info("avatar updated agent={}", name)
     return Response(status_code=204)
 
 
@@ -159,4 +166,5 @@ async def reset_avatar(
         agent.avatar_media_type = None
         s.add(agent)
         await s.commit()
+    logger.info("avatar reset agent={}", name)
     return Response(status_code=204)

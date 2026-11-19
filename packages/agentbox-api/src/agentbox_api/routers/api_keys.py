@@ -3,6 +3,7 @@ import secrets
 import uuid
 
 from fastapi import APIRouter, Depends, Request
+from loguru import logger
 from pydantic import BaseModel
 
 from agentbox_api.deps import require_permission
@@ -30,6 +31,7 @@ async def create_api_key(
         scopes=json.dumps(body.scopes),
     )
     await repo.create(key)
+    logger.info("api key created key={}", key.id)
     return {"key": raw}
 
 
@@ -43,4 +45,5 @@ async def delete_api_key(
     kid: str, request: Request, _=Depends(require_permission("api_keys:manage"))
 ):
     await ApiKeyRepository(request.app.state.session_factory).delete(kid)
+    logger.info("api key deleted key={}", kid)
     return {"ok": True}
