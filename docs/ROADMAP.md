@@ -127,3 +127,4 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 5. **Permissions CRUD** router (admin UI for permissions).
 6. **API-key lifetime** exposure in the create endpoint/UI.
 7. Provider **edit (PUT)** endpoints; **session delete**.
+8. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
