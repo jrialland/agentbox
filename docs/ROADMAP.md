@@ -95,7 +95,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Python + Pydantic AI harness | DONE | `agentbox-harness`. |
 | Agents/models/settings in SQLite | DONE | `agentbox-models`. |
 | Async wherever possible | DONE | Async throughout. |
-| Backend: FastAPI, SQLModel, **loguru** | PARTIAL | FastAPI + SQLModel done; **loguru not wired yet** (uses uvicorn/default logging). |
+| Backend: FastAPI, SQLModel, **loguru** | DONE | FastAPI + SQLModel; `loguru.logger` used across the API (config/sinks deferred). |
 | Monorepo via **Uv Workspaces** | DONE (Python) / DEVIATION (frontend) | Python packages are a Uv workspace; the React app is a separate Bun project in `apps/web`. |
 | UI: React + **Mantine** + **Bulma** + **RemixIcons**, light/dark (system) | DONE | `apps/web`; Mantine widgets, Bulma layout, RemixIcons, `ThemeSync`. |
 | Precise components, message bus, no oversimplification | DONE | Component split + typed `mitt` bus. |
@@ -116,6 +116,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 9 | Chat (core + edit/fork + composer) | `specs/2026-11-17-web-chat-design.md` | `plans/2026-11-17-web-chat.md` |
 | 10 | MCP Apps (right-side tabs + relay + sandbox) | `specs/2026-11-17-web-mcp-apps-design.md` | `plans/2026-11-17-web-mcp-apps.md` |
 | 11 | Agent avatars (RoboHash set1 + custom photo) | `specs/2026-11-17-agent-avatars-design.md` | `plans/2026-11-17-agent-avatars.md` |
+| 12 | Backend loguru logging (usage) | `specs/2026-11-17-logging-design.md` | `plans/2026-11-17-logging.md` |
 
 ## Deferred backlog (not yet scheduled)
 
@@ -125,5 +126,4 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 4. **A2A** adapter + agent cards + A2A enablement per agent.
 5. **Permissions CRUD** router (admin UI for permissions).
 6. **API-key lifetime** exposure in the create endpoint/UI.
-7. **loguru** wiring in the backend.
-8. Provider **edit (PUT)** endpoints; **session delete**.
+7. Provider **edit (PUT)** endpoints; **session delete**.
