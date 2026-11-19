@@ -127,6 +127,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 20 | Loguru sink configuration (console/file, rotation, stdlib) | `specs/2026-11-19-loguru-sinks-design.md` | `plans/2026-11-19-loguru-sinks.md` |
 | 21 | Filesystem tools parity (reference toolset + media + hooks) | `specs/2026-11-19-filesystem-tools-design.md` | `plans/2026-11-19-filesystem-tools.md` |
 | 22 | Model labels + label-based model routing | `specs/2026-11-19-model-labels-design.md` | `plans/2026-11-19-model-labels.md` |
+| 23 | Prompt templating in system prompts + preview | `specs/2026-11-19-prompt-templating-design.md` | `plans/2026-11-19-prompt-templating.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -135,7 +136,6 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | ID | Future evolution | Notes / intended scope |
 |---|---|---|
 | D1 | **Automatic LSP diagnostics** | Detect the project language stack from files (`pyproject.toml`/`*.py` → Python, e.g. `uvx ty server`; `Cargo.toml` → rust-analyzer; `package.json`/`tsconfig.json` → TypeScript; etc.) via a configurable pattern → language-server command map. Start and keep the matching LSP process alive per project/session, and use the post-tool hook seam from #21 to append scoped diagnostics to `write_file`/`edit_file` results so the model can self-correct. |
-| D2 | **Templating language in system prompts** | Let agent authors use a template language (e.g. Jinja2) in instructions, rendered with a safe context (project, user, session, skills, date) before the agent is built. |
 | D3 | **Automatic RAG over `/docs`** | Configurable embedding model; when "RAG on documentation" is opted in, chunk Markdown under the project's `/docs/`, embed into a local vector DB (e.g. Qdrant), and inject retrieved context as a system message immediately after the user message. |
 | D4 | **Web search + URL fetch tools** | A Google-like search tool, plus a fetch tool using Trafilatura cleanup and HTML → Markdown. For a bare domain (`domain.com`), try `https://domain.com/llms.txt` first; fall back to the requested URL when `llms.txt` is 404. |
 | D5 | **Complex agent workflows** | Move beyond the current ReAct loop: a graphical graph builder with nodes such as post-turn code checks, "ralph mode" re-run completion, and a decision model choosing the next step. |
