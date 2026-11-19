@@ -120,7 +120,7 @@ async def test_acp_lifecycle(tmp_path):
     try:
         agent = AgentboxAcpAgent("acp-test", factory)
         conn = _FakeConn()
-        agent.on_connect(conn)
+        agent.on_connect(conn)  # ty: ignore[invalid-argument-type]
 
         init = await agent.initialize(1)
         assert init.agent_capabilities.prompt_capabilities.image is True
@@ -154,3 +154,4 @@ async def test_acp_lifecycle(tmp_path):
         assert all(x.session_id != sid for x in listed2.sessions)
     finally:
         await engine.dispose()
+

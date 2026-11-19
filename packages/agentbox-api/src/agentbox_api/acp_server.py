@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 import base64
+import os
 import pathlib
 import re
 import uuid
@@ -33,6 +34,7 @@ from pydantic_ai.models import Model as PydanticModel
 from sqlmodel import select
 
 from agentbox_api.config import Settings
+from agentbox_api.dev_seed import seed_admin
 from agentbox_api.runtime import build_registry, resolve_agent_runtime
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
@@ -451,15 +453,21 @@ class AgentboxAcpAgent:
         )
 
 
+async def _serve(agent_name: str) -> None:
+    secret = os.environ.get("JWT_SECRET") or "agentbox-acp-local-development-secret"
+    settings = Settings(jwt_secret=secret)
+    engine, factory = create_engine_and_sessionmaker(settings.database_url)
+    await init_db(engine)
+    await seed_admin(factory)
+    agent = cast(acp.Agent, AgentboxAcpAgent(agent_name, factory))
+    await run_agent(agent)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--agent", required=True)
     args = parser.parse_args()
-    settings = Settings()
-    engine, factory = create_engine_and_sessionmaker(settings.database_url)
-    asyncio.run(init_db(engine))
-    agent = cast(acp.Agent, AgentboxAcpAgent(args.agent, factory))
-    asyncio.run(run_agent(agent))
+    asyncio.run(_serve(args.agent))
 
 
 if __name__ == "__main__":
