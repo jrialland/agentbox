@@ -10,5 +10,6 @@ class Settings(BaseSettings):
     cors_origins: list[str] = ["http://localhost:5173"]
     a2a_workspace: str = "."
     a2a_public_url: str = "http://localhost:8000"
+    skills_user_dir: str = "~/.agents/skills"
 
     model_config = SettingsConfigDict(env_file=".env")

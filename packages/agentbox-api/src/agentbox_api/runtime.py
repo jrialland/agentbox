@@ -1,4 +1,5 @@
 import pathlib
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from pydantic_ai.models import Model as PydanticModel
@@ -19,12 +20,20 @@ from agentbox_models.tables.core import (
 from agentbox_providers.resolver import resolve_model
 
 
-def build_registry(project_root: str) -> ToolRegistry:
-    box = FilesystemToolbox(pathlib.Path(project_root))
+def build_registry(
+    project_root: str,
+    extra_read_roots: list[pathlib.Path] | None = None,
+    extra_tools: dict[str, Callable] | None = None,
+) -> ToolRegistry:
+    box = FilesystemToolbox(
+        pathlib.Path(project_root), extra_read_roots=list(extra_read_roots or [])
+    )
     registry = ToolRegistry()
     registry.register_native("read_text_file", box.read_text_file, required_flags=("read",))
     registry.register_native("write_file", box.write_file, required_flags=("write",))
     registry.register_native("list_directory", box.list_directory, required_flags=("read",))
+    for name, fn in (extra_tools or {}).items():
+        registry.register_native(name, fn, required_flags=())
     return registry
 
 
