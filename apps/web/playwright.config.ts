@@ -33,6 +33,7 @@ export default defineConfig({
       env: {
         DATABASE_URL: "sqlite+aiosqlite:///./e2e.db",
         JWT_SECRET: "e2e-secret-e2e-secret-e2e-secret-xx",
+        SKILLS_USER_DIR: "./e2e-skills",
       },
     },
     {
