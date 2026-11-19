@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from loguru import logger
 from pydantic_ai.mcp import MCPToolset
 
 from agentbox_harness.spec import AgentSpec, McpToolBinding
@@ -18,6 +19,7 @@ def mcp_binding_for(spec: AgentSpec, server_id: str) -> McpToolBinding:
     for binding in spec.tool_bindings:
         if isinstance(binding, McpToolBinding) and mcp_toolset_id(binding) == server_id:
             return binding
+    logger.error("mcp server not found server={}", server_id)
     raise KeyError(server_id)
 
 
@@ -30,7 +32,13 @@ async def read_resource_for_app(
 ) -> Any:
     toolset = _toolset(mcp_binding_for(spec, server_id))
     async with toolset:
-        return await toolset.read_resource_for_app(uri)
+        try:
+            return await toolset.read_resource_for_app(uri)
+        except Exception:
+            logger.exception(
+                "mcp resource read failed server={} uri={}", server_id, uri
+            )
+            raise
 
 
 async def call_tool_for_app(
@@ -38,4 +46,10 @@ async def call_tool_for_app(
 ) -> Any:
     toolset = _toolset(mcp_binding_for(spec, server_id))
     async with toolset:
-        return await toolset.call_tool_for_app(name, arguments)
+        try:
+            return await toolset.call_tool_for_app(name, arguments)
+        except Exception:
+            logger.exception(
+                "mcp tool call failed server={} tool={}", server_id, name
+            )
+            raise

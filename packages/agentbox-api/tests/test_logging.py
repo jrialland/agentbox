@@ -1,3 +1,5 @@
+import contextlib
+
 import httpx
 from loguru import logger
 
@@ -144,3 +146,80 @@ async def test_api_key_create_does_not_log_raw_key():
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def _app_with_chat():
+    engine, client = await _app_with_perms(
+        ["sessions:create", "sessions:read", "projects:create", "agents:create"]
+    )
+    h = {"Authorization": f"Bearer {await _token(client)}"}
+    await client.post(
+        "/agents",
+        json={
+            "name": "bot",
+            "model": "test-model",
+            "tool_bindings": [],
+            "mode_definitions": [
+                {"name": "ask", "flags": {"write": False}},
+                {"name": "agent", "flags": {"write": True}},
+            ],
+        },
+        headers=h,
+    )
+    proj = await client.post("/projects", json={"name": "p", "path": "."}, headers=h)
+    return engine, client, h, proj.json()["id"]
+
+
+async def test_session_create_logs():
+    engine, client, h, project_id = await _app_with_chat()
+    try:
+        with Capture() as cap:
+            r = await client.post(
+                "/sessions",
+                json={"project_id": project_id, "agent_id": "bot"},
+                headers=h,
+            )
+        assert r.status_code == 200
+        assert "session created" in cap.text()
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_session_run_lifecycle_logs():
+    engine, client, h, project_id = await _app_with_chat()
+    try:
+        sid = (
+            await client.post(
+                "/sessions",
+                json={"project_id": project_id, "agent_id": "bot"},
+                headers=h,
+            )
+        ).json()["id"]
+        with Capture() as cap:
+            r = await client.post(
+                f"/sessions/{sid}/messages", json={"content": "hi"}, headers=h
+            )
+        assert r.status_code == 200
+        text = cap.text()
+        assert "run start" in text
+        assert "run finished" in text
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_relay_unknown_server_logs_error():
+    from agentbox_api import mcp_relay
+    from agentbox_harness.spec import AgentSpec, ModelBinding
+
+    spec = AgentSpec(
+        name="a",
+        description="",
+        instructions="",
+        tool_bindings=[],
+        model_binding=ModelBinding(model="test", provider="test"),
+    )
+    with Capture() as cap, contextlib.suppress(KeyError):
+        await mcp_relay.read_resource_for_app(spec, "missing", "ui://x/a.html")
+    assert "mcp server not found" in cap.text()

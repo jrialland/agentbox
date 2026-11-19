@@ -3,6 +3,7 @@ import pathlib
 import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
@@ -57,7 +58,9 @@ async def create_session(
     session = SessionRow(
         id=uuid.uuid4().hex, project_id=body.project_id, agent_id=agent.id
     )
-    return await SessionRepository(factory).create(session)
+    row = await SessionRepository(factory).create(session)
+    logger.info("session created session={}", row.id)
+    return row
 
 
 @router.get("", response_model=list[SessionRow])
@@ -306,11 +309,18 @@ async def chat(
     )
     bus = EventBus()
     sub = bus.subscribe()
+    logger.info("run start session={} mode={}", sid, body.mode or "agent")
     run = await harness.run(session, body.content, bus, prompt_override=prompt_override)
 
     async def raw_events():
         async def finish():
             outcome = await run.await_outcome()
+            if outcome.status == "success":
+                logger.info("run finished session={} status={}", sid, outcome.status)
+            else:
+                logger.warning(
+                    "run not successful session={} status={}", sid, outcome.status
+                )
             if outcome.status == "success":
                 result = await run.await_result()
                 turn = Turn(
