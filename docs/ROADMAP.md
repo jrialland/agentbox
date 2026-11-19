@@ -120,11 +120,11 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 13 | RBAC administration (permissions CRUD + assignments + admin UI) | `specs/2026-11-17-rbac-admin-design.md` | `plans/2026-11-17-rbac-admin.md` |
 | 14 | API keys (lifetime + scope validation + page) | `specs/2026-11-17-api-keys-design.md` | `plans/2026-11-17-api-keys.md` |
 | 15 | ACP adapter (IDE over stdio) | `specs/2026-11-17-acp-design.md` | `plans/2026-11-17-acp.md` |
+| 16 | Provider edit + model management + session delete | `specs/2026-11-17-provider-model-admin-design.md` | `plans/2026-11-17-provider-model-admin.md` |
 
 ## Deferred backlog (not yet scheduled)
 
 1. **Skills system** + `/` autocomplete.
 2. **`@` file autocomplete** (needs a project file-listing endpoint).
 3. **A2A** adapter + agent cards + A2A enablement per agent.
-4. Provider **edit (PUT)** endpoints; **session delete**.
-5. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
+4. **loguru configuration** (console/file sinks, rotation, uvicorn/stdlib interception) — usage is done, config deferred.
