@@ -1,0 +1,114 @@
+.hero {
+  position: relative;
+  display: grid;
+  gap: var(--ab-space-2);
+  margin-bottom: var(--ab-space-4);
+  padding: var(--ab-space-5);
+  border: 1px solid var(--ab-border);
+  background:
+    radial-gradient(circle at 85% 15%, rgba(92, 255, 157, 0.12), transparent 32%),
+    var(--ab-surface);
+  overflow: hidden;
+}
+
+.heroBrand {
+  color: var(--ab-phosphor);
+  font-family: var(--ab-font-display);
+  font-size: 24px;
+}
+
+.heroKicker {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.hero h2 {
+  margin: 0;
+  max-width: 56ch;
+  font-family: var(--ab-font-display);
+  font-size: clamp(18px, 2.2vw, 26px);
+  font-weight: 400;
+  text-transform: uppercase;
+}
+
+.heroActions {
+  display: flex;
+  gap: var(--ab-space-2);
+  flex-wrap: wrap;
+  margin-top: var(--ab-space-2);
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--ab-space-3);
+  margin-bottom: var(--ab-space-4);
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
+  gap: var(--ab-space-3);
+}
+
+@media (max-width: 1099px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.sessionList,
+.projectList {
+  display: grid;
+  gap: var(--ab-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sessionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ab-space-2);
+  padding-bottom: var(--ab-space-2);
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.sessionRow a {
+  display: grid;
+  gap: 2px;
+  color: var(--ab-text);
+  text-decoration: none;
+}
+
+.sessionRow a span {
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 11px;
+}
+
+.iconLink {
+  color: var(--ab-phosphor);
+}
+
+.projectList li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ab-space-2);
+  padding-bottom: var(--ab-space-2);
+  border-bottom: 1px solid var(--ab-border);
+}
+
+.projectList code {
+  overflow: hidden;
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
