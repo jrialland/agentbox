@@ -1,0 +1,79 @@
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--ab-text-sm);
+}
+
+.table th {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ab-border);
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 11px;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--ab-border);
+  vertical-align: middle;
+}
+
+.table tr:last-child td {
+  border-bottom: 0;
+}
+
+.listRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ab-space-3);
+  padding: var(--ab-space-3);
+  border-bottom: 1px solid var(--ab-border);
+  flex-wrap: wrap;
+}
+
+.listRowMain {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.listRowMain span {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-sm);
+}
+
+.listRowMeta,
+.listRowActions {
+  display: flex;
+  align-items: center;
+  gap: var(--ab-space-2);
+}
+
+.tableToolbar {
+  display: flex;
+  align-items: center;
+  gap: var(--ab-space-2);
+  flex-wrap: wrap;
+  margin-bottom: var(--ab-space-3);
+}
+
+@media (max-width: 767px) {
+  .table th,
+  .table td {
+    white-space: nowrap;
+  }
+
+  .listRow {
+    align-items: flex-start;
+  }
+}
