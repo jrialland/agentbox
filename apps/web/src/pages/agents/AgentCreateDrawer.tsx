@@ -13,11 +13,7 @@ import { Textarea } from "../../design-system/forms/Textarea";
 import { Drawer } from "../../design-system/overlays/Drawer";
 import { Button } from "../../design-system/primitives/Button";
 import { Section } from "../../design-system/primitives/Section";
-import {
-  buildToolBindings,
-  NATIVE_TOOLS,
-  TERMINAL_TOOLS,
-} from "../AgentsPage";
+import { buildToolBindings, NATIVE_TOOLS } from "../AgentsPage";
 import styles from "./agents.module.css";
 import { TemplatePreviewModal } from "./TemplatePreviewModal";
 

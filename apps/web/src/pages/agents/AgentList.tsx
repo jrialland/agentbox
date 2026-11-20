@@ -1,6 +1,5 @@
 import { notifications } from "@mantine/notifications";
 import {
-  RiAddLine,
   RiDeleteBin6Line,
   RiImageAddLine,
   RiImageCircleLine,
