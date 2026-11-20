@@ -47,7 +47,23 @@ export const NATIVE_TOOLS = [
   "delete_path",
   "web_search",
   "fetch_url",
+  "terminal",
 ];
+
+export const TERMINAL_TOOLS = [
+  "run_command",
+  "list_jobs",
+  "get_job_output",
+  "kill_job",
+];
+
+export function buildToolBindings(tools: string[]) {
+  return tools.flatMap((tool) =>
+    tool === "terminal"
+      ? TERMINAL_TOOLS.map((name) => ({ name }))
+      : [{ name: tool }],
+  );
+}
 
 function TemplatePreviewModal({
   initialTemplate,
@@ -176,7 +192,7 @@ export function AgentsPage() {
       ? undefined
       : models?.find((model) => `model:${model.id}` === modelRef)?.name;
     const tool_bindings = [
-      ...tools.map((t) => ({ name: t })),
+      ...buildToolBindings(tools),
       ...mcpServers.map((url) => ({ server_url: url })),
     ];
     const mode_definitions = modes.map((m) => ({
