@@ -106,6 +106,12 @@ class TurnRow(SQLModel, table=True):
     parent_id: str | None = None
     context_tokens: int | None = None
     created_at: datetime = Field(default_factory=utcnow)
+    activity: dict | None = Field(
+        default=None, sa_column=Column(JSON, nullable=True)
+    )
+    attachments: list[dict] | None = Field(
+        default=None, sa_column=Column(JSON, nullable=True)
+    )
 
 
 class SessionAttachment(SQLModel, table=True):

@@ -137,6 +137,8 @@ class MessageRead(BaseModel):
     content: str
     parent_id: str | None = None
     created_at: str
+    activity: dict | None = None
+    attachments: list[dict] | None = None
 
 
 @router.get("/{sid}/messages", response_model=list[MessageRead])
@@ -168,6 +170,8 @@ async def list_messages(
             content=r.content,
             parent_id=r.parent_id,
             created_at=r.created_at.isoformat() if r.created_at else "",
+            activity=r.activity,
+            attachments=r.attachments,
         )
         for r in chain
     ]

@@ -21,6 +21,8 @@ class SQLiteMessageLogStore:
                     parent_id=turn.parent_id,
                     context_tokens=turn.context_tokens,
                     created_at=turn.created_at or utcnow(),
+                    activity=turn.activity,
+                    attachments=turn.attachments,
                 )
             )
             await s.commit()
@@ -41,6 +43,8 @@ class SQLiteMessageLogStore:
                 parent_id=r.parent_id,
                 context_tokens=r.context_tokens,
                 created_at=r.created_at,
+                activity=r.activity,
+                attachments=r.attachments,
             )
             for r in rows
         ]
@@ -59,6 +63,8 @@ class SQLiteMessageLogStore:
             parent_id=row.parent_id,
             context_tokens=row.context_tokens,
             created_at=row.created_at,
+            activity=row.activity,
+            attachments=row.attachments,
         )
 
     async def set_parent(self, turn_id: str, parent_id: str) -> None:

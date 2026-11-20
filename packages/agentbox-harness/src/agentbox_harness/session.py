@@ -15,6 +15,8 @@ class Turn:
     parent_id: str | None
     context_tokens: int | None = None
     created_at: datetime | None = None
+    activity: dict | None = None
+    attachments: list[dict] | None = None
 
 
 class MessageLogStore(Protocol):
