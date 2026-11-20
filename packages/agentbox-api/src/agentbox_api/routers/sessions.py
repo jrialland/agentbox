@@ -3,11 +3,12 @@ import os
 import pathlib
 import uuid
 
-from fastapi import APIRouter, Depends, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
 from loguru import logger
 from pydantic import BaseModel
 from sqlmodel import select
 
+from agentbox_api.activity import RunActivityCollector
 from agentbox_api.deps import require_permission
 from agentbox_api.runtime import (
     compaction_config_from_settings,
@@ -48,6 +49,7 @@ class MessageRequest(BaseModel):
     skill: str | None = None
     fork: bool = False
     fork_from_turn_id: str | None = None
+    retry_turn_id: str | None = None
     attachment_ids: list[str] = []
 
 
@@ -204,6 +206,24 @@ async def upload_attachment(
     return AttachmentRead(id=row.id, media_type=row.media_type, filename=row.filename)
 
 
+@router.get("/{sid}/attachments/{aid}")
+async def download_attachment(
+    sid: str,
+    aid: str,
+    request: Request,
+    _=Depends(require_permission("sessions:read")),
+):
+    async with request.app.state.session_factory() as s:
+        row = await s.get(SessionAttachment, aid)
+    if row is None or row.session_id != sid:
+        raise HTTPException(status_code=404, detail="Not found")
+    return Response(
+        content=row.data,
+        media_type=row.media_type,
+        headers={"Content-Disposition": f'inline; filename="{row.filename}"'},
+    )
+
+
 class ReadResourceBody(BaseModel):
     uri: str
 
@@ -315,7 +335,28 @@ async def chat(
         head_id=None,
         mode_name=body.mode or "agent",
     )
-    if body.fork:
+
+    record_user_turn = True
+    attachment_ids = list(body.attachment_ids)
+    user_attachments: list[dict] = []
+
+    if body.retry_turn_id:
+        retry_turn = await store.get(body.retry_turn_id)
+        prompt_turn = retry_turn
+        if retry_turn.role == "assistant":
+            if retry_turn.parent_id is None:
+                raise HTTPException(status_code=400, detail="Retry turn has no parent")
+            prompt_turn = await store.get(retry_turn.parent_id)
+        if prompt_turn.role != "user":
+            raise HTTPException(
+                status_code=400, detail="Retry turn has no user parent"
+            )
+        session.head_id = prompt_turn.id
+        body.content = prompt_turn.content
+        record_user_turn = False
+        user_attachments = prompt_turn.attachments or []
+        attachment_ids = [item["id"] for item in user_attachments]
+    elif body.fork:
         session.head_id = body.fork_from_turn_id
     else:
         turns = await store.list_turns()
@@ -326,18 +367,26 @@ async def chat(
                 session.head_id = leaves[-1].id
 
     binary = []
-    if body.attachment_ids:
+    if attachment_ids:
         from pydantic_ai.messages import BinaryContent
 
         async with factory() as s:
             arows = (
                 await s.execute(
                     select(SessionAttachment).where(
-                        SessionAttachment.id.in_(body.attachment_ids)  # ty: ignore[missing-attribute]
+                        SessionAttachment.id.in_(attachment_ids)  # ty: ignore[missing-attribute]
                     )
                 )
             ).scalars().all()
         binary = [BinaryContent(data=a.data, media_type=a.media_type) for a in arows]
+        user_attachments = [
+            {
+                "id": attachment.id,
+                "filename": attachment.filename,
+                "media_type": attachment.media_type,
+            }
+            for attachment in arows
+        ]
 
     prefix = []
     if body.skill:
@@ -360,38 +409,79 @@ async def chat(
     bus = EventBus()
     sub = bus.subscribe()
     logger.info("run start session={} mode={}", sid, body.mode or "agent")
-    run = await harness.run(session, body.content, bus, prompt_override=prompt_override)
+    run = await harness.run(
+        session,
+        body.content,
+        bus,
+        prompt_override=prompt_override,
+        record_user_turn=record_user_turn,
+        user_attachments=user_attachments or None,
+    )
+    registry = request.app.state.run_registry
+    registry.register(sid, run)
+    collector = RunActivityCollector()
 
     async def raw_events():
         async def finish():
-            outcome = await run.await_outcome()
-            if outcome.status == "success":
-                logger.info("run finished session={} status={}", sid, outcome.status)
-            else:
-                logger.warning(
-                    "run not successful session={} status={}", sid, outcome.status
+            try:
+                outcome = await run.await_outcome()
+                if outcome.status == "success":
+                    logger.info("run finished session={} status={}", sid, outcome.status)
+                else:
+                    logger.warning(
+                        "run not successful session={} status={}", sid, outcome.status
+                    )
+                content = collector.text
+                context_tokens = None
+                if outcome.status == "success":
+                    result = await run.await_result()
+                    content = str(result.output)
+                    context_tokens = context_tokens_from_usage(result.response.usage)
+                activity = collector.summary(
+                    outcome.status,
+                    (
+                        {"code": outcome.code, "message": outcome.message}
+                        if outcome.status == "error"
+                        else None
+                    ),
                 )
-            if outcome.status == "success":
-                result = await run.await_result()
-                context_tokens = context_tokens_from_usage(result.response.usage)
                 turn = Turn(
                     id=uuid.uuid4().hex,
                     role="assistant",
-                    content=str(result.output),
+                    content=content,
                     parent_id=session.head_id,
                     context_tokens=context_tokens,
+                    activity=activity,
                 )
                 await session.append(turn, parent_id=session.head_id)
-            bus.close()
+            finally:
+                registry.finish(sid)
+                bus.close()
 
         closer = asyncio.create_task(finish())
         try:
             async for re in sub.stream():
+                collector.observe(re.event)
                 yield re
+            outcome = await run.await_outcome()
+            if outcome.status == "error":
+                raise RuntimeError(outcome.message or "Agent run failed")
         finally:
             closer.cancel()
+            registry.finish(sid)
 
     return agui_response(raw_events())
+
+
+@router.post("/{sid}/messages/cancel")
+async def cancel_message(
+    sid: str,
+    request: Request,
+    _=Depends(require_permission("sessions:create")),
+):
+    if request.app.state.run_registry.cancel(sid):
+        return {"status": "cancelling"}
+    raise HTTPException(status_code=409, detail="No active run")
 
 
 _SKIP = {

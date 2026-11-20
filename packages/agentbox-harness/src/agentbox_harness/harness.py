@@ -73,6 +73,8 @@ class Harness:
         bus: EventBus,
         model_override=None,
         prompt_override=None,
+        record_user_turn: bool = True,
+        user_attachments: list[dict] | None = None,
     ) -> Run:
         model = model_override or self.model
         context = RunContext(
@@ -84,13 +86,15 @@ class Harness:
         )
         await self.middleware.prepare(context)
 
-        turn = Turn(
-            id=uuid.uuid4().hex,
-            role="user",
-            content=user_message,
-            parent_id=session.head_id,
-        )
-        await session.append(turn, parent_id=session.head_id)
+        if record_user_turn:
+            turn = Turn(
+                id=uuid.uuid4().hex,
+                role="user",
+                content=user_message,
+                parent_id=session.head_id,
+                attachments=user_attachments,
+            )
+            await session.append(turn, parent_id=session.head_id)
         message_history = turns_to_messages(await session.history())
 
         mode = self._resolve_mode(session)

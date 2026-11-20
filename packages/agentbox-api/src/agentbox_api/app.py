@@ -22,6 +22,7 @@ from agentbox_api.routers.roles import router as roles_router
 from agentbox_api.routers.sessions import router as sessions_router
 from agentbox_api.routers.skills import router as skills_router
 from agentbox_api.routers.users import router as users_router
+from agentbox_api.runs import RunRegistry
 from agentbox_api.sandbox import sandbox_response
 from agentbox_harness.lsp.manager import configure_lsp, get_lsp_manager
 from agentbox_harness.tools.terminal import get_job_manager
@@ -54,6 +55,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
     app.state.engine = engine
     app.state.session_factory = session_factory
     app.state.settings = settings
+    app.state.run_registry = RunRegistry()
     app.add_middleware(
         AuthenticationMiddleware,
         backend=JWTAuthenticationBackend(session_factory, settings),
