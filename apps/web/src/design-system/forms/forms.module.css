@@ -1,0 +1,44 @@
+.field {
+  display: grid;
+  gap: 4px;
+  margin-bottom: var(--ab-space-3);
+}
+
+.label {
+  color: var(--ab-text);
+  font-family: var(--ab-font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.description {
+  color: var(--ab-text-muted);
+  font-size: 12px;
+}
+
+.error {
+  color: var(--ab-danger);
+  font-size: 12px;
+}
+
+.dropzone {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 24px;
+  border: 1px dashed var(--ab-border);
+  color: var(--ab-text-muted);
+  cursor: pointer;
+}
+
+.dropzone:hover {
+  border-color: var(--ab-phosphor);
+  color: var(--ab-text);
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ab-space-2);
+  margin-top: var(--ab-space-4);
+}
