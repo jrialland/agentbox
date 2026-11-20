@@ -9,7 +9,11 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
-from agentbox_api.runtime import delete_session_data, web_config_from_settings
+from agentbox_api.runtime import (
+    compaction_config_from_settings,
+    delete_session_data,
+    web_config_from_settings,
+)
 from agentbox_api.skills import prepare_agent, render_skill
 from agentbox_api.streaming import agui_response
 from agentbox_api.templating import PromptTemplateError
@@ -17,6 +21,7 @@ from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.session import Session, Turn
+from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.repos.crud import SessionRepository
 from agentbox_models.repos.message_log import SQLiteMessageLogStore
@@ -335,6 +340,7 @@ async def chat(
         registry=prepared.registry,
         model=resolved,
         store_factory=lambda: SQLiteMessageLogStore(factory, sid),
+        compaction=compaction_config_from_settings(request.app.state.settings),
     )
     bus = EventBus()
     sub = bus.subscribe()
@@ -352,11 +358,13 @@ async def chat(
                 )
             if outcome.status == "success":
                 result = await run.await_result()
+                context_tokens = context_tokens_from_usage(result.response.usage)
                 turn = Turn(
                     id=uuid.uuid4().hex,
                     role="assistant",
                     content=str(result.output),
                     parent_id=session.head_id,
+                    context_tokens=context_tokens,
                 )
                 await session.append(turn, parent_id=session.head_id)
             bus.close()

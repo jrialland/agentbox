@@ -35,5 +35,10 @@ class Settings(BaseSettings):
     web_fetch_max_chars: int = 40_000
     web_fetch_max_bytes: int = 2_000_000
     web_fetch_user_agent: str = "agentbox/0.1"
+    compaction_enabled: bool = True
+    compaction_ratio: float = 0.8
+    compaction_keep_turns: int = 4
+    compaction_input_budget_tokens: int = 16_000
+    compaction_max_summary_chars: int = 8_000
 
     model_config = SettingsConfigDict(env_file=".env")

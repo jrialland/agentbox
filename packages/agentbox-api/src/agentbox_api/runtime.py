@@ -6,6 +6,7 @@ from loguru import logger
 from pydantic_ai.models import Model as PydanticModel
 from sqlmodel import select
 
+from agentbox_harness.compaction import CompactionConfig
 from agentbox_harness.spec import AgentSpec
 from agentbox_harness.tools.filesystem import FilesystemToolbox
 from agentbox_harness.tools.registry import ToolRegistry
@@ -22,6 +23,16 @@ from agentbox_models.tables.core import (
     TurnRow,
 )
 from agentbox_providers.resolver import resolve_model
+
+
+def compaction_config_from_settings(settings) -> CompactionConfig:
+    return CompactionConfig(
+        enabled=settings.compaction_enabled,
+        ratio=settings.compaction_ratio,
+        keep_turns=settings.compaction_keep_turns,
+        input_budget_tokens=settings.compaction_input_budget_tokens,
+        max_summary_chars=settings.compaction_max_summary_chars,
+    )
 
 
 def web_config_from_settings(settings) -> WebToolConfig:

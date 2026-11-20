@@ -19,11 +19,15 @@ from pydantic_ai.messages import PartDeltaEvent, PartStartEvent, TextPart, TextP
 from sqlmodel import select
 
 from agentbox_api.a2a_server import a2a_user
-from agentbox_api.runtime import web_config_from_settings
+from agentbox_api.runtime import (
+    compaction_config_from_settings,
+    web_config_from_settings,
+)
 from agentbox_api.skills import prepare_agent
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.session import Session, Turn
+from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.repos.message_log import SQLiteMessageLogStore
 from agentbox_models.tables.auth import User
 from agentbox_models.tables.core import Project, SessionRow, TurnRow
@@ -128,6 +132,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             registry=prepared.registry,
             model=prepared.runtime.model,
             store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
+            compaction=compaction_config_from_settings(self._settings),
         )
         bus = EventBus()
         sub = bus.subscribe()
@@ -158,12 +163,14 @@ class AgentboxA2AExecutor(AgentExecutor):
         self._runs.pop(session_id, None)
         if outcome.status == "success":
             result = await run.await_result()
+            context_tokens = context_tokens_from_usage(result.response.usage)
             await session.append(
                 Turn(
                     id=uuid.uuid4().hex,
                     role="assistant",
                     content=str(result.output),
                     parent_id=session.head_id,
+                    context_tokens=context_tokens,
                 ),
                 parent_id=session.head_id,
             )

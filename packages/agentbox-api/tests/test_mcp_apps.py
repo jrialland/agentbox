@@ -66,7 +66,7 @@ async def test_app_tool_emits_activity_snapshot(tmp_path, mcp_server_url, monkey
 
     monkeypatch.setattr(
         "agentbox_api.runtime.resolve_model",
-        lambda provider, name: TestModel(call_tools=["show_app"]),
+        lambda provider, name, context_window=None: TestModel(call_tools=["show_app"]),
     )
 
     engine, client = await _setup(tmp_path, mcp_server_url)

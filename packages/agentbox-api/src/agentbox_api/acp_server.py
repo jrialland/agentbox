@@ -38,6 +38,7 @@ from agentbox_api.config import Settings
 from agentbox_api.dev_seed import seed_admin
 from agentbox_api.logging import configure_logging
 from agentbox_api.runtime import (
+    compaction_config_from_settings,
     delete_session_data,
     resolve_agent_runtime,
     web_config_from_settings,
@@ -51,6 +52,7 @@ from agentbox_harness.session import Session, Turn
 from agentbox_harness.spec import DEFAULT_MODES, AgentSpec, McpToolBinding
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_harness.tools.terminal import get_job_manager
+from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.repos.message_log import SQLiteMessageLogStore
 from agentbox_models.tables.auth import User
@@ -279,6 +281,7 @@ class AgentboxAcpAgent:
             registry=sess.registry,
             model=sess.model,
             store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
+            compaction=compaction_config_from_settings(self._settings),
         )
         bus = EventBus()
         sub = bus.subscribe()
@@ -301,11 +304,13 @@ class AgentboxAcpAgent:
         sess.run = None
         if outcome.status == "success":
             result = await run.await_result()
+            context_tokens = context_tokens_from_usage(result.response.usage)
             turn = Turn(
                 id=uuid.uuid4().hex,
                 role="assistant",
                 content=str(result.output),
                 parent_id=session.head_id,
+                context_tokens=context_tokens,
             )
             await session.append(turn, parent_id=session.head_id)
             return s.PromptResponse(stop_reason="end_turn")
@@ -383,6 +388,8 @@ class AgentboxAcpAgent:
             ).scalars().all()
         turns = sorted(turns, key=lambda t: t.created_at)
         for turn in turns:
+            if turn.role == "summary":
+                continue
             block = s.TextContentBlock(text=turn.content)
             update = (
                 s.UserMessageChunk(content=block)
