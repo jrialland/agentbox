@@ -4,13 +4,16 @@ from loguru import logger
 from pydantic_ai.models import Model
 
 from agentbox_harness.agent_factory import build_agent
+from agentbox_harness.compaction import CompactionConfig, CompactionMiddleware
 from agentbox_harness.errors import RunOutcome
 from agentbox_harness.events import EventBus
 from agentbox_harness.messages import turns_to_messages
+from agentbox_harness.middleware import MiddlewarePipeline, RunContext, RunMiddleware
 from agentbox_harness.run import Run, RunManager
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.spec import AgentSpec
 from agentbox_harness.tools.registry import ToolRegistry
+from agentbox_harness.usage import context_tokens_from_usage
 
 
 class Harness:
@@ -20,12 +23,19 @@ class Harness:
         model: Model,
         store_factory,
         sub_agents: dict[str, AgentSpec] | None = None,
+        middleware: list[RunMiddleware] | None = None,
+        compaction: CompactionConfig | None = None,
     ):
         self.registry = registry
         self.model = model
         self.store_factory = store_factory
         self.sub_agents = sub_agents or {}
         self.run_manager = RunManager()
+        self.middleware = MiddlewarePipeline(
+            middleware
+            if middleware is not None
+            else [CompactionMiddleware(compaction)]
+        )
 
     def start_session(
         self,
@@ -60,7 +70,15 @@ class Harness:
         model_override=None,
         prompt_override=None,
     ) -> Run:
-        message_history = turns_to_messages(await session.history())
+        model = model_override or self.model
+        context = RunContext(
+            session=session,
+            model=model,
+            bus=bus,
+            prompt=user_message,
+            prompt_override=prompt_override,
+        )
+        await self.middleware.prepare(context)
 
         turn = Turn(
             id=uuid.uuid4().hex,
@@ -69,6 +87,7 @@ class Harness:
             parent_id=session.head_id,
         )
         await session.append(turn, parent_id=session.head_id)
+        message_history = turns_to_messages(await session.history())
 
         mode = self._resolve_mode(session)
         spec = session.agent_spec
@@ -95,6 +114,7 @@ class Harness:
             model_override=model_override,
             message_history=message_history,
             prompt_override=prompt_override,
+            on_context_overflow=lambda: self.middleware.recover(context),
         )
 
     async def run_turn(
@@ -108,11 +128,13 @@ class Harness:
         outcome = await run.await_outcome()
         if outcome.status == "success":
             result = await run.await_result()
+            context_tokens = context_tokens_from_usage(result.response.usage)
             turn = Turn(
                 id=uuid.uuid4().hex,
                 role="assistant",
                 content=str(result.output),
                 parent_id=session.head_id,
+                context_tokens=context_tokens,
             )
             await session.append(turn, parent_id=session.head_id)
         return outcome
