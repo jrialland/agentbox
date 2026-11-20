@@ -1,6 +1,6 @@
 # Automatic LSP Diagnostics Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Detect language stacks recursively (including subdirs), run a shared stdio LSP server per `(project, stack)`, append file-scoped diagnostics to file-write tools, and expose active servers in a chat About panel.
 
@@ -31,7 +31,7 @@
 **Interfaces:**
 - Produces: `LspStack`, `DEFAULT_LSP_SERVERS`, `language_for(stack, path)`, `detect_stacks(project_root, stacks=None)`.
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 ```python
 from agentbox_harness.lsp.detect import detect_stacks
@@ -64,7 +64,7 @@ def test_language_for_extension():
     assert language_for(stack, "main.ts") is None
 ```
 
-- [ ] **Step 2: Implement**
+- [x] **Step 2: Implement**
 
 `stacks.py`:
 
@@ -158,7 +158,7 @@ def detect_stacks(
 
 `__init__.py` re-exports `LspStack`, `DEFAULT_LSP_SERVERS`, `language_for`, `detect_stacks`.
 
-- [ ] **Step 3: Run and commit**
+- [x] **Step 3: Run and commit**
 
 ```bash
 uv run pytest packages/agentbox-harness/tests/test_lsp_detection.py -q
@@ -178,7 +178,7 @@ git commit -m "feat(harness): recursive multi-stack LSP detection"
 **Interfaces:**
 - Produces: `LspServer(command, root, *, initialize_timeout=10, diagnostics_timeout=5)`, `start()`, `sync_document(path, language)`, `diagnostics(path)`, `stop()`.
 
-- [ ] **Step 1: Implement the client**
+- [x] **Step 1: Implement the client**
 
 ```python
 import asyncio
@@ -386,7 +386,7 @@ class LspServer:
         self.dead = True
 ```
 
-- [ ] **Step 2: Fake LSP server**
+- [x] **Step 2: Fake LSP server**
 
 `tests/fake_lsp_server.py` (run as `python fake_lsp_server.py`):
 
@@ -480,7 +480,7 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 3: Tests**
+- [x] **Step 3: Tests**
 
 ```python
 import pathlib
@@ -529,7 +529,7 @@ async def test_timeout_returns_empty(tmp_path):
         await server.stop()
 ```
 
-- [ ] **Step 4: Run and commit**
+- [x] **Step 4: Run and commit**
 
 ```bash
 uv run pytest packages/agentbox-harness/tests/test_lsp_client.py -q
@@ -548,7 +548,7 @@ git commit -m "feat(harness): stdio LSP client with pull/push diagnostics"
 **Interfaces:**
 - Produces: `LspManager`, `get_lsp_manager()`, `configure_lsp(settings)`, `detected`, `get_or_start`, `record_active`, `active_for_session`, `detected_for_project`, `shutdown`, `reset`.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 ```python
 import json
@@ -670,7 +670,7 @@ def configure_lsp(settings):
     _manager.configure(settings)
 ```
 
-- [ ] **Step 2: Tests**
+- [x] **Step 2: Tests**
 
 ```python
 import pathlib
@@ -717,7 +717,7 @@ async def test_failed_server_backs_off(tmp_path):
     assert await manager.get_or_start(str(tmp_path), stack) is None
 ```
 
-- [ ] **Step 3: Run and commit**
+- [x] **Step 3: Run and commit**
 
 ```bash
 uv run pytest packages/agentbox-harness/tests/test_lsp_manager.py -q
@@ -741,7 +741,7 @@ git commit -m "feat(harness): shared per-project LSP manager"
 - Produces: `make_lsp_hook(manager, session_id, project_root)`, `format_diagnostics`.
 - Consumes: `ToolRegistry(hooks=...)`, `prepare_agent(session_id=...)`.
 
-- [ ] **Step 1: Implement**
+- [x] **Step 1: Implement**
 
 ```python
 import pathlib
@@ -827,7 +827,7 @@ from agentbox_harness.lsp.manager import get_lsp_manager
 
 In `app.py` lifespan and `acp_server._serve`, call `configure_lsp(settings)`.
 
-- [ ] **Step 2: Tests**
+- [x] **Step 2: Tests**
 
 `test_lsp_hook.py`:
 
@@ -891,7 +891,7 @@ def test_format_caps_and_filters():
     assert "and 2 more" in text
 ```
 
-- [ ] **Step 3: Run and commit**
+- [x] **Step 3: Run and commit**
 
 ```bash
 uv run pytest packages/agentbox-harness/tests/test_lsp_hook.py -q
@@ -913,7 +913,7 @@ git commit -m "feat: LSP diagnostics hook and wiring"
 **Interfaces:**
 - Produces: `GET /sessions/{sid}/lsp`, `fetchSessionLsp`, `useSessionLsp`, About modal.
 
-- [ ] **Step 1: Endpoint**
+- [x] **Step 1: Endpoint**
 
 In `sessions.py`, add:
 
@@ -941,15 +941,15 @@ async def session_lsp(
 
 Import `get_lsp_manager`.
 
-- [ ] **Step 2: Web client + modal**
+- [x] **Step 2: Web client + modal**
 
 Add `fetchSessionLsp`/`useSessionLsp`, an About button on `SessionPage`, and a modal rendering detected and active stacks.
 
-- [ ] **Step 3: E2E**
+- [x] **Step 3: E2E**
 
 In `chat.spec.ts`, open an existing session, click About, and assert the modal lists the detected `python` stack (the repo contains `.py` files).
 
-- [ ] **Step 4: Run and commit**
+- [x] **Step 4: Run and commit**
 
 ```bash
 uv run python apps/web/scripts/gen-openapi.py
@@ -965,7 +965,7 @@ git commit -m "feat: session About panel with active LSP servers"
 **Files:**
 - Create: `packages/agentbox-harness/tests/test_lsp_real.py`
 
-- [ ] **Step 1: Write tests**
+- [x] **Step 1: Write tests**
 
 ```python
 import pathlib
@@ -1015,7 +1015,7 @@ async def test_rust_analyzer(tmp_path):
     assert text and "error" in text.lower()
 ```
 
-- [ ] **Step 2: Run and commit**
+- [x] **Step 2: Run and commit**
 
 ```bash
 uv run pytest packages/agentbox-harness/tests/test_lsp_real.py -q
@@ -1030,7 +1030,7 @@ git commit -m "test(harness): real LSP integration tests"
 **Files:**
 - Modify: `docs/ROADMAP.md`
 
-- [ ] **Step 1: Update the roadmap**
+- [x] **Step 1: Update the roadmap**
 
 Remove D1 from the deferred backlog and add:
 
@@ -1038,7 +1038,7 @@ Remove D1 from the deferred backlog and add:
 | 24 | Automatic LSP diagnostics (multi-stack + About panel) | `specs/2026-11-19-lsp-diagnostics-design.md` | `plans/2026-11-19-lsp-diagnostics.md` |
 ```
 
-- [ ] **Step 2: Verify**
+- [x] **Step 2: Verify**
 
 ```bash
 uv run ruff check --fix packages
@@ -1049,7 +1049,7 @@ uv run pytest packages/agentbox-api -q
 cd apps/web && bun run test && bun run build
 ```
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add docs/ROADMAP.md
