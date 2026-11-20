@@ -130,6 +130,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 23 | Prompt templating in system prompts + preview | `specs/2026-11-19-prompt-templating-design.md` | `plans/2026-11-19-prompt-templating.md` |
 | 24 | Automatic LSP diagnostics (multi-stack + About panel) | `specs/2026-11-19-lsp-diagnostics-design.md` | `plans/2026-11-19-lsp-diagnostics.md` |
 | 25 | Session plan tools (TODO-*) | `specs/2026-11-19-plan-tools-design.md` | `plans/2026-11-19-plan-tools.md` |
+| 26 | Web search + URL fetch (keyless ddgs/SearXNG) | `specs/2026-11-20-web-search-design.md` | `plans/2026-11-20-web-search.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -138,7 +139,6 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | ID | Future evolution | Notes / intended scope |
 |---|---|---|
 | D3 | **Automatic RAG over `/docs`** | Configurable embedding model; when "RAG on documentation" is opted in, chunk Markdown under the project's `/docs/`, embed into a local vector DB (e.g. Qdrant), and inject retrieved context as a system message immediately after the user message. |
-| D4 | **Web search + URL fetch tools** | A Google-like search tool, plus a fetch tool using Trafilatura cleanup and HTML → Markdown. For a bare domain (`domain.com`), try `https://domain.com/llms.txt` first; fall back to the requested URL when `llms.txt` is 404. |
 | D5 | **Complex agent workflows** | Move beyond the current ReAct loop: a graphical graph builder with nodes such as post-turn code checks, "ralph mode" re-run completion, and a decision model choosing the next step. |
 | D6 | **Duo mode** | Two-agent pairing: the primary receives the user message; the secondary answers the primary's questions. Turns continue automatically until a stop condition is met. |
 | D8 | **Sub-agent sessions** | Tools that let an agent start sub-sessions and monitor their progress (beyond the current agent-as-tool delegation). |
