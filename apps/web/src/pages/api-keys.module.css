@@ -1,0 +1,23 @@
+.form {
+  display: grid;
+  gap: var(--ab-space-3);
+  max-width: 520px;
+}
+
+.scopes {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.muted {
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 11px;
+}
+
+.modalActions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--ab-space-3);
+}

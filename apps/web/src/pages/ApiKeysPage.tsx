@@ -1,18 +1,24 @@
-import {
-  Button,
-  Code,
-  Modal,
-  MultiSelect,
-  Select,
-  Table,
-  TextInput,
-} from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { RiDeleteBin6Line } from "@remixicon/react";
 import { useState } from "react";
 
 import type { ApiKey } from "../api/endpoints";
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "../api/queries";
+import { DataTable } from "../design-system/data/DataTable";
+import { FormField } from "../design-system/forms/FormField";
+import { MultiSelect } from "../design-system/forms/MultiSelect";
+import { Select } from "../design-system/forms/Select";
+import { TextInput } from "../design-system/forms/TextInput";
+import { IconButton } from "../design-system/icons/IconButton";
+import { Modal } from "../design-system/overlays/Modal";
+import { ListPage } from "../design-system/patterns/ListPage";
+import { Badge } from "../design-system/primitives/Badge";
+import { Button } from "../design-system/primitives/Button";
+import { CopyButton } from "../design-system/primitives/CopyButton";
+import { Panel } from "../design-system/primitives/Panel";
+import { StatusChip } from "../design-system/primitives/StatusChip";
 import { useAuthStore } from "../store/auth";
+import styles from "./api-keys.module.css";
 
 const EXPIRY_OPTIONS = [
   { value: "never", label: "Never" },
@@ -21,14 +27,20 @@ const EXPIRY_OPTIONS = [
   { value: "90", label: "90 days" },
 ];
 
-function status(k: ApiKey): string {
-  if (k.revoked_at) return "revoked";
-  if (k.expires_at && new Date(k.expires_at) <= new Date()) return "expired";
+function status(key: ApiKey): "active" | "expired" | "revoked" {
+  if (key.revoked_at) return "revoked";
+  if (key.expires_at && new Date(key.expires_at) <= new Date()) return "expired";
   return "active";
 }
 
+function statusTone(value: "active" | "expired" | "revoked") {
+  if (value === "active") return "success";
+  if (value === "expired") return "warning";
+  return "danger";
+}
+
 export function ApiKeysPage() {
-  const user = useAuthStore((s) => s.user);
+  const user = useAuthStore((state) => state.user);
   const { data: keys } = useApiKeys();
   const create = useCreateApiKey();
   const revoke = useRevokeApiKey();
@@ -51,63 +63,94 @@ export function ApiKeysPage() {
   }
 
   return (
-    <div>
-      <h1 className="title">API keys</h1>
-      <div className="box">
-        <MultiSelect
-          label="Scopes"
-          data={[...new Set(user?.permissions ?? [])]}
-          value={scopes}
-          onChange={setScopes}
-        />
-        <Select
-          label="Expires"
-          data={EXPIRY_OPTIONS}
-          value={expiry}
-          onChange={setExpiry}
-        />
-        <Button mt="md" onClick={onCreate} loading={create.isPending}>
-          Create key
-        </Button>
-      </div>
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>ID</Table.Th>
-            <Table.Th>Scopes</Table.Th>
-            <Table.Th>Expires</Table.Th>
-            <Table.Th>Status</Table.Th>
-            <Table.Th>Actions</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {(keys ?? []).map((k) => (
-            <Table.Tr key={k.id}>
-              <Table.Td>
-                <Code>{k.id.slice(0, 8)}</Code>
-              </Table.Td>
-              <Table.Td>{k.scopes.join(", ")}</Table.Td>
-              <Table.Td>
-                {k.expires_at
-                  ? new Date(k.expires_at).toLocaleString()
-                  : "never"}
-              </Table.Td>
-              <Table.Td>{status(k)}</Table.Td>
-              <Table.Td>
-                {status(k) === "active" && (
-                  <Button
-                    size="xs"
-                    color="red"
-                    onClick={() => revoke.mutateAsync(k.id)}
-                  >
-                    Revoke
-                  </Button>
+    <ListPage
+      title="API keys"
+      subtitle="Scoped credentials for the API and A2A"
+    >
+      <Panel>
+        <Panel.Header>Create key</Panel.Header>
+        <Panel.Body>
+          <div className={styles.form}>
+            <FormField label="Scopes" description="Select the permissions this key may use.">
+              <MultiSelect
+                data={[...new Set(user?.permissions ?? [])]}
+                value={scopes}
+                onChange={setScopes}
+              />
+            </FormField>
+            <FormField label="Expires">
+              <Select
+                data={EXPIRY_OPTIONS}
+                value={expiry}
+                onChange={setExpiry}
+              />
+            </FormField>
+            <Button onClick={onCreate} loading={create.isPending}>
+              Create key
+            </Button>
+          </div>
+        </Panel.Body>
+      </Panel>
+
+      <DataTable<ApiKey>
+        rowKey={(key) => key.id}
+        rows={keys ?? []}
+        columns={[
+          {
+            key: "id",
+            header: "ID",
+            render: (key) => <code>{key.id.slice(0, 8)}</code>,
+          },
+          {
+            key: "scopes",
+            header: "Scopes",
+            render: (key) => (
+              <div className={styles.scopes}>
+                {key.scopes.length === 0 ? (
+                  <span className={styles.muted}>no scopes</span>
+                ) : (
+                  key.scopes.map((scope) => (
+                    <Badge key={scope} tone="info">
+                      {scope}
+                    </Badge>
+                  ))
                 )}
-              </Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
+              </div>
+            ),
+          },
+          {
+            key: "expires",
+            header: "Expires",
+            render: (key) =>
+              key.expires_at
+                ? new Date(key.expires_at).toLocaleString()
+                : "never",
+          },
+          {
+            key: "status",
+            header: "Status",
+            render: (key) => {
+              const value = status(key);
+              return <StatusChip tone={statusTone(value)}>{value}</StatusChip>;
+            },
+          },
+          {
+            key: "actions",
+            header: "Actions",
+            render: (key) =>
+              status(key) === "active" ? (
+                <IconButton
+                  label="Revoke"
+                  icon={RiDeleteBin6Line}
+                  size={16}
+                  color="red"
+                  onClick={() => revoke.mutateAsync(key.id)}
+                />
+              ) : null,
+          },
+        ]}
+      />
+
       <Modal
         opened={!!created}
         onClose={() => setCreated(null)}
@@ -119,13 +162,10 @@ export function ApiKeysPage() {
           readOnly
           onClick={(e) => e.currentTarget.select()}
         />
-        <Button
-          mt="md"
-          onClick={() => created && navigator.clipboard.writeText(created)}
-        >
-          Copy
-        </Button>
+        <div className={styles.modalActions}>
+          <CopyButton value={created ?? ""} label="Copy" />
+        </div>
       </Modal>
-    </div>
+    </ListPage>
   );
 }
