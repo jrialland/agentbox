@@ -5,6 +5,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 - **DONE** — implemented and tested.
 - **PARTIAL** — partly implemented; gap noted.
 - **CURRENT** — being implemented in the active sub-project.
+- **PLANNED** — scheduled for an upcoming sub-project; spec/plan not written yet.
 - **DEFERRED** — not yet started; tracked for a future sub-project.
 - **DEVIATION** — implemented differently than the literal spec; rationale noted.
 
@@ -54,17 +55,17 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Requirement | Status | Where / Notes |
 |---|---|---|
 | Project = folder on PC | DONE | Projects + tree. |
-| Left tree: projects → sessions | DONE | `ProjectTree`. |
+| Left tree: projects → sessions | PARTIAL | `ProjectTree` works, but actions wrap onto three rows and have no iconography (UX-1). |
 | Choose agent + chat interface | DONE | Chat sub-project. |
 | AG-UI-compatible chat window | DONE | AG-UI client (`@ag-ui/client`). |
-| Input form with attachments (paperclip) | DONE | Multimodal attachments. |
+| Input form with attachments (paperclip) | PARTIAL | Multimodal attachments work; attachments are not shown in transcript history and use a text button rather than a paperclip icon (UX-2). |
 | Speech-to-text (Web Audio API, microphone) | DONE | Web Speech API. |
 | Autocomplete `/` for installed **skills** | DONE | Composer `/` menu; `skill=<name>` explicit activation. |
 | Autocomplete `@` for filenames (project root) | DONE | `GET /sessions/{sid}/files` + composer `@` menu (inserts `@relative/path`). |
-| Streamed tokens; visible reasoning; Markdown; Mermaid + pan/zoom + copy-source | DONE | Chat sub-project. |
+| Streamed tokens; visible reasoning; Markdown; Mermaid + pan/zoom + copy-source | PARTIAL | Streaming works, but reasoning/tool calls are transient, Markdown is unstyled, Mermaid corrupts the SPA during streaming, and there is no run/thinking indicator (UX-2). |
 | Direct mode: closing browser ends the session | DEVIATION | Harness supports detach/re-attach (run continues); documented in the harness spec. |
 | Resume existing session | DONE | Loads history. |
-| Edit a previous question → conversation restarts | DONE | Fork via `fork_from_turn_id`. |
+| Edit a previous question → conversation restarts | PARTIAL | Fork via `fork_from_turn_id` works, but the UI gives no visible fork/editing state (UX-2). |
 | Mode switching (Ask / Agent) | DONE | Mode selector. |
 | Agent modes defined in the agent config UI | DONE | Modes editor in the agent form. |
 
@@ -79,7 +80,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Requirement | Status | Notes |
 |---|---|---|
 | Start an agentic session via A2A using an API key | DONE | API-key-authenticated `/a2a/{agent}`. |
-| Only designated agents (with an agent card) support A2A | DONE | `GET/PUT/DELETE /agents/{name}/card` + card UI. |
+| Only designated agents (with an agent card) support A2A | PARTIAL | API + card storage work, but the card UI is a raw JSON textarea with no schema, validation, preview, or help (UX-3). |
 
 ## MCP Apps
 
@@ -97,9 +98,22 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Async wherever possible | DONE | Async throughout. |
 | Backend: FastAPI, SQLModel, **loguru** | DONE | FastAPI + SQLModel; `loguru.logger` used across the API (sinks configured in #20). |
 | Monorepo via **Uv Workspaces** | DONE (Python) / DEVIATION (frontend) | Python packages are a Uv workspace; the React app is a separate Bun project in `apps/web`. |
-| UI: React + **Mantine** + **Bulma** + **RemixIcons**, light/dark (system) | DONE | `apps/web`; Mantine widgets, Bulma layout, RemixIcons, `ThemeSync`. |
+| UI: React + **Mantine** + **Bulma** + **RemixIcons**, light/dark (system) | PARTIAL | `apps/web` uses Mantine + Bulma + `ThemeSync`; `@remixicon/react` is installed but unused, and the visual system has no brand/icon/typography coherence (UX-1). |
 | Precise components, message bus, no oversimplification | DONE | Component split + typed `mitt` bus. |
 | Protocol compliance mandatory (no homegrown) | DONE (AG-UI, ACP, A2A) | — |
+
+## UX review remediation (high priority)
+
+Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These workstreams are product-quality remediation and are prioritized ahead of new protocol features. Each gets its own spec → plan → implementation cycle. **UX-1 is the recommended first cycle** because it establishes the visual foundation the other workstreams build on.
+
+| ID | Workstream | Status | Priority | Scope | Source findings |
+|---|---|---|---|---|---|
+| UX-1 | Design system, shell & product character | CURRENT | P0/P1 | Brand kit, design tokens, typography, RemixIcon system, responsive shell, nav/sidebar, page titles, empty-state visual language, form layout, dark mode, replace/rescope Bulma. | E1–E6, C1–C2, C7–C10, G |
+| UX-2 | Chat surface & runtime UX | PLANNED | P0/P1 | Markdown stylesheet, safe Mermaid rendering, auto-scroll/sticky composer, thinking/running status, stop control, persisted reasoning/tool traces, attachment history, fork banner, per-turn errors/retry, icon composer. | A1–A12 |
+| UX-3 | Contextual help & structured editors | PLANNED | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
+| UX-4 | Data integrity, errors & navigation states | PLANNED | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
+
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). Active cycle: **UX-1** — design spec at `superpowers/specs/2026-11-20-ux-1-design-system-design.md`.
 
 ## Sub-project history
 
