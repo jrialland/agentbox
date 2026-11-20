@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
-from agentbox_api.runtime import delete_session_data
+from agentbox_api.runtime import delete_session_data, web_config_from_settings
 from agentbox_api.skills import prepare_agent, render_skill
 from agentbox_api.streaming import agui_response
 from agentbox_api.templating import PromptTemplateError
@@ -277,6 +277,7 @@ async def chat(
             session_mode=body.mode or "agent",
             media_max_dimension=request.app.state.settings.media_max_dimension,
             media_max_bytes=request.app.state.settings.media_max_bytes,
+            web_config=web_config_from_settings(request.app.state.settings),
         )
     except PromptTemplateError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -37,7 +37,11 @@ from sqlmodel import select
 from agentbox_api.config import Settings
 from agentbox_api.dev_seed import seed_admin
 from agentbox_api.logging import configure_logging
-from agentbox_api.runtime import delete_session_data, resolve_agent_runtime
+from agentbox_api.runtime import (
+    delete_session_data,
+    resolve_agent_runtime,
+    web_config_from_settings,
+)
 from agentbox_api.skills import prepare_agent
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
@@ -217,6 +221,7 @@ class AgentboxAcpAgent:
             session_mode="agent",
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
+            web_config=web_config_from_settings(self._settings),
         )
         runtime = prepared.runtime
         owner = runtime.created_by or await self._admin_id()
@@ -420,6 +425,7 @@ class AgentboxAcpAgent:
             session_mode="agent",
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
+            web_config=web_config_from_settings(self._settings),
         )
         if row.agent_id != prepared.runtime.agent_id:
             raise acp.RequestError(-32002, "unknown session")

@@ -19,6 +19,8 @@ def test_registry_exposes_all_tools_with_flags():
         "search_files",
         "get_file_info",
         "list_allowed_directories",
+        "web_search",
+        "fetch_url",
     }
     write = {
         "write_file",

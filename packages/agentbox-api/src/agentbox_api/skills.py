@@ -16,6 +16,7 @@ from agentbox_harness.lsp.hooks import make_lsp_hook
 from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.spec import AgentSpec, NativeToolBinding
 from agentbox_harness.tools.registry import ToolRegistry
+from agentbox_harness.tools.web import WebToolConfig
 from agentbox_models.tables.auth import User
 
 _BUILTIN = pathlib.Path(__file__).parent / "skills_builtin"
@@ -145,6 +146,7 @@ async def prepare_agent(
     session_mode: str | None = None,
     media_max_dimension: int = 1568,
     media_max_bytes: int = 1_500_000,
+    web_config: WebToolConfig | None = None,
 ) -> PreparedAgent:
     runtime = await resolve_agent_runtime(factory, agent_name)
     skills = discover_skills(project_root, user_dir)
@@ -196,5 +198,6 @@ async def prepare_agent(
         hooks=hooks,
         media_max_dimension=media_max_dimension,
         media_max_bytes=media_max_bytes,
+        web_config=web_config,
     )
     return PreparedAgent(runtime, spec, registry, skills)

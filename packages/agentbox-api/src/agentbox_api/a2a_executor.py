@@ -19,6 +19,7 @@ from pydantic_ai.messages import PartDeltaEvent, PartStartEvent, TextPart, TextP
 from sqlmodel import select
 
 from agentbox_api.a2a_server import a2a_user
+from agentbox_api.runtime import web_config_from_settings
 from agentbox_api.skills import prepare_agent
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
@@ -88,6 +89,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             session_mode="agent",
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
+            web_config=web_config_from_settings(self._settings),
         )
         owner = await self._owner()
         async with self._factory() as s:

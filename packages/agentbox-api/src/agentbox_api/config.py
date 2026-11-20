@@ -24,5 +24,16 @@ class Settings(BaseSettings):
     lsp_initialize_timeout: float = 10.0
     lsp_diagnostics_timeout: float = 5.0
     lsp_failure_backoff_seconds: float = 60.0
+    web_search_provider: str = "auto"
+    web_search_timeout: float = 10.0
+    web_search_max_results: int = 5
+    web_search_region: str = "us-en"
+    web_search_safesearch: str = "moderate"
+    web_search_ddgs_backend: str = "auto"
+    searxng_url: str | None = None
+    web_fetch_timeout: float = 15.0
+    web_fetch_max_chars: int = 40_000
+    web_fetch_max_bytes: int = 2_000_000
+    web_fetch_user_agent: str = "agentbox/0.1"
 
     model_config = SettingsConfigDict(env_file=".env")
