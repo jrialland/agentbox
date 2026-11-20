@@ -124,7 +124,7 @@ async def resolve_agent_runtime(factory, agent_name: str) -> AgentRuntime:
         agent_id=agent.id,
         created_by=agent.created_by,
         spec=spec,
-        model=resolve_model(provider, model.name),
+        model=resolve_model(provider, model.name, model.context_window),
     )
 
 

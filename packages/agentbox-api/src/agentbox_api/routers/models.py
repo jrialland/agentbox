@@ -26,6 +26,7 @@ class ModelLabelRead(BaseModel):
 class ModelCreate(BaseModel):
     provider_id: str
     name: str
+    context_window: int | None = None
     labels: list[LabelAssignment] = []
 
 
@@ -37,6 +38,7 @@ class ModelRead(BaseModel):
     id: str
     provider_id: str
     name: str
+    context_window: int | None = None
     labels: list[ModelLabelRead] = []
 
 
@@ -53,6 +55,7 @@ async def model_read(s, model: Model) -> ModelRead:
         id=model.id,
         provider_id=model.provider_id,
         name=model.name,
+        context_window=model.context_window,
         labels=[
             ModelLabelRead(id=label.id, name=label.name, priority=priority)
             for label, priority in rows
@@ -117,7 +120,12 @@ async def create_model(
         ).scalars().first()
         if dup is not None:
             raise HTTPException(status_code=409, detail="Model already exists")
-        model = Model(id=uuid.uuid4().hex, provider_id=body.provider_id, name=body.name)
+        model = Model(
+            id=uuid.uuid4().hex,
+            provider_id=body.provider_id,
+            name=body.name,
+            context_window=body.context_window,
+        )
         s.add(model)
         await s.flush()
         if body.labels:

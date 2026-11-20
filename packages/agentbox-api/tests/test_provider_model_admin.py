@@ -89,9 +89,16 @@ async def test_model_create_duplicate_and_delete():
     try:
         h = await _auth(client)
         r = await client.post(
-            "/models", json={"provider_id": "prov", "name": "m2"}, headers=h
+            "/models",
+            json={
+                "provider_id": "prov",
+                "name": "m2",
+                "context_window": 200_000,
+            },
+            headers=h,
         )
         assert r.status_code == 200
+        assert r.json()["context_window"] == 200_000
         mid = r.json()["id"]
         dup = await client.post(
             "/models", json={"provider_id": "prov", "name": "m2"}, headers=h

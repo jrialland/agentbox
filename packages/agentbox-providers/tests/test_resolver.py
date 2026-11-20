@@ -58,6 +58,23 @@ def test_resolve_test_provider_does_not_call_tools():
     assert m.call_tools == []
 
 
+def test_resolve_context_window_override():
+    m = resolve_model(
+        Provider(id="p", name="openai", kind="openai_legacy", api_key="sk-test"),
+        "custom-model",
+        context_window=123_456,
+    )
+    assert m.profile["context_window"] == 123_456
+
+
+def test_resolve_known_model_profile_is_used_without_override():
+    m = resolve_model(
+        Provider(id="p", name="openai", kind="openai_legacy", api_key="sk-test"),
+        "gpt-4o",
+    )
+    assert m.profile["context_window"] == 128_000
+
+
 def test_resolve_unknown_kind_raises():
     with pytest.raises(ValueError):
         resolve_model(Provider(id="p", name="x", kind="bogus"), "m")
