@@ -1,6 +1,6 @@
 import { Button, Modal } from "@mantine/core";
 import { useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useMessages, useSession, useSessionLsp, useSessionPlan } from "../api/queries";
@@ -12,6 +12,7 @@ import { PlanPanel } from "../chat/PlanPanel";
 import { ReasoningBlock } from "../chat/ReasoningBlock";
 import { SummaryNotice } from "../chat/SummaryNotice";
 import { ToolCallBlock } from "../chat/ToolCallBlock";
+import { useAutoScroll } from "../chat/useAutoScroll";
 import { useChat } from "../chat/useChat";
 import { AgentAvatar } from "../components/agents/AgentAvatar";
 import { API_URL } from "../config";
@@ -33,6 +34,11 @@ export function SessionPage() {
   const [forkMode, setForkMode] = useState(false);
   const [skill, setSkill] = useState<string | null>(null);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const { atBottom, scrollToBottom } = useAutoScroll(messagesRef, [
+    messages?.length,
+    chat.segments.length,
+  ]);
 
   async function handleSend(attachmentIds: string[]) {
     const content = input.trim();
@@ -79,7 +85,7 @@ export function SessionPage() {
         )}
         <h1 className="title">Session</h1>
         <PlanPanel items={plan?.items ?? []} />
-        <div className="session-messages">
+        <div className="session-messages" ref={messagesRef}>
           {(messages ?? []).map((m) =>
             m.role === "summary" ? (
               <SummaryNotice key={m.id} content={m.content} />
@@ -109,16 +115,28 @@ export function SessionPage() {
               </div>
             ),
           )}
-          {(chat.text || chat.reasoning || chat.toolCalls.length > 0) && (
+          {chat.segments.length > 0 && (
             <div className="session-turn session-turn-assistant">
-              {chat.reasoning && <ReasoningBlock content={chat.reasoning} />}
-              {chat.toolCalls.map((tc) => (
-                <ToolCallBlock key={tc.id} call={tc} />
-              ))}
-              {chat.text && <MarkdownBlock content={chat.text} />}
+              {chat.segments.map((segment) => {
+                if (segment.kind === "text") {
+                  return <MarkdownBlock key={segment.id} content={segment.text} />;
+                }
+                if (segment.kind === "reasoning") {
+                  return <ReasoningBlock key={segment.id} content={segment.text} />;
+                }
+                if (segment.kind === "tool") {
+                  return <ToolCallBlock key={segment.id} call={segment} />;
+                }
+                return null;
+              })}
             </div>
           )}
           {chat.error && <div className="notification is-danger">{chat.error}</div>}
+          {!atBottom && (
+            <Button size="compact-sm" onClick={scrollToBottom}>
+              Jump to latest
+            </Button>
+          )}
         </div>
         <Composer
           sessionId={id}
@@ -163,3 +181,5 @@ export function SessionPage() {
     </div>
   );
 }
+
+

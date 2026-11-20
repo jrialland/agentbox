@@ -1,6 +1,8 @@
-import type { ToolCall } from "./useChat";
+import type { Segment } from "./segments";
 
-export function ToolCallBlock({ call }: { call: ToolCall }) {
+type ToolSegment = Extract<Segment, { kind: "tool" }>;
+
+export function ToolCallBlock({ call }: { call: ToolSegment }) {
   return (
     <details className="tool-call">
       <summary>Tool: {call.name}</summary>
