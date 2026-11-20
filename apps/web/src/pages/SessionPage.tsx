@@ -1,9 +1,9 @@
-import { Button } from "@mantine/core";
+import { Button, Modal } from "@mantine/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { useMessages, useSession } from "../api/queries";
+import { useMessages, useSession, useSessionLsp } from "../api/queries";
 import { AppPanel } from "../chat/AppPanel";
 import "../chat/apps.css";
 import { Composer } from "../chat/Composer";
@@ -20,6 +20,7 @@ export function SessionPage() {
   const token = useAuthStore((s) => s.token);
   const { data: messages } = useMessages(id);
   const { data: session } = useSession(id);
+  const { data: lsp } = useSessionLsp(id);
   const chat = useChat(API_URL, token, id);
   const qc = useQueryClient();
   const [input, setInput] = useState("");
@@ -27,6 +28,7 @@ export function SessionPage() {
   const [forkFromTurnId, setForkFromTurnId] = useState<string | null>(null);
   const [forkMode, setForkMode] = useState(false);
   const [skill, setSkill] = useState<string | null>(null);
+  const [aboutOpen, setAboutOpen] = useState(false);
 
   async function handleSend(attachmentIds: string[]) {
     const content = input.trim();
@@ -59,6 +61,13 @@ export function SessionPage() {
           >
             <AgentAvatar name={session.agent_name} />
             <span className="has-text-weight-semibold">{session.agent_name}</span>
+            <Button
+              size="compact-xs"
+              variant="light"
+              onClick={() => setAboutOpen(true)}
+            >
+              About
+            </Button>
           </div>
         )}
         <h1 className="title">Session</h1>
@@ -113,6 +122,32 @@ export function SessionPage() {
       {chat.appTabs.length > 0 && (
         <AppPanel sessionId={id} tabs={chat.appTabs} onClose={chat.closeApp} />
       )}
+      <Modal
+        opened={aboutOpen}
+        onClose={() => setAboutOpen(false)}
+        title="About this session"
+      >
+        <p className="has-text-weight-semibold">Detected stacks</p>
+        <ul>
+          {(lsp?.detected ?? []).map((name) => (
+            <li key={name}>{name}</li>
+          ))}
+        </ul>
+        <p className="has-text-weight-semibold">Active language servers</p>
+        {lsp && lsp.active.length > 0 ? (
+          <ul>
+            {lsp.active.map((server) => (
+              <li key={server.stack}>
+                {server.stack} — {server.status} ({server.documents} docs)
+                <br />
+                <code>{server.command}</code>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No active language servers yet.</p>
+        )}
+      </Modal>
     </div>
   );
 }

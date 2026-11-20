@@ -7,6 +7,7 @@ import { vi } from "vitest";
 vi.mock("../api/queries", () => ({
   useMessages: () => ({ data: [] }),
   useSession: () => ({ data: { agent_name: "bot" } }),
+  useSessionLsp: () => ({ data: { detected: [], active: [] } }),
   useSkills: () => ({ data: [] }),
   useSessionFiles: () => ({ data: [] }),
 }));

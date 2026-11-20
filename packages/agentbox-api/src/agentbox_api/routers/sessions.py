@@ -15,6 +15,7 @@ from agentbox_api.streaming import agui_response
 from agentbox_api.templating import PromptTemplateError
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
+from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.session import Session, Turn
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.repos.crud import SessionRepository
@@ -412,3 +413,22 @@ async def list_session_files(
                 return {"files": sorted(results)}
     return {"files": sorted(results)}
 
+@router.get("/{sid}/lsp")
+async def session_lsp(
+    sid: str, request: Request, _=Depends(require_permission("sessions:read"))
+):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        srow = (
+            await s.execute(select(SessionRow).where(SessionRow.id == sid))
+        ).scalars().first()
+        if srow is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+        project = (
+            await s.execute(select(Project).where(Project.id == srow.project_id))
+        ).scalars().first()
+    manager = get_lsp_manager()
+    return {
+        "detected": manager.detected_for_project(project.path),
+        "active": manager.active_for_session(sid),
+    }

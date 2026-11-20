@@ -35,6 +35,7 @@ import {
   fetchSkills,
   fetchSession,
   fetchSessionFiles,
+  fetchSessionLsp,
   fetchSessions,
   fetchUserRoles,
   fetchUsers,
@@ -171,6 +172,14 @@ export function useSession(sessionId: string) {
   return useQuery({
     queryKey: ["session", sessionId],
     queryFn: () => fetchSession(sessionId),
+    enabled: !!sessionId,
+  });
+}
+
+export function useSessionLsp(sessionId: string) {
+  return useQuery({
+    queryKey: ["session-lsp", sessionId],
+    queryFn: () => fetchSessionLsp(sessionId),
     enabled: !!sessionId,
   });
 }

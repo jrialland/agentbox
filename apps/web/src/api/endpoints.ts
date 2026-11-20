@@ -166,6 +166,25 @@ export async function fetchSession(sid: string): Promise<SessionDetail> {
   return data as SessionDetail;
 }
 
+export type SessionLsp = {
+  detected: string[];
+  active: {
+    stack: string;
+    command: string;
+    root: string;
+    status: string;
+    documents: number;
+  }[];
+};
+
+export async function fetchSessionLsp(sid: string): Promise<SessionLsp> {
+  const { data, error } = await api.GET("/sessions/{sid}/lsp", {
+    params: { path: { sid } },
+  });
+  if (error) throw new Error("Failed to load session LSP");
+  return data as SessionLsp;
+}
+
 export async function uploadAgentAvatar(name: string, file: File): Promise<void> {
   const form = new FormData();
   form.append("file", file);

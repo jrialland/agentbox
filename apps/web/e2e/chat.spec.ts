@@ -58,6 +58,11 @@ test("chat streams, attaches, and forks", async ({ page, request }) => {
   await page.goto(`/sessions/${sessionId}`);
   await page.waitForLoadState("networkidle");
 
+  await page.getByRole("button", { name: "About" }).click();
+  const about = page.getByRole("dialog", { name: "About this session" });
+  await expect(about.getByText("python")).toBeVisible();
+  await page.keyboard.press("Escape");
+
   await page.getByLabel("Message").fill("hi");
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Hello from the test provider")).toBeVisible({ timeout: 15000 });
