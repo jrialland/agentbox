@@ -53,6 +53,7 @@ class LspManager:
                 stack.command,
                 project_root,
                 pull=stack.pull,
+                settle=stack.settle,
                 initialize_timeout=self.initialize_timeout,
                 diagnostics_timeout=self.diagnostics_timeout,
             )
@@ -100,10 +101,9 @@ class LspManager:
         self._servers.clear()
         self._active.clear()
 
-    def reset(self):
-        self._servers.clear()
+    async def reset(self):
+        await self.shutdown()
         self._detected.clear()
-        self._active.clear()
         self._failed.clear()
 
 

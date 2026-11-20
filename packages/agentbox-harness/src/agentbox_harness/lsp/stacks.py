@@ -11,6 +11,7 @@ class LspStack:
     extensions: tuple[str, ...]
     pull: bool = True
     save: bool = False
+    settle: float = 3.0
 
 
 DEFAULT_LSP_SERVERS = (
@@ -41,6 +42,7 @@ DEFAULT_LSP_SERVERS = (
         extensions=(".rs",),
         pull=False,
         save=True,
+        settle=15.0,
     ),
 )
 

@@ -30,12 +30,14 @@ class LspServer:
         root,
         *,
         pull=True,
+        settle=3.0,
         initialize_timeout=10.0,
         diagnostics_timeout=5.0,
     ):
         self.command = list(command)
         self.root = pathlib.Path(root)
         self.pull = pull
+        self.settle = settle
         self.initialize_timeout = initialize_timeout
         self.diagnostics_timeout = diagnostics_timeout
         self.process = None
@@ -129,10 +131,27 @@ class LspServer:
         return json.loads(await reader.readexactly(length))  # ty: ignore[missing-union-attribute]
 
     async def _handle_server_request(self, message):
-        if message.get("method") == "workspace/configuration":
+        method = message.get("method")
+        if method == "workspace/configuration":
             result = [{} for _ in message.get("params", {}).get("items", [])]
-        else:
+        elif method in (
+            "client/registerCapability",
+            "window/showMessage",
+            "window/workDoneProgress/create",
+        ):
             result = None
+        else:
+            await self._send(
+                {
+                    "jsonrpc": "2.0",
+                    "id": message.get("id"),
+                    "error": {
+                        "code": -32601,
+                        "message": f"Method not found: {method}",
+                    },
+                }
+            )
+            return
         await self._send(
             {"jsonrpc": "2.0", "id": message.get("id"), "result": result}
         )
@@ -218,7 +237,7 @@ class LspServer:
                     timeout=self.diagnostics_timeout,
                 )
                 return (result or {}).get("items", [])
-            grace = min(self.diagnostics_timeout, 3.0)
+            grace = min(self.diagnostics_timeout, self.settle)
             event = asyncio.Event()
             self._diagnostic_events[target] = event
             last = self._diagnostics.get(target, [])

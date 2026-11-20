@@ -53,6 +53,7 @@ class LspStack:
     extensions: list[str]   # ".py", ".ts", ...
     pull: bool = True       # advertise/serve pull diagnostics
     save: bool = False      # send textDocument/didSave after syncing
+    settle: float = 3.0     # wait after an empty publish for a follow-up
 ```
 
 Defaults:
@@ -63,7 +64,7 @@ Defaults:
 | TypeScript/JS | `**/tsconfig.json`, `**/package.json` | `npx -y typescript-language-server@latest --stdio` | `.ts`, `.tsx`, `.js`, `.jsx` / `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
 | Rust | `**/Cargo.toml` | `rust-analyzer` | `.rs` / `rust` |
 
-> Rust uses `pull=False, save=True`: rust-analyzer does not serve pull
+> Rust uses `pull=False, save=True, settle=15`: rust-analyzer does not serve pull
 > diagnostics in this setup and publishes only after `didSave`, first with an
 > empty list and then with the real diagnostics. The client announces push-only,
 > sends `didSave`, and keeps a short settle window for the follow-up publish.

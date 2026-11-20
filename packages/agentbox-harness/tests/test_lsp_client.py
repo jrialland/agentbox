@@ -48,3 +48,24 @@ async def test_timeout_returns_empty(tmp_path):
         assert await server.diagnostics(str(path)) == []
     finally:
         await server.stop()
+
+
+async def test_stop_shuts_down_process(tmp_path):
+    server = await LspServer(command(), tmp_path).start()
+    process = server.process
+    assert process is not None
+    await server.stop()
+    assert server.dead
+    assert process.returncode is not None
+
+
+async def test_unknown_server_request_returns_method_not_found(tmp_path):
+    server = LspServer(command(), tmp_path)
+    sent = []
+
+    async def fake_send(message):
+        sent.append(message)
+
+    server._send = fake_send
+    await server._handle_server_request({"id": 9, "method": "unknown/request"})
+    assert sent[0]["error"]["code"] == -32601
