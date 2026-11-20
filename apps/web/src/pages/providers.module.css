@@ -1,0 +1,39 @@
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: nowrap;
+}
+
+.formActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--ab-space-2);
+  margin-top: var(--ab-space-4);
+}
+
+.modelsLayout {
+  display: grid;
+  gap: var(--ab-space-3);
+}
+
+.modelForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--ab-space-3);
+  align-items: end;
+}
+
+.labels {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.labelRow {
+  display: grid;
+  grid-template-columns: 1fr 120px auto;
+  gap: var(--ab-space-2);
+  align-items: end;
+  margin-bottom: var(--ab-space-2);
+}
