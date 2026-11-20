@@ -75,13 +75,45 @@ async def test_projects_create_and_list():
     try:
         token = await _login(client)
         h = {"Authorization": f"Bearer {token}"}
-        r = await client.post("/projects", json={"name": "myproj", "path": "/tmp/p"}, headers=h)
+        r = await client.post(
+            "/projects",
+            json={
+                "name": "myproj",
+                "path": "/tmp/p",
+                "extra_roots": ["/tmp/extra"],
+            },
+            headers=h,
+        )
         assert r.status_code == 200
         created = r.json()
         assert created["id"]
         assert created["owner_id"] == "u1"
+        assert created["extra_roots"] == ["/tmp/extra"]
         r = await client.get("/projects", headers=h)
         assert any(p["id"] == created["id"] for p in r.json())
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_project_update_extra_roots():
+    engine, client, _factory = await _make_app(["projects:create", "projects:read"])
+    try:
+        token = await _login(client)
+        h = {"Authorization": f"Bearer {token}"}
+        r = await client.post(
+            "/projects", json={"name": "p", "path": "/tmp/p"}, headers=h
+        )
+        pid = r.json()["id"]
+        r = await client.put(
+            f"/projects/{pid}",
+            json={"name": "renamed", "extra_roots": ["/tmp/a", "/tmp/b"]},
+            headers=h,
+        )
+        assert r.status_code == 200
+        assert r.json()["name"] == "renamed"
+        assert r.json()["extra_roots"] == ["/tmp/a", "/tmp/b"]
+        assert (await client.put("/projects/missing", json={}, headers=h)).status_code == 404
     finally:
         await client.aclose()
         await engine.dispose()

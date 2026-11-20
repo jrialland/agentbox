@@ -1,6 +1,6 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import Column, LargeBinary
+from sqlalchemy import JSON, Column, LargeBinary
 from sqlmodel import Field, SQLModel
 
 
@@ -65,6 +65,10 @@ class Project(SQLModel, table=True):
     name: str
     path: str
     owner_id: str = Field(foreign_key="user.id")
+    extra_roots: list[str] = Field(
+        default_factory=list,
+        sa_column=Column(JSON, nullable=False, server_default="[]"),
+    )
     created_at: datetime = Field(default_factory=utcnow)
 
 

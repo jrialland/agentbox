@@ -14,6 +14,12 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 class ProjectCreate(BaseModel):
     name: str
     path: str
+    extra_roots: list[str] = []
+
+
+class ProjectUpdate(BaseModel):
+    name: str | None = None
+    extra_roots: list[str] | None = None
 
 
 @router.post("", response_model=Project)
@@ -25,6 +31,7 @@ async def create_project(
         name=body.name,
         path=body.path,
         owner_id=request.user.identity,
+        extra_roots=body.extra_roots,
     )
     project = await ProjectRepository(request.app.state.session_factory).create(project)
     logger.info("project created project={}", project.id)
@@ -42,6 +49,29 @@ async def get_project(pid: str, request: Request, _=Depends(require_permission("
     if p is None:
         raise HTTPException(status_code=404, detail="Not found")
     return p
+
+
+@router.put("/{pid}", response_model=Project)
+async def update_project(
+    pid: str,
+    body: ProjectUpdate,
+    request: Request,
+    _=Depends(require_permission("projects:create")),
+):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        project = await s.get(Project, pid)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        if body.name is not None:
+            project.name = body.name
+        if body.extra_roots is not None:
+            project.extra_roots = body.extra_roots
+        s.add(project)
+        await s.commit()
+        await s.refresh(project)
+    logger.info("project updated project={}", pid)
+    return project
 
 
 @router.delete("/{pid}")
