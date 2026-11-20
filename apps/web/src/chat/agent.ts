@@ -6,6 +6,7 @@ export interface SendOptions {
   forkFromTurnId?: string | null;
   attachmentIds?: string[];
   skill?: string | null;
+  retryTurnId?: string | null;
 }
 
 export function createChatAgent(opts: {
@@ -28,6 +29,7 @@ export function createChatAgent(opts: {
         fork_from_turn_id: opts.send.forkFromTurnId ?? null,
         attachment_ids: opts.send.attachmentIds ?? [],
         skill: opts.send.skill ?? null,
+        retry_turn_id: opts.send.retryTurnId ?? null,
       };
       return fetch(url, { ...init, body: JSON.stringify(payload) });
     }) as typeof fetch,
