@@ -4,6 +4,7 @@ import { modals } from "@mantine/modals";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
+import type { Project } from "../../api/endpoints";
 import {
   useDeleteProject,
   useDeleteSession,
@@ -21,6 +22,7 @@ export function ProjectTree() {
   const navigate = useNavigate();
   const location = useLocation();
   const [projectOpen, projectModal] = useDisclosure(false);
+  const [editProject, setEditProject] = useState<Project | null>(null);
   const [sessionProject, setSessionProject] = useState<string | null>(null);
 
   function onDeleteSession(id: string) {
@@ -53,6 +55,13 @@ export function ProjectTree() {
               <div className="is-flex is-justify-content-space-between">
                 <span>{p.name}</span>
                 <span>
+                  <button
+                    type="button"
+                    aria-label={`Project settings ${p.name}`}
+                    onClick={() => setEditProject(p)}
+                  >
+                    Edit
+                  </button>
                   <button
                     type="button"
                     aria-label={`New session in ${p.name}`}
@@ -91,6 +100,11 @@ export function ProjectTree() {
         })}
       </ul>
       <NewProjectModal opened={projectOpen} onClose={projectModal.close} />
+      <NewProjectModal
+        opened={editProject !== null}
+        onClose={() => setEditProject(null)}
+        project={editProject}
+      />
       <NewSessionModal
         opened={sessionProject !== null}
         onClose={() => setSessionProject(null)}

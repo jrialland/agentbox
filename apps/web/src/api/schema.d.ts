@@ -297,7 +297,8 @@ export interface paths {
         };
         /** Get Project */
         get: operations["get_project_projects__pid__get"];
-        put?: never;
+        /** Update Project */
+        put: operations["update_project_projects__pid__put"];
         post?: never;
         /** Delete Project */
         delete: operations["delete_project_projects__pid__delete"];
@@ -1065,6 +1066,8 @@ export interface components {
             path: string;
             /** Owner Id */
             owner_id: string;
+            /** Extra Roots */
+            extra_roots?: string[];
             /**
              * Created At
              * Format: date-time
@@ -1077,6 +1080,18 @@ export interface components {
             name: string;
             /** Path */
             path: string;
+            /**
+             * Extra Roots
+             * @default []
+             */
+            extra_roots: string[];
+        };
+        /** ProjectUpdate */
+        ProjectUpdate: {
+            /** Name */
+            name?: string | null;
+            /** Extra Roots */
+            extra_roots?: string[] | null;
         };
         /** ProviderCreate */
         ProviderCreate: {
@@ -2111,6 +2126,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Project"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_project_projects__pid__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                pid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectUpdate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

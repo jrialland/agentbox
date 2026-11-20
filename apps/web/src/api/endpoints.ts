@@ -15,9 +15,25 @@ export async function fetchProjects(): Promise<Project[]> {
   return data ?? [];
 }
 
-export async function createProject(body: { name: string; path: string }): Promise<Project> {
+export async function createProject(body: {
+  name: string;
+  path: string;
+  extra_roots: string[];
+}): Promise<Project> {
   const { data, error } = await api.POST("/projects", { body });
   if (error) throw new Error("Failed to create project");
+  return data as Project;
+}
+
+export async function updateProject(
+  pid: string,
+  body: { name?: string; extra_roots?: string[] },
+): Promise<Project> {
+  const { data, error } = await api.PUT("/projects/{pid}", {
+    params: { path: { pid } },
+    body,
+  });
+  if (error) throw new Error("Failed to update project");
   return data as Project;
 }
 

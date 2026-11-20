@@ -37,7 +37,14 @@ function renderTree() {
 
 beforeEach(() => {
   vi.spyOn(endpoints, "fetchProjects").mockResolvedValue([
-    { id: "p1", name: "Proj A", path: "/a", owner_id: "u1", created_at: "t1" },
+    {
+      id: "p1",
+      name: "Proj A",
+      path: "/a",
+      owner_id: "u1",
+      created_at: "t1",
+      extra_roots: [],
+    },
   ] as never);
   vi.spyOn(endpoints, "fetchSessions").mockResolvedValue([
     { id: "s1", project_id: "p1", agent_id: "ag", created_at: "t2" },
@@ -60,14 +67,47 @@ test("creates a project via the modal", async () => {
     path: "/n",
     owner_id: "u1",
     created_at: "t",
+    extra_roots: [],
   } as never);
   renderTree();
   fireEvent.click(await screen.findByRole("button", { name: /new project/i }));
   fireEvent.change(await screen.findByLabelText("Name"), { target: { value: "New" } });
   fireEvent.change(screen.getByLabelText("Path"), { target: { value: "/n" } });
+  fireEvent.change(
+    screen.getByLabelText("Additional allowed folders"),
+    { target: { value: "/extra" } },
+  );
   fireEvent.click(screen.getByRole("button", { name: /create/i }));
   await waitFor(() =>
-    expect(created).toHaveBeenCalledWith({ name: "New", path: "/n" }, expect.anything()),
+    expect(created).toHaveBeenCalledWith(
+      { name: "New", path: "/n", extra_roots: ["/extra"] },
+      expect.anything(),
+    ),
+  );
+});
+
+
+test("edits project settings", async () => {
+  const updated = vi.spyOn(endpoints, "updateProject").mockResolvedValue({
+    id: "p1",
+    name: "Proj A",
+    path: "/a",
+    owner_id: "u1",
+    created_at: "t1",
+    extra_roots: ["/extra"],
+  } as never);
+  renderTree();
+  fireEvent.click(await screen.findByLabelText("Project settings Proj A"));
+  fireEvent.change(
+    await screen.findByLabelText("Additional allowed folders"),
+    { target: { value: "/extra" } },
+  );
+  fireEvent.click(screen.getByRole("button", { name: /save/i }));
+  await waitFor(() =>
+    expect(updated).toHaveBeenCalledWith("p1", {
+      name: "Proj A",
+      extra_roots: ["/extra"],
+    }),
   );
 });
 

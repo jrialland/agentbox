@@ -50,6 +50,7 @@ import {
   setRolePermissions,
   setUserRoles,
   updatePermission,
+  updateProject,
   updateProvider,
   updateRole,
   updateUser,
@@ -109,6 +110,17 @@ export function useCreateProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createProject,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+  });
+}
+
+export function useUpdateProject() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      pid: string;
+      body: { name?: string; extra_roots?: string[] };
+    }) => updateProject(input.pid, input.body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
   });
 }
