@@ -27,6 +27,11 @@ async function setupAppSession(
   });
   const provId = (await prov.json()).id;
   await request.post(`${API}/providers/${provId}/models/refresh`, { headers: h });
+  const modelName = `e2e-app-model-${suffix}`;
+  await request.post(`${API}/models`, {
+    headers: h,
+    data: { provider_id: provId, name: modelName, labels: [] },
+  });
 
   const agentName = `e2e-app-agent-${suffix}`;
   await request.post(`${API}/agents`, {
@@ -35,7 +40,7 @@ async function setupAppSession(
       name: agentName,
       description: "d",
       instructions: "i",
-      model: "e2e-model",
+      model: modelName,
       tool_bindings: [{ server_url: "http://localhost:9000/mcp", id: "test-app" }],
       mode_definitions: [
         { name: "ask", flags: { write: false } },
