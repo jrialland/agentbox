@@ -17,24 +17,30 @@ depends_on: str | Sequence[str] | None = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "sessionrow",
-        sa.Column(
-            "parent_session_id",
-            sa.String(),
-            sa.ForeignKey("sessionrow.id"),
-            nullable=True,
-        ),
-    )
+    with op.batch_alter_table("sessionrow") as batch:
+        batch.add_column(
+            sa.Column(
+                "parent_session_id",
+                sa.String(),
+                sa.ForeignKey(
+                    "sessionrow.id", name="fk_sessionrow_parent_session_id"
+                ),
+                nullable=True,
+            )
+        )
+        batch.add_column(sa.Column("sub_session_status", sa.String(), nullable=True))
+        batch.add_column(sa.Column("sub_session_error", sa.String(), nullable=True))
+        batch.add_column(sa.Column("sub_session_output", sa.String(), nullable=True))
+        batch.add_column(
+            sa.Column(
+                "sub_session_depth",
+                sa.Integer(),
+                nullable=False,
+                server_default="0",
+            )
+        )
     op.create_index(
         "ix_sessionrow_parent_session_id", "sessionrow", ["parent_session_id"]
-    )
-    op.add_column("sessionrow", sa.Column("sub_session_status", sa.String(), nullable=True))
-    op.add_column("sessionrow", sa.Column("sub_session_error", sa.String(), nullable=True))
-    op.add_column("sessionrow", sa.Column("sub_session_output", sa.String(), nullable=True))
-    op.add_column(
-        "sessionrow",
-        sa.Column("sub_session_depth", sa.Integer(), nullable=False, server_default="0"),
     )
 
 
