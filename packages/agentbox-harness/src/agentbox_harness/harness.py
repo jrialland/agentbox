@@ -25,6 +25,7 @@ class Harness:
         sub_agents: dict[str, AgentSpec] | None = None,
         middleware: list[RunMiddleware] | None = None,
         compaction: CompactionConfig | None = None,
+        sub_session_runner=None,
     ):
         self.registry = registry
         self.model = model
@@ -36,6 +37,7 @@ class Harness:
             if middleware is not None
             else [CompactionMiddleware(compaction)]
         )
+        self.sub_session_runner = sub_session_runner
 
     def start_session(
         self,
@@ -105,6 +107,8 @@ class Harness:
             self.registry,
             self.model,
             sub_agents=self.sub_agents,
+            sub_session_runner=self.sub_session_runner,
+            session_id=session.session_id,
         )
         return self.run_manager.start(
             agent,

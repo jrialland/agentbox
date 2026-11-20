@@ -5,7 +5,10 @@ from pydantic_ai import Agent
 from pydantic_ai.models import Model
 
 from agentbox_harness.spec import AgentSpec, McpToolBinding, Mode, NativeToolBinding
-from agentbox_harness.subagents import build_subagent_tool
+from agentbox_harness.subagents import (
+    build_sub_session_tools,
+    build_subagent_tool,
+)
 from agentbox_harness.tools.mcp import build_mcp_toolset
 from agentbox_harness.tools.registry import ToolRegistry
 
@@ -46,6 +49,8 @@ def build_agent(
     sub_agents: dict[str, AgentSpec] | None = None,
     depth: int = 0,
     max_depth: int = 3,
+    sub_session_runner=None,
+    session_id: str | None = None,
 ) -> Agent:
     native_names: set[str] = set()
     mcp_bindings: list[McpToolBinding] = []
@@ -58,6 +63,9 @@ def build_agent(
     tools = registry.select_tools(mode, names=native_names)
     tools.extend(
         build_subagent_tools(spec, sub_agents, registry, model, depth, max_depth)
+    )
+    tools.extend(
+        build_sub_session_tools(spec, mode, sub_session_runner, session_id)
     )
     toolsets = [build_mcp_toolset(b) for b in mcp_bindings]
     logger.debug("agent built name={} tools={} toolsets={}", spec.name, len(tools), len(toolsets))
