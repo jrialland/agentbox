@@ -17,7 +17,7 @@ def detect_stacks(
 ) -> list[LspStack]:
     root = pathlib.Path(project_root)
     found: list[LspStack] = []
-    for stack in stacks or DEFAULT_LSP_SERVERS:
+    for stack in DEFAULT_LSP_SERVERS if stacks is None else stacks:
         for marker in stack.markers:
             matches = [path for path in root.glob(marker) if _kept(path, root)]
             if matches:

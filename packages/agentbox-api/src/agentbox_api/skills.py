@@ -11,6 +11,8 @@ from skills_ref import read_properties, to_prompt
 
 from agentbox_api.runtime import AgentRuntime, build_registry, resolve_agent_runtime
 from agentbox_api.templating import build_context, render_prompt
+from agentbox_harness.lsp.hooks import make_lsp_hook
+from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.spec import AgentSpec, NativeToolBinding
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_models.tables.auth import User
@@ -165,10 +167,15 @@ async def prepare_agent(
     spec = runtime.spec.model_copy(update={"instructions": rendered})
     spec = augment_spec(spec, skills)
     extra_tools = {"activate_skill": make_activate_tool(skills)} if skills else None
+    manager = get_lsp_manager()
+    hooks = []
+    if session_id and manager.enabled:
+        hooks.append(make_lsp_hook(manager, session_id, project_root))
     registry = build_registry(
         project_root,
         extra_read_roots=[s.location.parent for s in skills],
         extra_tools=extra_tools,
+        hooks=hooks,
         media_max_dimension=media_max_dimension,
         media_max_bytes=media_max_bytes,
     )

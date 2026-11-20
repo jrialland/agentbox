@@ -19,5 +19,10 @@ class Settings(BaseSettings):
     log_retention: str = "14 days"
     log_compression: str = "zip"
     log_intercept: bool = True
+    lsp_enabled: bool = True
+    lsp_servers_json: str | None = None
+    lsp_initialize_timeout: float = 10.0
+    lsp_diagnostics_timeout: float = 5.0
+    lsp_failure_backoff_seconds: float = 60.0
 
     model_config = SettingsConfigDict(env_file=".env")

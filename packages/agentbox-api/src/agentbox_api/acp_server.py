@@ -41,6 +41,7 @@ from agentbox_api.runtime import delete_session_data, resolve_agent_runtime
 from agentbox_api.skills import prepare_agent
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
+from agentbox_harness.lsp.manager import configure_lsp
 from agentbox_harness.run import Run
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.spec import DEFAULT_MODES, AgentSpec, McpToolBinding
@@ -466,6 +467,7 @@ async def _serve(agent_name: str) -> None:
     secret = os.environ.get("JWT_SECRET") or "agentbox-acp-local-development-secret"
     settings = Settings(jwt_secret=secret)
     configure_logging(settings)
+    configure_lsp(settings)
     engine, factory = create_engine_and_sessionmaker(settings.database_url)
     await init_db(engine)
     await seed_admin(factory)
