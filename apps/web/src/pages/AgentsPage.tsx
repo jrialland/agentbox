@@ -45,6 +45,8 @@ export const NATIVE_TOOLS = [
   "move_file",
   "copy_file",
   "delete_path",
+  "web_search",
+  "fetch_url",
 ];
 
 function TemplatePreviewModal({
