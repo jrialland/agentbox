@@ -37,15 +37,18 @@ parent_session_id: str | None = Field(
 )
 sub_session_status: str | None = None   # running|completed|failed|cancelled
 sub_session_error: str | None = None
+sub_session_output: str | None = None   # cached final output
 sub_session_depth: int = 0
 ```
 
-Alembic revision `sub_sessions` (down_revision `b2c3d4e5f6a7`) adds the four
+Alembic revision `sub_sessions` (down_revision `b2c3d4e5f6a7`) adds the
 columns. Normal sessions keep `parent_session_id=None`, a null status, and
 depth 0.
 
 The child's task is its first user turn. The child's latest assistant turn is
-its output. `sub_session_status` and `sub_session_error` carry lifecycle state.
+its output; `sub_session_output` caches the completed output so status and
+output are updated atomically. `sub_session_status` and `sub_session_error`
+carry lifecycle state.
 
 ## Harness protocol and tools
 

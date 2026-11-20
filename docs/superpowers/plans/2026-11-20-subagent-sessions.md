@@ -19,6 +19,12 @@
 - Child mode is `agent`.
 - `get_sub_session` returns status plus the latest assistant output or error.
 - Run `ruff`/`ty` and relevant tests before each commit.
+- Implementation note: the runner caches completed output in
+  `SessionRow.sub_session_output` so status/output updates are atomic, keeps
+  active tasks until `get`/`list` observes a terminal status (avoiding a
+  completion race), and runner tests use a file-backed SQLite database so the
+  background child and polling reader do not share a single in-memory
+  connection.
 
 ---
 
@@ -97,6 +103,7 @@ Add to `SessionRow`:
     )
     sub_session_status: str | None = None
     sub_session_error: str | None = None
+    sub_session_output: str | None = None
     sub_session_depth: int = 0
 ```
 
@@ -136,6 +143,7 @@ def upgrade() -> None:
     )
     op.add_column("sessionrow", sa.Column("sub_session_status", sa.String(), nullable=True))
     op.add_column("sessionrow", sa.Column("sub_session_error", sa.String(), nullable=True))
+    op.add_column("sessionrow", sa.Column("sub_session_output", sa.String(), nullable=True))
     op.add_column(
         "sessionrow",
         sa.Column("sub_session_depth", sa.Integer(), nullable=False, server_default="0"),
@@ -144,6 +152,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_column("sessionrow", "sub_session_depth")
+    op.drop_column("sessionrow", "sub_session_output")
     op.drop_column("sessionrow", "sub_session_error")
     op.drop_column("sessionrow", "sub_session_status")
     op.drop_index("ix_sessionrow_parent_session_id", table_name="sessionrow")

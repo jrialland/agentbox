@@ -1224,6 +1224,8 @@ export interface components {
             sub_session_status?: string | null;
             /** Sub Session Error */
             sub_session_error?: string | null;
+            /** Sub Session Output */
+            sub_session_output?: string | null;
             /**
              * Sub Session Depth
              * @default 0

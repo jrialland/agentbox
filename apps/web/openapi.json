@@ -4052,6 +4052,17 @@
             ],
             "title": "Sub Session Error"
           },
+          "sub_session_output": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sub Session Output"
+          },
           "sub_session_depth": {
             "type": "integer",
             "title": "Sub Session Depth",
