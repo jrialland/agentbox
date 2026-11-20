@@ -15,6 +15,7 @@ import { ToolCallBlock } from "../chat/ToolCallBlock";
 import { useChat } from "../chat/useChat";
 import { AgentAvatar } from "../components/agents/AgentAvatar";
 import { API_URL } from "../config";
+import "../design-system/styles/legacy-chat.css";
 import { useAuthStore } from "../store/auth";
 
 export function SessionPage() {
@@ -55,7 +56,9 @@ export function SessionPage() {
   }
 
   return (
-    <div className={chat.appTabs.length > 0 ? "session-layout" : undefined}>
+    <div
+      className={`legacy-chat ${chat.appTabs.length > 0 ? "session-layout" : ""}`}
+    >
       <div className={chat.appTabs.length > 0 ? "session-main" : "session-full"}>
         {session && (
           <div
