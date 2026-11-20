@@ -1,0 +1,123 @@
+.turn {
+  border-bottom: var(--ab-border-width) solid var(--ab-border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-5) 0;
+}
+
+.turn:first-child {
+  padding-top: 0;
+}
+
+.turnHeader {
+  align-items: center;
+  display: flex;
+  gap: var(--ab-space-2);
+}
+
+.role {
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-display);
+  font-size: var(--ab-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.userTurn .role {
+  color: var(--ab-cyan);
+}
+
+.assistantTurn .role {
+  color: var(--ab-phosphor);
+}
+
+.userText {
+  color: var(--ab-text);
+  font-size: var(--ab-text-md);
+  line-height: 1.65;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-space-2);
+}
+
+.attachment {
+  align-items: center;
+  background: var(--ab-surface-raised);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  color: var(--ab-text);
+  display: inline-flex;
+  font-size: var(--ab-text-sm);
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-1) var(--ab-space-2);
+  text-decoration: none;
+}
+
+.attachment:hover {
+  border-color: var(--ab-cyan);
+  color: var(--ab-cyan);
+}
+
+.activity {
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  padding: var(--ab-space-2) var(--ab-space-3);
+}
+
+.activity summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-space-2);
+  list-style: none;
+}
+
+.activity summary::-webkit-details-marker {
+  display: none;
+}
+
+.activityLabel {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.activityList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-2);
+  list-style: none;
+  margin: var(--ab-space-3) 0 0;
+  padding: 0;
+}
+
+.activityList li {
+  align-items: center;
+  display: grid;
+  font-size: var(--ab-text-sm);
+  gap: var(--ab-space-2);
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+
+.activityList code {
+  color: var(--ab-amber);
+  font-family: var(--ab-font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.duration {
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+}
