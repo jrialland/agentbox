@@ -129,6 +129,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 22 | Model labels + label-based model routing | `specs/2026-11-19-model-labels-design.md` | `plans/2026-11-19-model-labels.md` |
 | 23 | Prompt templating in system prompts + preview | `specs/2026-11-19-prompt-templating-design.md` | `plans/2026-11-19-prompt-templating.md` |
 | 24 | Automatic LSP diagnostics (multi-stack + About panel) | `specs/2026-11-19-lsp-diagnostics-design.md` | `plans/2026-11-19-lsp-diagnostics.md` |
+| 25 | Session plan tools (TODO-*) | `specs/2026-11-19-plan-tools-design.md` | `plans/2026-11-19-plan-tools.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -146,7 +147,6 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D11 | **Terminal session management** | Let agents run bash/PowerShell programs with timeouts, promote long-running work to background jobs, and manage the jobs they started. |
 | D12 | **Agent plugins** | Support the standardized `.agents/plugins/` folder format that mixes skills, MCP configuration, and hooks. |
 | D13 | **Toolset packaging hygiene** | Declare each toolset as a separate artifact/package where possible; keep native toolsets embedded in Agentbox and, where possible, also expose them as standalone FastMCP stdio tools. |
-| D14 | **Plan management tools** | The `TODO-*` tool family: a structured, persistent task/plan list the agent creates and updates across turns (add, complete, reorder, inspect), visible to the user. |
 | D15 | **Virtual environment / sandboxing** | Opt-in per agent: run tools in a Bashkit environment on a temporary disk, isolating filesystem effects from the real project. |
 | D16 | **Telegram / WhatsApp interface** | Let a user create a channel binding (e.g. a Telegram bot) to manage an agent session from a phone: inbound messages start/continue sessions, replies stream back. |
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
