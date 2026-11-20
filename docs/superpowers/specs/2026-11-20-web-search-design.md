@@ -94,7 +94,7 @@ defaults. Chat, ACP, and A2A pass the application settings through.
 Signature: `async def web_search(query: str, max_results: int | None = None) -> str`.
 
 - Empty or whitespace query returns `Search failed: query must not be empty.`
-- `max_results=None` uses `web_search_max_results`; an explicit value is
+- `max_results=None` uses `web_search_max_results`; the effective value is
   clamped to 1-10.
 - Provider selection:
   - `auto`: try `ddgs`, then `searxng` when `searxng_url` is set. Continue on
