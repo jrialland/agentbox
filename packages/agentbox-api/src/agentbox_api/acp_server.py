@@ -50,6 +50,7 @@ from agentbox_harness.run import Run
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.spec import DEFAULT_MODES, AgentSpec, McpToolBinding
 from agentbox_harness.tools.registry import ToolRegistry
+from agentbox_harness.tools.terminal import get_job_manager
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.repos.message_log import SQLiteMessageLogStore
 from agentbox_models.tables.auth import User
@@ -403,6 +404,7 @@ class AgentboxAcpAgent:
         return s.DeleteSessionResponse()
 
     async def close_session(self, session_id, **kwargs):
+        await get_job_manager().kill_session(session_id)
         sess = self._sessions.pop(session_id, None)
         if sess is not None and sess.run is not None:
             sess.run.cancel()

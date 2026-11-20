@@ -24,6 +24,7 @@ from agentbox_api.routers.skills import router as skills_router
 from agentbox_api.routers.users import router as users_router
 from agentbox_api.sandbox import sandbox_response
 from agentbox_harness.lsp.manager import configure_lsp, get_lsp_manager
+from agentbox_harness.tools.terminal import get_job_manager
 from agentbox_models.db import create_engine_and_sessionmaker
 
 
@@ -39,6 +40,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
         yield
         logger.info("agentbox api stopping")
         await get_lsp_manager().shutdown()
+        await get_job_manager().shutdown()
         await engine.dispose()
 
     app = FastAPI(lifespan=lifespan)

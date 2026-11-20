@@ -16,6 +16,11 @@ from agentbox_harness.lsp.hooks import make_lsp_hook
 from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.spec import AgentSpec, NativeToolBinding
 from agentbox_harness.tools.registry import ToolRegistry
+from agentbox_harness.tools.terminal import (
+    TERMINAL_TOOL_NAMES,
+    get_job_manager,
+    make_terminal_tools,
+)
 from agentbox_harness.tools.web import WebToolConfig
 from agentbox_models.tables.auth import User
 
@@ -221,4 +226,27 @@ async def prepare_agent(
         web_config=web_config,
         extra_write_roots=resolved_extra,
     )
+    native_names = {
+        binding.name
+        for binding in spec.tool_bindings
+        if isinstance(binding, NativeToolBinding)
+    }
+    if session_id and native_names & set(TERMINAL_TOOL_NAMES):
+        additions = [
+            NativeToolBinding(name=name)
+            for name in TERMINAL_TOOL_NAMES
+            if name not in native_names
+        ]
+        if additions:
+            spec = spec.model_copy(
+                update={"tool_bindings": [*spec.tool_bindings, *additions]}
+            )
+        terminal_tools = make_terminal_tools(
+            get_job_manager(),
+            session_id,
+            project_root,
+            [pathlib.Path(project_root).expanduser().resolve(), *resolved_extra],
+        )
+        for name, fn in terminal_tools.items():
+            registry.register_native(name, fn, required_flags=("write",))
     return PreparedAgent(runtime, spec, registry, skills)

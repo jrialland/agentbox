@@ -9,6 +9,7 @@ from sqlmodel import select
 from agentbox_harness.spec import AgentSpec
 from agentbox_harness.tools.filesystem import FilesystemToolbox
 from agentbox_harness.tools.registry import ToolRegistry
+from agentbox_harness.tools.terminal import get_job_manager
 from agentbox_harness.tools.web import WebToolbox, WebToolConfig
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.tables.core import (
@@ -129,6 +130,7 @@ async def resolve_agent_runtime(factory, agent_name: str) -> AgentRuntime:
 
 async def delete_session_data(factory, session_id: str) -> None:
     """Delete a session's turns, attachments, and row."""
+    await get_job_manager().kill_session(session_id)
     async with factory() as s:
         for turn in (
             await s.execute(select(TurnRow).where(TurnRow.session_id == session_id))
