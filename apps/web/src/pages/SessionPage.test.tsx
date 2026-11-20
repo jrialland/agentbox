@@ -27,3 +27,27 @@ test("renders the chat composer", async () => {
   expect(await screen.findByRole("heading", { name: "Session" })).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
 });
+
+test("renders a summary notice", async () => {
+  vi.spyOn(endpoints, "fetchMessages").mockResolvedValue([
+    { id: "sum", role: "summary", content: "compressed", parent_id: null },
+  ] as never);
+  vi.spyOn(endpoints, "fetchSession").mockResolvedValue({
+    agent_name: "bot",
+  } as never);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <MantineProvider>
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/sessions/abc"]}>
+          <Routes>
+            <Route path="/sessions/:id" element={<SessionPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </MantineProvider>,
+  );
+  expect(
+    await screen.findByText("Earlier conversation summarized"),
+  ).toBeInTheDocument();
+});

@@ -10,6 +10,7 @@ import { Composer } from "../chat/Composer";
 import { MarkdownBlock } from "../chat/MarkdownBlock";
 import { PlanPanel } from "../chat/PlanPanel";
 import { ReasoningBlock } from "../chat/ReasoningBlock";
+import { SummaryNotice } from "../chat/SummaryNotice";
 import { ToolCallBlock } from "../chat/ToolCallBlock";
 import { useChat } from "../chat/useChat";
 import { AgentAvatar } from "../components/agents/AgentAvatar";
@@ -76,31 +77,35 @@ export function SessionPage() {
         <h1 className="title">Session</h1>
         <PlanPanel items={plan?.items ?? []} />
         <div className="session-messages">
-          {(messages ?? []).map((m) => (
-            <div key={m.id} className={`session-turn session-turn-${m.role}`}>
-              <div className="is-flex is-justify-content-space-between">
-                <p className="is-size-7 has-text-grey">{m.role}</p>
-                {m.role === "user" && (
-                  <Button
-                    size="compact-xs"
-                    variant="subtle"
-                    onClick={() => {
-                      setInput(m.content);
-                      setForkMode(true);
-                      setForkFromTurnId(m.parent_id ?? null);
-                    }}
-                  >
-                    Edit
-                  </Button>
+          {(messages ?? []).map((m) =>
+            m.role === "summary" ? (
+              <SummaryNotice key={m.id} content={m.content} />
+            ) : (
+              <div key={m.id} className={`session-turn session-turn-${m.role}`}>
+                <div className="is-flex is-justify-content-space-between">
+                  <p className="is-size-7 has-text-grey">{m.role}</p>
+                  {m.role === "user" && (
+                    <Button
+                      size="compact-xs"
+                      variant="subtle"
+                      onClick={() => {
+                        setInput(m.content);
+                        setForkMode(true);
+                        setForkFromTurnId(m.parent_id ?? null);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                </div>
+                {m.role === "assistant" ? (
+                  <MarkdownBlock content={m.content} />
+                ) : (
+                  <pre className="session-content">{m.content}</pre>
                 )}
               </div>
-              {m.role === "assistant" ? (
-                <MarkdownBlock content={m.content} />
-              ) : (
-                <pre className="session-content">{m.content}</pre>
-              )}
-            </div>
-          ))}
+            ),
+          )}
           {(chat.text || chat.reasoning || chat.toolCalls.length > 0) && (
             <div className="session-turn session-turn-assistant">
               {chat.reasoning && <ReasoningBlock content={chat.reasoning} />}

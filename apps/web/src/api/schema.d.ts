@@ -947,6 +947,8 @@ export interface components {
             provider_id: string;
             /** Name */
             name: string;
+            /** Context Window */
+            context_window?: number | null;
             /**
              * Labels
              * @default []
@@ -978,6 +980,8 @@ export interface components {
             provider_id: string;
             /** Name */
             name: string;
+            /** Context Window */
+            context_window?: number | null;
             /**
              * Labels
              * @default []

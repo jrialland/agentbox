@@ -308,6 +308,7 @@ function ModelsTab() {
   const del = useDeleteModel();
   const [providerId, setProviderId] = useState<string | null>(null);
   const [name, setName] = useState("");
+  const [contextWindow, setContextWindow] = useState<number | string>("");
   const { data: labels } = useLabels();
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [editing, setEditing] = useState<Model | null>(null);
@@ -325,8 +326,15 @@ function ModelsTab() {
   async function onCreate() {
     if (!providerId || !name) return;
     try {
-      await create.mutateAsync({ provider_id: providerId, name, labels: [] });
+      await create.mutateAsync({
+        provider_id: providerId,
+        name,
+        context_window:
+          contextWindow === "" ? undefined : Number(contextWindow),
+        labels: [],
+      });
       setName("");
+      setContextWindow("");
     } catch {
       notifications.show({ message: "Failed to create model", color: "red" });
     }
@@ -346,6 +354,13 @@ function ModelsTab() {
           value={name}
           onChange={(e) => setName(e.currentTarget.value)}
         />
+        <NumberInput
+          label="Context window"
+          description="Optional token window for custom/local models"
+          min={1}
+          value={contextWindow}
+          onChange={setContextWindow}
+        />
         <Button mt="md" onClick={onCreate} loading={create.isPending}>
           Create model
         </Button>
@@ -362,6 +377,7 @@ function ModelsTab() {
           <Table.Tr>
             <Table.Th>Provider</Table.Th>
             <Table.Th>Name</Table.Th>
+            <Table.Th>Context window</Table.Th>
             <Table.Th>Labels</Table.Th>
             <Table.Th>Actions</Table.Th>
           </Table.Tr>
@@ -371,6 +387,7 @@ function ModelsTab() {
             <Table.Tr key={m.id}>
               <Table.Td>{providerName(m.provider_id)}</Table.Td>
               <Table.Td>{m.name}</Table.Td>
+              <Table.Td>{m.context_window ?? ""}</Table.Td>
               <Table.Td>
                 {m.labels.map((label) => (
                   <Badge key={label.id} mr={4}>

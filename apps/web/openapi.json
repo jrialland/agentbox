@@ -3257,6 +3257,17 @@
             "type": "string",
             "title": "Name"
           },
+          "context_window": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Window"
+          },
           "labels": {
             "items": {
               "$ref": "#/components/schemas/LabelAssignment"
@@ -3323,6 +3334,17 @@
           "name": {
             "type": "string",
             "title": "Name"
+          },
+          "context_window": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Window"
           },
           "labels": {
             "items": {

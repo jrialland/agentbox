@@ -411,6 +411,7 @@ export async function updateProvider(
 export async function createModel(body: {
   provider_id: string;
   name: string;
+  context_window?: number;
   labels: { label: string; priority: number }[];
 }): Promise<Model> {
   const { data, error } = await api.POST("/models", { body });
