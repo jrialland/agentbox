@@ -72,14 +72,21 @@ class FilesystemToolbox:
         self,
         root_dir: pathlib.Path,
         extra_read_roots: list[pathlib.Path] | None = None,
+        extra_write_roots: list[pathlib.Path] | None = None,
         media_max_dimension: int = 1568,
         media_max_bytes: int = 1_500_000,
     ):
         self.root_dir = pathlib.Path(root_dir).resolve()
-        self._read_roots = [
-            self.root_dir,
-            *[pathlib.Path(root).resolve() for root in (extra_read_roots or [])],
+        write_roots = [
+            pathlib.Path(root).resolve() for root in (extra_write_roots or [])
         ]
+        read_roots = [
+            pathlib.Path(root).resolve() for root in (extra_read_roots or [])
+        ]
+        self._write_roots = [self.root_dir, *write_roots]
+        self._read_roots = list(
+            dict.fromkeys([self.root_dir, *write_roots, *read_roots])
+        )
         self.media_max_dimension = media_max_dimension
         self.media_max_bytes = media_max_bytes
 
@@ -94,7 +101,7 @@ class FilesystemToolbox:
             resolved = (
                 candidate if candidate.is_absolute() else self.root_dir / candidate
             ).resolve()
-            roots = [self.root_dir] if write else self._read_roots
+            roots = self._write_roots if write else self._read_roots
             if not any(resolved == root or root in resolved.parents for root in roots):
                 logger.warning(
                     "path escapes root path={} root={}", path, self.root_dir
@@ -323,10 +330,13 @@ class FilesystemToolbox:
     async def delete_path(self, path: str, recursive: bool = False) -> str:
         candidate = pathlib.Path(path)
         target = candidate if candidate.is_absolute() else self.root_dir / candidate
-        if target.resolve() == self.root_dir:
+        target_resolved = target.resolve()
+        if any(target_resolved == root for root in self._write_roots):
             raise ValueError("Refusing to delete an allowed root")
         parent = target.parent.resolve()
-        if not (parent == self.root_dir or self.root_dir in parent.parents):
+        if not any(
+            parent == root or root in parent.parents for root in self._write_roots
+        ):
             raise PathEscapesRootError(path)
 
         def _delete() -> None:

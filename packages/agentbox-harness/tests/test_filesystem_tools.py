@@ -309,3 +309,33 @@ def test_reads_extra_root_but_blocks_write(tmp_path):
         pass
     else:
         raise AssertionError("write outside root should fail")
+
+
+async def test_extra_write_root_allows_file_operations(root, tmp_path):
+    external = tmp_path / "external"
+    external.mkdir()
+    box = FilesystemToolbox(root, extra_write_roots=[external])
+    target = str(external / "x.txt")
+    await box.write_file(target, "hello")
+    assert await box.read_text_file(target) == "hello"
+    await box.edit_file(target, [FileEdit(old_text="hello", new_text="bye")])
+    assert await box.read_text_file(target) == "bye"
+    await box.delete_path(target)
+    assert not (external / "x.txt").exists()
+
+
+async def test_extra_write_root_still_blocks_other_paths(root, tmp_path):
+    external = tmp_path / "external"
+    external.mkdir()
+    box = FilesystemToolbox(root, extra_write_roots=[external])
+    with pytest.raises(PathEscapesRootError):
+        await box.write_file(str(tmp_path / "outside.txt"), "nope")
+
+
+async def test_extra_write_root_listing_and_delete_guard(root, tmp_path):
+    external = tmp_path / "external"
+    external.mkdir()
+    box = FilesystemToolbox(root, extra_write_roots=[external])
+    assert str(external.resolve()) in await box.list_allowed_directories()
+    with pytest.raises(ValueError):
+        await box.delete_path(str(external), recursive=True)

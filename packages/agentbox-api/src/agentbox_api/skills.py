@@ -136,6 +136,24 @@ class PreparedAgent:
     skills: list[Skill]
 
 
+def _resolve_extra_roots(
+    project_root: str, extra_roots: list[str] | None
+) -> list[pathlib.Path]:
+    root = pathlib.Path(project_root).expanduser().resolve()
+    resolved: list[pathlib.Path] = []
+    seen: set[pathlib.Path] = set()
+    for value in extra_roots or []:
+        text = (value or "").strip()
+        if not text:
+            continue
+        candidate = pathlib.Path(text).expanduser()
+        path = (candidate if candidate.is_absolute() else root / candidate).resolve()
+        if path not in seen:
+            seen.add(path)
+            resolved.append(path)
+    return resolved
+
+
 async def prepare_agent(
     factory,
     agent_name: str,
@@ -147,8 +165,10 @@ async def prepare_agent(
     media_max_dimension: int = 1568,
     media_max_bytes: int = 1_500_000,
     web_config: WebToolConfig | None = None,
+    extra_roots: list[str] | None = None,
 ) -> PreparedAgent:
     runtime = await resolve_agent_runtime(factory, agent_name)
+    resolved_extra = _resolve_extra_roots(project_root, extra_roots)
     skills = discover_skills(project_root, user_dir)
     resolved_user = user_name
     if resolved_user is None and runtime.created_by:
@@ -199,5 +219,6 @@ async def prepare_agent(
         media_max_dimension=media_max_dimension,
         media_max_bytes=media_max_bytes,
         web_config=web_config,
+        extra_write_roots=resolved_extra,
     )
     return PreparedAgent(runtime, spec, registry, skills)

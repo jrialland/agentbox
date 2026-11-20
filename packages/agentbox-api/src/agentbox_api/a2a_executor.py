@@ -80,6 +80,10 @@ class AgentboxA2AExecutor(AgentExecutor):
         session_id = task.context_id
         logger.info("a2a run start agent={} session={}", self._agent_name, session_id)
         workspace = self._settings.a2a_workspace
+        async with self._factory() as s:
+            project = (
+                await s.execute(select(Project).where(Project.path == workspace))
+            ).scalars().first()
         prepared = await prepare_agent(
             self._factory,
             self._agent_name,
@@ -90,12 +94,10 @@ class AgentboxA2AExecutor(AgentExecutor):
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
             web_config=web_config_from_settings(self._settings),
+            extra_roots=project.extra_roots if project is not None else None,
         )
         owner = await self._owner()
         async with self._factory() as s:
-            project = (
-                await s.execute(select(Project).where(Project.path == workspace))
-            ).scalars().first()
             if project is None:
                 project = Project(
                     id=uuid.uuid4().hex,

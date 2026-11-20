@@ -278,6 +278,7 @@ async def chat(
             media_max_dimension=request.app.state.settings.media_max_dimension,
             media_max_bytes=request.app.state.settings.media_max_bytes,
             web_config=web_config_from_settings(request.app.state.settings),
+            extra_roots=project.extra_roots,
         )
     except PromptTemplateError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc

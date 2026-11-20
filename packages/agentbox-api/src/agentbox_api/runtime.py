@@ -47,10 +47,12 @@ def build_registry(
     media_max_dimension: int = 1568,
     media_max_bytes: int = 1_500_000,
     web_config: WebToolConfig | None = None,
+    extra_write_roots: list[pathlib.Path] | None = None,
 ) -> ToolRegistry:
     box = FilesystemToolbox(
         pathlib.Path(project_root),
         extra_read_roots=list(extra_read_roots or []),
+        extra_write_roots=list(extra_write_roots or []),
         media_max_dimension=media_max_dimension,
         media_max_bytes=media_max_bytes,
     )
