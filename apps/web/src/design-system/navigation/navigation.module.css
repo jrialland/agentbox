@@ -1,0 +1,109 @@
+.rail {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  align-items: start;
+  width: var(--ab-rail-width);
+  min-height: 100vh;
+  padding: var(--ab-space-2) 0;
+  border-right: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+}
+
+.railBrand {
+  display: grid;
+  place-items: center;
+  height: 40px;
+  color: var(--ab-phosphor);
+  font-family: var(--ab-font-display);
+  font-size: 14px;
+}
+
+.railItems {
+  display: grid;
+  justify-items: center;
+  gap: var(--ab-space-1);
+  padding: var(--ab-space-2) 0;
+}
+
+.railItem {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  color: var(--ab-text-muted);
+  text-decoration: none;
+}
+
+.railItem:hover {
+  color: var(--ab-text);
+  background: var(--ab-surface-raised);
+}
+
+.railItem[aria-current="page"] {
+  color: var(--ab-phosphor);
+}
+
+.railLabel {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.railActive {
+  position: absolute;
+  left: -8px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--ab-phosphor);
+  box-shadow: 0 0 10px var(--ab-phosphor);
+}
+
+.railFooter {
+  display: grid;
+  justify-items: center;
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-2) 0;
+}
+
+.breadcrumbs {
+  display: flex;
+  gap: 4px;
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 12px;
+}
+
+.breadcrumbs a {
+  color: var(--ab-cyan);
+}
+
+.mobileNav {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding: var(--ab-space-2);
+  border-bottom: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+}
+
+.mobileNavItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  padding: 8px 10px;
+  border: 1px solid var(--ab-border);
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.mobileNavItem[aria-current="page"] {
+  color: var(--ab-phosphor);
+  border-color: var(--ab-phosphor);
+}
