@@ -81,12 +81,52 @@
   color: var(--ab-cyan);
 }
 
+.mobileTopBar {
+  display: grid;
+  gap: 0;
+  border-bottom: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+}
+
+.mobileTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-2) var(--ab-space-3) 0;
+}
+
+.mobileBrand {
+  color: var(--ab-phosphor);
+  font-family: var(--ab-font-display);
+  font-size: 14px;
+}
+
+.mobileActions {
+  display: flex;
+  align-items: center;
+  gap: var(--ab-space-1);
+}
+
+.mobileUser {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--ab-border);
+  background: var(--ab-surface-raised);
+  color: var(--ab-text);
+  font-family: var(--ab-font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
 .mobileNav {
   display: flex;
   gap: 4px;
   overflow-x: auto;
-  padding: var(--ab-space-2);
-  border-bottom: 1px solid var(--ab-border);
+  padding: var(--ab-space-2) var(--ab-space-3);
+  border-top: 1px solid var(--ab-border);
   background: var(--ab-surface);
 }
 

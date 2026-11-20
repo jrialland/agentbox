@@ -27,3 +27,34 @@
 .fullBleed {
   width: 100%;
 }
+
+.mobileShell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--ab-canvas);
+}
+
+.mobileBody {
+  display: grid;
+  grid-template-columns: var(--ab-panel-width) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.mobileBodyPhone {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+@media (max-width: 1099px) {
+  .workspace {
+    padding: var(--ab-space-4);
+  }
+}
+
+@media (max-width: 767px) {
+  .workspace {
+    padding: var(--ab-space-3);
+  }
+}
