@@ -45,7 +45,7 @@ def _install_typescript(project: pathlib.Path) -> None:
 async def _run(project: pathlib.Path, filename: str, content: str):
     manager = LspManager()
     manager.initialize_timeout = 60.0
-    manager.diagnostics_timeout = 30.0
+    manager.diagnostics_timeout = 60.0
     path = project / filename
     path.write_text(content, encoding="utf-8")
     hook = make_lsp_hook(manager, "real", str(project))

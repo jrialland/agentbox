@@ -52,6 +52,7 @@ class LspManager:
             server = LspServer(
                 stack.command,
                 project_root,
+                pull=stack.pull,
                 initialize_timeout=self.initialize_timeout,
                 diagnostics_timeout=self.diagnostics_timeout,
             )

@@ -51,6 +51,8 @@ class LspStack:
     command: list[str]      # stdio command
     languages: list[str]    # LSP languageIds
     extensions: list[str]   # ".py", ".ts", ...
+    pull: bool = True       # advertise/serve pull diagnostics
+    save: bool = False      # send textDocument/didSave after syncing
 ```
 
 Defaults:
@@ -61,6 +63,11 @@ Defaults:
 | TypeScript/JS | `**/tsconfig.json`, `**/package.json` | `npx -y typescript-language-server@latest --stdio` | `.ts`, `.tsx`, `.js`, `.jsx` / `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
 | Rust | `**/Cargo.toml` | `rust-analyzer` | `.rs` / `rust` |
 
+> Rust uses `pull=False, save=True`: rust-analyzer does not serve pull
+> diagnostics in this setup and publishes only after `didSave`, first with an
+> empty list and then with the real diagnostics. The client announces push-only,
+> sends `didSave`, and keeps a short settle window for the follow-up publish.
+>
 > The TypeScript server needs a TypeScript 5.x installation in the project
 > (`typescript` dev dependency); TypeScript 7 no longer ships `tsserver.js`.
 > The integration test installs `typescript@5.9.3` into its temp workspace.
@@ -133,10 +140,11 @@ singleton so chat, ACP and A2A share per-project servers.
 - `sync_document(path)`: `didOpen` on first use (languageId, version 1, full
   text), `didChange` with full text and an incremented version on later writes.
 - `diagnostics(path)`:
-  - if the server advertised `diagnosticProvider`, request
-    `textDocument/diagnostic` for the URI;
-  - otherwise wait for `publishDiagnostics` for that URI (registered before the
-    sync), with the diagnostics timeout;
+  - if the stack allows pull and the server advertised `diagnosticProvider`,
+    request `textDocument/diagnostic` for the URI;
+  - otherwise use push mode: `didSave` is sent when the stack requests it, and
+    the client waits for a non-empty `publishDiagnostics` for that URI, allowing
+    a short settle window after an empty publish;
   - normalize to `{line, character, severity, message, source}`; empty on
     timeout.
 - `stop()`: `shutdown` request, `exit` notification, then terminate if needed.
@@ -225,10 +233,12 @@ initialize/didOpen/didChange/diagnostic/publishDiagnostics/shutdown.
 
 ### Real servers (availability-skipped, marked slow)
 - Python: `uvx ty server` on a file with a deliberate error.
-- TypeScript: `npx -y typescript-language-server@latest --stdio` when available.
-- Rust: `rust-analyzer` when available.
+- TypeScript: `npx -y typescript-language-server@latest --stdio` with
+  `typescript@5.9.3` installed in the workspace.
+- Rust: `rust-analyzer` on a minimal Cargo crate (push mode + `didSave`).
 Each asserts the returned text contains a diagnostic; skipped when the tool is
-not on PATH.
+not on PATH. All three were verified locally (ty, TypeScript 5.9.3,
+rust-analyzer 1.92).
 
 ### UI
 E2E: open the About modal for a session and see the detected/active stack list.

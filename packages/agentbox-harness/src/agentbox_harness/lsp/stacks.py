@@ -9,6 +9,8 @@ class LspStack:
     command: tuple[str, ...]
     languages: tuple[str, ...]
     extensions: tuple[str, ...]
+    pull: bool = True
+    save: bool = False
 
 
 DEFAULT_LSP_SERVERS = (
@@ -37,6 +39,8 @@ DEFAULT_LSP_SERVERS = (
         command=("rust-analyzer",),
         languages=("rust",),
         extensions=(".rs",),
+        pull=False,
+        save=True,
     ),
 )
 

@@ -25,10 +25,17 @@ def _exec_command(command):
 
 class LspServer:
     def __init__(
-        self, command, root, *, initialize_timeout=10.0, diagnostics_timeout=5.0
+        self,
+        command,
+        root,
+        *,
+        pull=True,
+        initialize_timeout=10.0,
+        diagnostics_timeout=5.0,
     ):
         self.command = list(command)
         self.root = pathlib.Path(root)
+        self.pull = pull
         self.initialize_timeout = initialize_timeout
         self.diagnostics_timeout = diagnostics_timeout
         self.process = None
@@ -52,18 +59,21 @@ class LspServer:
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
+            cwd=str(self.root),
         )
         self._reader = asyncio.create_task(self._read_loop())
+        root_uri = self.root.as_uri().rstrip("/") + "/"
+        capabilities: dict = {"textDocument": {"publishDiagnostics": {}}}
+        if self.pull:
+            capabilities["textDocument"]["diagnostic"] = {}
         result = await self._request(
             "initialize",
             {
                 "processId": os.getpid(),
-                "rootUri": self.root.as_uri(),
-                "capabilities": {
-                    "textDocument": {"publishDiagnostics": {}, "diagnostic": {}}
-                },
+                "rootUri": root_uri,
+                "capabilities": capabilities,
                 "workspaceFolders": [
-                    {"uri": self.root.as_uri(), "name": self.root.name}
+                    {"uri": root_uri, "name": self.root.name}
                 ],
             },
             timeout=self.initialize_timeout,
@@ -145,7 +155,9 @@ class LspServer:
                 elif message.get("method") == "textDocument/publishDiagnostics":
                     params = message.get("params", {})
                     key = _path_from_uri(params.get("uri", ""))
-                    self._diagnostics[key] = params.get("diagnostics", [])
+                    published = params.get("diagnostics", [])
+                    logger.debug("lsp publish path={} count={}", key, len(published))
+                    self._diagnostics[key] = published
                     event = self._diagnostic_events.get(key)
                     if event:
                         event.set()
@@ -164,6 +176,7 @@ class LspServer:
         target = pathlib.Path(path).resolve()
         uri = target.as_uri()
         text = target.read_text(encoding="utf-8")
+        self._diagnostics.pop(target, None)
         version = self._versions.get(target, 0) + 1
         if target not in self._versions:
             await self._notify(
@@ -187,28 +200,47 @@ class LspServer:
             )
         self._versions[target] = version
 
+    async def save_document(self, path: str):
+        target = pathlib.Path(path).resolve()
+        await self._notify(
+            "textDocument/didSave",
+            {"textDocument": {"uri": target.as_uri()}},
+        )
+
     async def diagnostics(self, path: str):
         target = pathlib.Path(path).resolve()
         uri = target.as_uri()
         try:
-            if "diagnosticProvider" in self._capabilities:
+            if self.pull and "diagnosticProvider" in self._capabilities:
                 result = await self._request(
                     "textDocument/diagnostic",
                     {"textDocument": {"uri": uri}},
                     timeout=self.diagnostics_timeout,
                 )
                 return (result or {}).get("items", [])
-            if target in self._diagnostics:
-                return self._diagnostics[target]
+            grace = min(self.diagnostics_timeout, 3.0)
             event = asyncio.Event()
             self._diagnostic_events[target] = event
-            if target in self._diagnostics:
-                return self._diagnostics[target]
+            last = self._diagnostics.get(target, [])
+            if last:
+                return last
+            loop = asyncio.get_running_loop()
+            deadline = loop.time() + grace
             try:
-                await asyncio.wait_for(event.wait(), self.diagnostics_timeout)
+                while True:
+                    remaining = deadline - loop.time()
+                    if remaining <= 0:
+                        return last
+                    try:
+                        await asyncio.wait_for(event.wait(), remaining)
+                    except TimeoutError:
+                        return last
+                    event.clear()
+                    last = self._diagnostics.get(target, [])
+                    if last:
+                        return last
             finally:
                 self._diagnostic_events.pop(target, None)
-            return self._diagnostics.get(target, [])
         except TimeoutError:
             return []
 

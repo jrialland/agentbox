@@ -46,6 +46,8 @@ def make_lsp_hook(manager, session_id: str | None, project_root: str):
             return None
         language = language_for(stack, path)
         await server.sync_document(path, language)
+        if stack.save:
+            await server.save_document(path)
         diagnostics = await server.diagnostics(path)
         if session_id:
             manager.record_active(session_id, project_root, stack, server)
