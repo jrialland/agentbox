@@ -31,6 +31,7 @@ def upgrade() -> None:
     )
     op.add_column("sessionrow", sa.Column("sub_session_status", sa.String(), nullable=True))
     op.add_column("sessionrow", sa.Column("sub_session_error", sa.String(), nullable=True))
+    op.add_column("sessionrow", sa.Column("sub_session_output", sa.String(), nullable=True))
     op.add_column(
         "sessionrow",
         sa.Column("sub_session_depth", sa.Integer(), nullable=False, server_default="0"),
@@ -39,6 +40,7 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     op.drop_column("sessionrow", "sub_session_depth")
+    op.drop_column("sessionrow", "sub_session_output")
     op.drop_column("sessionrow", "sub_session_error")
     op.drop_column("sessionrow", "sub_session_status")
     op.drop_index("ix_sessionrow_parent_session_id", table_name="sessionrow")

@@ -83,6 +83,7 @@ class SessionRow(SQLModel, table=True):
     )
     sub_session_status: str | None = None
     sub_session_error: str | None = None
+    sub_session_output: str | None = None
     sub_session_depth: int = 0
     created_at: datetime = Field(default_factory=utcnow)
 

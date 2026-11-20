@@ -11,7 +11,7 @@ from agentbox_harness.messages import turns_to_messages
 from agentbox_harness.middleware import MiddlewarePipeline, RunContext, RunMiddleware
 from agentbox_harness.run import Run, RunManager
 from agentbox_harness.session import Session, Turn
-from agentbox_harness.spec import AgentSpec
+from agentbox_harness.spec import AgentSpec, Mode
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_harness.usage import context_tokens_from_usage
 
@@ -59,6 +59,8 @@ class Harness:
         spec = session.agent_spec
         if spec is None:
             raise ValueError("Session has no agent spec")
+        if not spec.mode_definitions:
+            return Mode(name=session.mode_name, flags={"write": True})
         for mode in spec.mode_definitions:
             if mode.name == session.mode_name:
                 return mode
