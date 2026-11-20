@@ -7,7 +7,7 @@ export function Icon({
   className,
 }: {
   as: RemixiconComponentType;
-  size?: 16 | 18 | 20 | 24;
+  size?: 16 | 18 | 20 | 24 | 32;
   label?: string;
   className?: string;
 }) {

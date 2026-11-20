@@ -4,8 +4,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { RequireAuth } from "./components/auth/RequireAuth";
-import { AppShell } from "./components/layout/AppShell";
 import { ThemeProvider } from "./design-system/theme/ThemeProvider";
+import { CommandShell } from "./design-system/shell/CommandShell";
 import { AdminPage } from "./pages/AdminPage";
 import { AgentsPage } from "./pages/AgentsPage";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
@@ -27,7 +27,7 @@ export function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route element={<RequireAuth />}>
-                <Route element={<AppShell />}>
+                <Route element={<CommandShell />}>
                   <Route index element={<HomePage />} />
                   <Route path="admin" element={<AdminPage />} />
                   <Route path="agents" element={<AgentsPage />} />
