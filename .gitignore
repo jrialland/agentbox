@@ -5,6 +5,7 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+storybook-static/
 .coverage
 *.db
 node_modules/
