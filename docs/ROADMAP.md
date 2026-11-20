@@ -109,11 +109,11 @@ Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These wo
 | ID | Workstream | Status | Priority | Scope | Source findings |
 |---|---|---|---|---|---|
 | UX-1 | Design system, shell & product character | DONE | P0/P1 | Brand kit, design tokens, typography, RemixIcon system, responsive shell, nav/sidebar, page titles, empty-state visual language, form layout, dark mode, replace/rescope Bulma. | E1–E6, C1–C2, C7–C10, G |
-| UX-2 | Chat surface & runtime UX | PLANNED | P0/P1 | Markdown stylesheet, safe Mermaid rendering, auto-scroll/sticky composer, thinking/running status, stop control, persisted reasoning/tool traces, attachment history, fork banner, per-turn errors/retry, icon composer. | A1–A12 |
+| UX-2 | Chat surface & runtime UX | CURRENT | P0/P1 | Markdown stylesheet, safe Mermaid rendering, auto-scroll/sticky composer, thinking/running status, stop control, persisted reasoning/tool traces, attachment history, fork banner, per-turn errors/retry, icon composer. | A1–A12 |
 | UX-3 | Contextual help & structured editors | PLANNED | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
 | UX-4 | Data integrity, errors & navigation states | PLANNED | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
 
-The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 is complete** — spec `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, plan `superpowers/plans/2026-11-20-ux-1-design-system.md`. Next cycle: **UX-2** chat surface and runtime UX.
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 is complete** — spec `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, plan `superpowers/plans/2026-11-20-ux-1-design-system.md`. Active cycle: **UX-2** chat surface and runtime UX — spec `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`.
 
 ## Sub-project history
 
