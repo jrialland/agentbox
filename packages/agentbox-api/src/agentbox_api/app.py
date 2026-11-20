@@ -34,13 +34,20 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        from agentbox_api.subsessions import (
+            reconcile_running_sub_sessions,
+            shutdown_sub_sessions,
+        )
+
         configure_logging(settings)
         configure_lsp(settings)
+        await reconcile_running_sub_sessions(session_factory)
         logger.info("agentbox api starting")
         yield
         logger.info("agentbox api stopping")
         await get_lsp_manager().shutdown()
         await get_job_manager().shutdown()
+        await shutdown_sub_sessions()
         await engine.dispose()
 
     app = FastAPI(lifespan=lifespan)

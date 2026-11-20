@@ -414,7 +414,10 @@ class AgentboxAcpAgent:
         return s.DeleteSessionResponse()
 
     async def close_session(self, session_id, **kwargs):
+        from agentbox_api.subsessions import cancel_sub_sessions
+
         await get_job_manager().kill_session(session_id)
+        await cancel_sub_sessions(self._factory, session_id)
         sess = self._sessions.pop(session_id, None)
         if sess is not None and sess.run is not None:
             sess.run.cancel()
