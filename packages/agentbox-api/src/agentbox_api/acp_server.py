@@ -144,6 +144,7 @@ class AcpSession:
     model: PydanticModel
     registry: ToolRegistry
     mode: str
+    sub_session_runner: object | None = None
     run: Run | None = None
 
 
@@ -230,6 +231,7 @@ class AgentboxAcpAgent:
             media_max_bytes=self._settings.media_max_bytes,
             web_config=web_config_from_settings(self._settings),
             extra_roots=project.extra_roots if project is not None else None,
+            compaction=compaction_config_from_settings(self._settings),
         )
         runtime = prepared.runtime
         owner = runtime.created_by or await self._admin_id()
@@ -253,7 +255,7 @@ class AgentboxAcpAgent:
         mode = _default_mode(spec)
         self._sessions[session_id] = AcpSession(
             session_id, cwd, project_id, runtime.agent_id, spec, runtime.model,
-            prepared.registry, mode,
+            prepared.registry, mode, prepared.sub_session_runner,
         )
         logger.info("acp session new agent={} session={}", self._agent_name, session_id)
         return s.NewSessionResponse(session_id=session_id, modes=_modes(spec, mode))
@@ -282,6 +284,7 @@ class AgentboxAcpAgent:
             model=sess.model,
             store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
             compaction=compaction_config_from_settings(self._settings),
+            sub_session_runner=sess.sub_session_runner,
         )
         bus = EventBus()
         sub = bus.subscribe()
@@ -438,6 +441,7 @@ class AgentboxAcpAgent:
             media_max_bytes=self._settings.media_max_bytes,
             web_config=web_config_from_settings(self._settings),
             extra_roots=project.extra_roots,
+            compaction=compaction_config_from_settings(self._settings),
         )
         if row.agent_id != prepared.runtime.agent_id:
             raise acp.RequestError(-32002, "unknown session")
@@ -451,6 +455,7 @@ class AgentboxAcpAgent:
             prepared.runtime.model,
             prepared.registry,
             _default_mode(spec),
+            prepared.sub_session_runner,
         )
         self._sessions[session_id] = sess
         return sess

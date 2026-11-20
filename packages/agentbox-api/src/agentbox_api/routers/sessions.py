@@ -295,6 +295,7 @@ async def chat(
             media_max_bytes=request.app.state.settings.media_max_bytes,
             web_config=web_config_from_settings(request.app.state.settings),
             extra_roots=project.extra_roots,
+            compaction=compaction_config_from_settings(request.app.state.settings),
         )
     except PromptTemplateError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -350,6 +351,7 @@ async def chat(
         model=resolved,
         store_factory=lambda: SQLiteMessageLogStore(factory, sid),
         compaction=compaction_config_from_settings(request.app.state.settings),
+        sub_session_runner=prepared.sub_session_runner,
     )
     bus = EventBus()
     sub = bus.subscribe()

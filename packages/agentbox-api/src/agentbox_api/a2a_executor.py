@@ -99,6 +99,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             media_max_bytes=self._settings.media_max_bytes,
             web_config=web_config_from_settings(self._settings),
             extra_roots=project.extra_roots if project is not None else None,
+            compaction=compaction_config_from_settings(self._settings),
         )
         owner = await self._owner()
         async with self._factory() as s:
@@ -133,6 +134,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             model=prepared.runtime.model,
             store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
             compaction=compaction_config_from_settings(self._settings),
+            sub_session_runner=prepared.sub_session_runner,
         )
         bus = EventBus()
         sub = bus.subscribe()
