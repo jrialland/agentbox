@@ -1218,6 +1218,17 @@ export interface components {
             agent_id: string;
             /** Head Turn Id */
             head_turn_id?: string | null;
+            /** Parent Session Id */
+            parent_session_id?: string | null;
+            /** Sub Session Status */
+            sub_session_status?: string | null;
+            /** Sub Session Error */
+            sub_session_error?: string | null;
+            /**
+             * Sub Session Depth
+             * @default 0
+             */
+            sub_session_depth: number;
             /**
              * Created At
              * Format: date-time

@@ -72,7 +72,16 @@ async def create_session(
 
 @router.get("", response_model=list[SessionRow])
 async def list_sessions(request: Request, _=Depends(require_permission("sessions:read"))):
-    return await SessionRepository(request.app.state.session_factory).list()
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        rows = (
+            await s.execute(
+                select(SessionRow).where(
+                    SessionRow.parent_session_id.is_(None)  # ty: ignore[missing-attribute]
+                )
+            )
+        ).scalars().all()
+    return list(rows)
 
 
 class SessionDetail(BaseModel):

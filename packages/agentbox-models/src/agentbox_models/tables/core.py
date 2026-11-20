@@ -78,6 +78,12 @@ class SessionRow(SQLModel, table=True):
     project_id: str = Field(foreign_key="project.id")
     agent_id: str = Field(foreign_key="agent.id")
     head_turn_id: str | None = None
+    parent_session_id: str | None = Field(
+        default=None, foreign_key="sessionrow.id", index=True
+    )
+    sub_session_status: str | None = None
+    sub_session_error: str | None = None
+    sub_session_depth: int = 0
     created_at: datetime = Field(default_factory=utcnow)
 
 
