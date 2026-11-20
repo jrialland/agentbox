@@ -3,11 +3,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 
-import { useMessages, useSession, useSessionLsp } from "../api/queries";
+import { useMessages, useSession, useSessionLsp, useSessionPlan } from "../api/queries";
 import { AppPanel } from "../chat/AppPanel";
 import "../chat/apps.css";
 import { Composer } from "../chat/Composer";
 import { MarkdownBlock } from "../chat/MarkdownBlock";
+import { PlanPanel } from "../chat/PlanPanel";
 import { ReasoningBlock } from "../chat/ReasoningBlock";
 import { ToolCallBlock } from "../chat/ToolCallBlock";
 import { useChat } from "../chat/useChat";
@@ -22,6 +23,7 @@ export function SessionPage() {
   const { data: session } = useSession(id);
   const { data: lsp } = useSessionLsp(id);
   const chat = useChat(API_URL, token, id);
+  const { data: plan } = useSessionPlan(id, chat.running);
   const qc = useQueryClient();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<string | null>("agent");
@@ -47,6 +49,7 @@ export function SessionPage() {
     });
     setSkill(null);
     await qc.refetchQueries({ queryKey: ["messages", id] });
+    await qc.invalidateQueries({ queryKey: ["session-plan", id] });
     chat.reset();
   }
 
@@ -71,6 +74,7 @@ export function SessionPage() {
           </div>
         )}
         <h1 className="title">Session</h1>
+        <PlanPanel items={plan?.items ?? []} />
         <div className="session-messages">
           {(messages ?? []).map((m) => (
             <div key={m.id} className={`session-turn session-turn-${m.role}`}>

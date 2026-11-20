@@ -185,6 +185,23 @@ export async function fetchSessionLsp(sid: string): Promise<SessionLsp> {
   return data as SessionLsp;
 }
 
+export type PlanItem = {
+  id: string;
+  position: number;
+  content: string;
+  status: string;
+};
+
+export type SessionPlan = { items: PlanItem[] };
+
+export async function fetchSessionPlan(sid: string): Promise<SessionPlan> {
+  const { data, error } = await api.GET("/sessions/{sid}/plan", {
+    params: { path: { sid } },
+  });
+  if (error) throw new Error("Failed to load session plan");
+  return data as SessionPlan;
+}
+
 export async function uploadAgentAvatar(name: string, file: File): Promise<void> {
   const form = new FormData();
   form.append("file", file);

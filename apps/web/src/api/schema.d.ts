@@ -462,6 +462,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/{sid}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Session Plan */
+        get: operations["session_plan_sessions__sid__plan_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/users": {
         parameters: {
             query?: never;
@@ -1006,6 +1023,25 @@ export interface components {
             name?: string | null;
             /** Description */
             description?: string | null;
+        };
+        /** PlanItemRead */
+        PlanItemRead: {
+            /** Id */
+            id: string;
+            /** Position */
+            position: number;
+            /** Content */
+            content: string;
+            /** Status */
+            status: string;
+        };
+        /** PlanRead */
+        PlanRead: {
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["PlanItemRead"][];
         };
         /** PreviewRequest */
         PreviewRequest: {
@@ -2499,6 +2535,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    session_plan_sessions__sid__plan_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanRead"];
                 };
             };
             /** @description Validation Error */
