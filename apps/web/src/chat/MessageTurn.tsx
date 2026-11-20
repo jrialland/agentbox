@@ -1,7 +1,9 @@
+import { Button } from "../design-system/primitives/Button";
 import { StatusChip } from "../design-system/primitives/StatusChip";
 import { ActivityChips, type ActivitySummary } from "./ActivityChips";
 import { AttachmentChip, type AttachmentMeta } from "./AttachmentChip";
 import styles from "./chat.module.css";
+import { ErrorCard } from "./ErrorCard";
 import { MarkdownBlock } from "./MarkdownBlock";
 
 export type ChatMessage = {
@@ -18,10 +20,12 @@ export function MessageTurn({
   message,
   agentName,
   sessionId,
+  onRetry,
 }: {
   message: ChatMessage;
   agentName: string;
   sessionId: string;
+  onRetry?: (messageId: string) => void;
 }) {
   const isUser = message.role === "user";
   const status = message.activity?.status;
@@ -53,6 +57,19 @@ export function MessageTurn({
         </div>
       )}
       {!isUser && message.activity && <ActivityChips activity={message.activity} />}
+      {!isUser && status === "error" && (
+        <ErrorCard
+          error={message.activity?.error ?? {}}
+          onRetry={() => onRetry?.(message.id)}
+        />
+      )}
+      {!isUser && status === "cancelled" && onRetry && (
+        <div>
+          <Button variant="light" size="compact-sm" onClick={() => onRetry(message.id)}>
+            Retry
+          </Button>
+        </div>
+      )}
     </article>
   );
 }

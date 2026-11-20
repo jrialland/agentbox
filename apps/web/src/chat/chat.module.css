@@ -121,3 +121,44 @@
   font-family: var(--ab-font-mono);
   font-size: var(--ab-text-xs);
 }
+
+.errorCard {
+  background: color-mix(in srgb, var(--ab-danger) 8%, var(--ab-surface));
+  border: var(--ab-border-width) solid
+    color-mix(in srgb, var(--ab-danger) 45%, var(--ab-border));
+  border-radius: var(--ab-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-3);
+}
+
+.errorCard p {
+  color: var(--ab-text);
+  margin: 0;
+}
+
+.errorHead {
+  align-items: center;
+  display: flex;
+  gap: var(--ab-space-2);
+}
+
+.errorCode {
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+}
+
+.runStatus {
+  align-items: center;
+  display: flex;
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-2) 0;
+}
+
+.elapsed {
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+}
