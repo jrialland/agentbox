@@ -210,3 +210,40 @@
 .hljs-tag {
   color: var(--ab-cyan);
 }
+
+.mermaid-building,
+.mermaid-fallback {
+  background: var(--ab-surface-raised);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-sm);
+  margin: 0 0 var(--ab-space-4);
+  padding: var(--ab-space-3);
+}
+
+.mermaid-fallback p {
+  color: var(--ab-amber);
+  margin: 0 0 var(--ab-space-2);
+}
+
+.mermaid-fallback pre {
+  margin: 0 0 var(--ab-space-2);
+  overflow-x: auto;
+}
+
+.mermaid-block {
+  background: var(--ab-canvas);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  margin: 0 0 var(--ab-space-4);
+  overflow: auto;
+  padding: var(--ab-space-3);
+}
+
+.mermaid-canvas {
+  display: flex;
+  justify-content: center;
+  min-width: min-content;
+}

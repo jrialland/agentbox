@@ -30,6 +30,21 @@ function CodeFence({ code, language }: { code: string; language: string }) {
   );
 }
 
+function unclosedFence(content: string): { code: string; language: string } | null {
+  let open: { code: string[]; language: string } | null = null;
+  for (const line of content.split("\n")) {
+    const match = /^```([\w-]*)/.exec(line);
+    if (match) {
+      open = open ? null : { code: [], language: match[1] };
+    } else if (open) {
+      open.code.push(line);
+    }
+  }
+  return open
+    ? { code: open.code.join("\n").replace(/\n$/, ""), language: open.language }
+    : null;
+}
+
 function extractCode(children: ReactNode): {
   code: string;
   language: string;
@@ -46,6 +61,7 @@ function extractCode(children: ReactNode): {
 }
 
 export function MarkdownBlock({ content }: { content: string }) {
+  const pending = unclosedFence(content);
   return (
     <div className="markdown-block">
       <div className="md-actions">
@@ -58,7 +74,10 @@ export function MarkdownBlock({ content }: { content: string }) {
             const fence = extractCode(children);
             if (!fence) return <pre>{children}</pre>;
             if (fence.language === "mermaid") {
-              return <MermaidBlock source={fence.code} />;
+              const complete = !(
+                pending?.language === "mermaid" && pending.code === fence.code
+              );
+              return <MermaidBlock source={fence.code} complete={complete} />;
             }
             return <CodeFence code={fence.code} language={fence.language} />;
           },
