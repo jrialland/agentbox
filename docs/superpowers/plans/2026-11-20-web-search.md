@@ -652,7 +652,7 @@ def _html_to_markdown(
         include_tables=True,
     )
     if not markdown:
-        markdown = trafilatura.html2txt(text, url=url)
+        markdown = trafilatura.html2txt(text)
     return (markdown or "").strip()
 ```
 
