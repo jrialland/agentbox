@@ -22,6 +22,7 @@ from agentbox_models.repos.crud import SessionRepository
 from agentbox_models.repos.message_log import SQLiteMessageLogStore
 from agentbox_models.tables.core import (
     Agent,
+    PlanItem,
     Project,
     SessionAttachment,
     SessionRow,
@@ -432,3 +433,41 @@ async def session_lsp(
         "detected": manager.detected_for_project(project.path),
         "active": manager.active_for_session(sid),
     }
+
+class PlanItemRead(BaseModel):
+    id: str
+    position: int
+    content: str
+    status: str
+
+
+class PlanRead(BaseModel):
+    items: list[PlanItemRead] = []
+
+
+@router.get("/{sid}/plan", response_model=PlanRead)
+async def session_plan(
+    sid: str, request: Request, _=Depends(require_permission("sessions:read"))
+):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        if await s.get(SessionRow, sid) is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+        items = (
+            await s.execute(
+                select(PlanItem)
+                .where(PlanItem.session_id == sid)
+                .order_by(PlanItem.position)  # ty: ignore[invalid-argument-type]
+            )
+        ).scalars().all()
+    return PlanRead(
+        items=[
+            PlanItemRead(
+                id=item.id,
+                position=item.position,
+                content=item.content,
+                status=item.status,
+            )
+            for item in items
+        ]
+    )
