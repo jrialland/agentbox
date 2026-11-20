@@ -143,7 +143,9 @@ async def list_messages(
     cur = leaf
     while cur is not None:
         chain.append(cur)
-        cur = by_id.get(cur.parent_id) if cur.parent_id else None
+        if cur.role == "summary" or cur.parent_id is None:
+            break
+        cur = by_id.get(cur.parent_id)
     chain.reverse()
     return [
         MessageRead(

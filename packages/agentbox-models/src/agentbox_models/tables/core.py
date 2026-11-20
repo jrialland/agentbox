@@ -22,6 +22,7 @@ class Model(SQLModel, table=True):
     id: str = Field(primary_key=True)
     provider_id: str = Field(foreign_key="provider.id")
     name: str
+    context_window: int | None = None
 
 
 class Label(SQLModel, table=True):
@@ -96,6 +97,7 @@ class TurnRow(SQLModel, table=True):
     role: str
     content: str
     parent_id: str | None = None
+    context_tokens: int | None = None
     created_at: datetime = Field(default_factory=utcnow)
 
 

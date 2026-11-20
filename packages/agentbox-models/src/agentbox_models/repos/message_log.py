@@ -2,7 +2,7 @@ from loguru import logger
 from sqlmodel import select
 
 from agentbox_harness.session import Turn
-from agentbox_models.tables.core import TurnRow
+from agentbox_models.tables.core import TurnRow, utcnow
 
 
 class SQLiteMessageLogStore:
@@ -19,6 +19,8 @@ class SQLiteMessageLogStore:
                     role=turn.role,
                     content=turn.content,
                     parent_id=turn.parent_id,
+                    context_tokens=turn.context_tokens,
+                    created_at=turn.created_at or utcnow(),
                 )
             )
             await s.commit()
@@ -32,7 +34,14 @@ class SQLiteMessageLogStore:
                 )
             ).scalars().all()
         return [
-            Turn(id=r.id, role=r.role, content=r.content, parent_id=r.parent_id)
+            Turn(
+                id=r.id,
+                role=r.role,
+                content=r.content,
+                parent_id=r.parent_id,
+                context_tokens=r.context_tokens,
+                created_at=r.created_at,
+            )
             for r in rows
         ]
 
@@ -43,4 +52,20 @@ class SQLiteMessageLogStore:
             ).scalars().first()
         if row is None:
             raise KeyError(turn_id)
-        return Turn(id=row.id, role=row.role, content=row.content, parent_id=row.parent_id)
+        return Turn(
+            id=row.id,
+            role=row.role,
+            content=row.content,
+            parent_id=row.parent_id,
+            context_tokens=row.context_tokens,
+            created_at=row.created_at,
+        )
+
+    async def set_parent(self, turn_id: str, parent_id: str) -> None:
+        async with self._factory() as s:
+            row = await s.get(TurnRow, turn_id)
+            if row is None:
+                raise KeyError(turn_id)
+            row.parent_id = parent_id
+            s.add(row)
+            await s.commit()
