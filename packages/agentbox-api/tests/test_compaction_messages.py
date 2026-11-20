@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+
 import httpx
 
 from agentbox_api.app import create_app
@@ -25,22 +27,38 @@ async def test_messages_stop_at_summary():
         s.add(Permission(id="perm", name="sessions:read"))
         s.add(RolePermissionLink(role_id="r1", permission_id="perm"))
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
+        older = datetime(2026, 1, 1, tzinfo=UTC)
+        newer = older + timedelta(seconds=1)
         for row in (
-            TurnRow(id="t1", session_id="s1", role="user", content="old question"),
+            TurnRow(
+                id="t1",
+                session_id="s1",
+                role="user",
+                content="old question",
+                created_at=older,
+            ),
             TurnRow(
                 id="t2",
                 session_id="s1",
                 role="assistant",
                 content="old answer",
                 parent_id="t1",
+                created_at=older,
             ),
-            TurnRow(id="sum", session_id="s1", role="summary", content="summary"),
+            TurnRow(
+                id="sum",
+                session_id="s1",
+                role="summary",
+                content="summary",
+                created_at=newer,
+            ),
             TurnRow(
                 id="t3",
                 session_id="s1",
                 role="user",
                 content="new question",
                 parent_id="sum",
+                created_at=newer,
             ),
             TurnRow(
                 id="t4",
@@ -48,6 +66,7 @@ async def test_messages_stop_at_summary():
                 role="assistant",
                 content="new answer",
                 parent_id="t3",
+                created_at=newer,
             ),
         ):
             s.add(row)
