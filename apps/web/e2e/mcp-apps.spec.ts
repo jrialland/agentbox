@@ -21,7 +21,7 @@ async function setupAppSession(
     headers: h,
     data: {
       name: `e2e-app-${suffix}`,
-      kind: "test",
+      kind: "test_tool",
       models_url: "http://localhost:9999/models",
     },
   });
@@ -73,4 +73,5 @@ test("opens a right-side MCP App tab and renders it", async ({ page, request }) 
   const app = panel.frameLocator("iframe").first().frameLocator("iframe");
   await expect(app.getByText("Hello MCP App")).toBeVisible({ timeout: 30000 });
 });
+
 
