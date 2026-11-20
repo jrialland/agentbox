@@ -42,7 +42,7 @@ async def test_chat_streams_run_events(tmp_path, monkeypatch):
     from pydantic_ai.models.test import TestModel
 
     monkeypatch.setattr(
-        "agentbox_api.runtime.resolve_model", lambda provider, name: TestModel()
+        "agentbox_api.runtime.resolve_model", lambda provider, name: TestModel(call_tools=[])
     )
 
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")

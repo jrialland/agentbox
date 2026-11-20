@@ -38,5 +38,5 @@ def resolve_model(provider: Provider, model_name: str) -> Model:
     if kind == "test":
         from pydantic_ai.models.test import TestModel
 
-        return TestModel(custom_output_text="Hello from the test provider")
+        return TestModel(call_tools=[], custom_output_text="Hello from the test provider")
     raise ValueError(f"Unknown provider kind: {kind}")

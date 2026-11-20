@@ -2,6 +2,7 @@ import pytest
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.ollama import OllamaModel
 from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
+from pydantic_ai.models.test import TestModel
 
 from agentbox_models.tables.core import Provider
 from agentbox_providers.resolver import resolve_model
@@ -49,6 +50,12 @@ def test_resolve_moonshot():
         "moonshot-v1-8k",
     )
     assert isinstance(m, OpenAIChatModel)
+
+
+def test_resolve_test_provider_does_not_call_tools():
+    m = resolve_model(Provider(id="p", name="test", kind="test"), "test-model")
+    assert isinstance(m, TestModel)
+    assert m.call_tools == []
 
 
 def test_resolve_unknown_kind_raises():

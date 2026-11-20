@@ -61,7 +61,14 @@ async def _login(client) -> str:
     return r.json()["access_token"]
 
 
-async def test_app_tool_emits_activity_snapshot(tmp_path, mcp_server_url):
+async def test_app_tool_emits_activity_snapshot(tmp_path, mcp_server_url, monkeypatch):
+    from pydantic_ai.models.test import TestModel
+
+    monkeypatch.setattr(
+        "agentbox_api.runtime.resolve_model",
+        lambda provider, name: TestModel(call_tools=["show_app"]),
+    )
+
     engine, client = await _setup(tmp_path, mcp_server_url)
     try:
         token = await _login(client)
