@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from loguru import logger
 from skills_ref import read_properties, to_prompt
 
+from agentbox_api.plan_tools import PLAN_TOOL_NAMES, make_plan_tools
 from agentbox_api.runtime import AgentRuntime, build_registry, resolve_agent_runtime
 from agentbox_api.templating import build_context, render_prompt
 from agentbox_harness.lsp.hooks import make_lsp_hook
@@ -166,7 +167,24 @@ async def prepare_agent(
     rendered = render_prompt(runtime.spec.instructions, context, agent=agent_name)
     spec = runtime.spec.model_copy(update={"instructions": rendered})
     spec = augment_spec(spec, skills)
-    extra_tools = {"activate_skill": make_activate_tool(skills)} if skills else None
+    if session_id:
+        existing = {
+            binding.name
+            for binding in spec.tool_bindings
+            if isinstance(binding, NativeToolBinding)
+        }
+        additions = [
+            NativeToolBinding(name=name)
+            for name in PLAN_TOOL_NAMES
+            if name not in existing
+        ]
+        if additions:
+            spec = spec.model_copy(
+                update={"tool_bindings": [*spec.tool_bindings, *additions]}
+            )
+    extra_tools = {"activate_skill": make_activate_tool(skills)} if skills else {}
+    if session_id:
+        extra_tools.update(make_plan_tools(factory, session_id))
     manager = get_lsp_manager()
     hooks = []
     if session_id and manager.enabled:
@@ -174,7 +192,7 @@ async def prepare_agent(
     registry = build_registry(
         project_root,
         extra_read_roots=[s.location.parent for s in skills],
-        extra_tools=extra_tools,
+        extra_tools=extra_tools or None,
         hooks=hooks,
         media_max_dimension=media_max_dimension,
         media_max_bytes=media_max_bytes,
