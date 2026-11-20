@@ -1,18 +1,17 @@
-import {
-  Button,
-  Modal,
-  MultiSelect,
-  PasswordInput,
-  Switch,
-  Table,
-  Tabs,
-  Textarea,
-  TextInput,
-} from "@mantine/core";
+import { Table, Tabs } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 
 import type { Permission, Role, User } from "../api/endpoints";
+import { MultiSelect } from "../design-system/forms/MultiSelect";
+import { PasswordInput } from "../design-system/forms/PasswordInput";
+import { Switch } from "../design-system/forms/Switch";
+import { Textarea } from "../design-system/forms/Textarea";
+import { TextInput } from "../design-system/forms/TextInput";
+import { Modal } from "../design-system/overlays/Modal";
+import { AdminTablePage } from "../design-system/patterns/AdminTablePage";
+import { Button } from "../design-system/primitives/Button";
+import { Panel } from "../design-system/primitives/Panel";
 import {
   useCreatePermission,
   useCreateRole,
@@ -34,8 +33,7 @@ import {
 
 export function AdminPage() {
   return (
-    <div>
-      <h1 className="title">Admin</h1>
+    <AdminTablePage title="Admin" subtitle="Access control">
       <Tabs defaultValue="permissions">
         <Tabs.List>
           <Tabs.Tab value="permissions">Permissions</Tabs.Tab>
@@ -52,7 +50,7 @@ export function AdminPage() {
           <UsersTab />
         </Tabs.Panel>
       </Tabs>
-    </div>
+    </AdminTablePage>
   );
 }
 
@@ -98,21 +96,24 @@ function PermissionsTab() {
 
   return (
     <div>
-      <div className="box">
-        <TextInput
-          label="Permission name"
-          value={name}
-          onChange={(e) => setName(e.currentTarget.value)}
-        />
-        <Textarea
-          label="Description"
-          value={description}
-          onChange={(e) => setDescription(e.currentTarget.value)}
-        />
-        <Button mt="md" onClick={onCreate} loading={create.isPending}>
-          Create permission
-        </Button>
-      </div>
+      <Panel>
+        <Panel.Header>Create permission</Panel.Header>
+        <Panel.Body>
+          <TextInput
+            label="Permission name"
+            value={name}
+            onChange={(e) => setName(e.currentTarget.value)}
+          />
+          <Textarea
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.currentTarget.value)}
+          />
+          <Button mt="md" onClick={onCreate} loading={create.isPending}>
+            Create permission
+          </Button>
+        </Panel.Body>
+      </Panel>
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -179,21 +180,24 @@ function RolesTab() {
 
   return (
     <div>
-      <div className="box">
-        <TextInput
-          label="Role name"
-          value={name}
-          onChange={(e) => setName(e.currentTarget.value)}
-        />
-        <Textarea
-          label="Description"
-          value={description}
-          onChange={(e) => setDescription(e.currentTarget.value)}
-        />
-        <Button mt="md" onClick={onCreate} loading={create.isPending}>
-          Create role
-        </Button>
-      </div>
+      <Panel>
+        <Panel.Header>Create role</Panel.Header>
+        <Panel.Body>
+          <TextInput
+            label="Role name"
+            value={name}
+            onChange={(e) => setName(e.currentTarget.value)}
+          />
+          <Textarea
+            label="Description"
+            value={description}
+            onChange={(e) => setDescription(e.currentTarget.value)}
+          />
+          <Button mt="md" onClick={onCreate} loading={create.isPending}>
+            Create role
+          </Button>
+        </Panel.Body>
+      </Panel>
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -317,26 +321,29 @@ function UsersTab() {
 
   return (
     <div>
-      <div className="box">
-        <TextInput
-          label="Username"
-          value={username}
-          onChange={(e) => setUsername(e.currentTarget.value)}
-        />
-        <TextInput
-          label="Email"
-          value={email}
-          onChange={(e) => setEmail(e.currentTarget.value)}
-        />
-        <PasswordInput
-          label="Password"
-          value={password}
-          onChange={(e) => setPassword(e.currentTarget.value)}
-        />
-        <Button mt="md" onClick={onCreate} loading={create.isPending}>
-          Create user
-        </Button>
-      </div>
+      <Panel>
+        <Panel.Header>Create user</Panel.Header>
+        <Panel.Body>
+          <TextInput
+            label="Username"
+            value={username}
+            onChange={(e) => setUsername(e.currentTarget.value)}
+          />
+          <TextInput
+            label="Email"
+            value={email}
+            onChange={(e) => setEmail(e.currentTarget.value)}
+          />
+          <PasswordInput
+            label="Password"
+            value={password}
+            onChange={(e) => setPassword(e.currentTarget.value)}
+          />
+          <Button mt="md" onClick={onCreate} loading={create.isPending}>
+            Create user
+          </Button>
+        </Panel.Body>
+      </Panel>
       <Table>
         <Table.Thead>
           <Table.Tr>

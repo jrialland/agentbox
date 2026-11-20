@@ -1,15 +1,10 @@
-import {
-  Badge,
-  Button,
-  Group,
-  Modal,
-  NumberInput,
-  Select,
-  Table,
-  Tabs,
-  TextInput,
-} from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import {
+  RiAddLine,
+  RiDeleteBin6Line,
+  RiRefreshLine,
+  RiSettings3Line,
+} from "@remixicon/react";
 import { useEffect, useState } from "react";
 
 import type { Model, Provider } from "../api/endpoints";
@@ -25,6 +20,23 @@ import {
   useSetModelLabels,
   useUpdateProvider,
 } from "../api/queries";
+import { DataTable } from "../design-system/data/DataTable";
+import { FormField } from "../design-system/forms/FormField";
+import { NumberInput } from "../design-system/forms/NumberInput";
+import { PasswordInput } from "../design-system/forms/PasswordInput";
+import { Select } from "../design-system/forms/Select";
+import { TextInput } from "../design-system/forms/TextInput";
+import { IconButton } from "../design-system/icons/IconButton";
+import { Drawer } from "../design-system/overlays/Drawer";
+import { Modal } from "../design-system/overlays/Modal";
+import { ListPage } from "../design-system/patterns/ListPage";
+import { Badge } from "../design-system/primitives/Badge";
+import { Button } from "../design-system/primitives/Button";
+import { Panel } from "../design-system/primitives/Panel";
+import { StatusChip } from "../design-system/primitives/StatusChip";
+import { TableToolbar } from "../design-system/data/TableToolbar";
+import { Tabs } from "../design-system/primitives/Tabs";
+import styles from "./providers.module.css";
 
 const KINDS = [
   "generic",
@@ -37,54 +49,58 @@ const KINDS = [
 ];
 
 export function ProvidersPage() {
+  const [tab, setTab] = useState<string | null>("providers");
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Provider | null>(null);
+
+  function openCreate() {
+    setEditing(null);
+    setFormOpen(true);
+  }
+
+  function openEdit(provider: Provider) {
+    setEditing(provider);
+    setFormOpen(true);
+  }
+
   return (
-    <div>
-      <h1 className="title">Providers</h1>
-      <Tabs defaultValue="providers">
+    <ListPage
+      title="Providers"
+      subtitle="Model endpoints and routing"
+      actions={
+        <Button
+          leftSection={<RiAddLine size={16} />}
+          onClick={openCreate}
+        >
+          New provider
+        </Button>
+      }
+    >
+      <Tabs value={tab} onChange={setTab}>
         <Tabs.List>
           <Tabs.Tab value="providers">Providers</Tabs.Tab>
           <Tabs.Tab value="models">Models</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="providers" pt="md">
-          <ProvidersTab />
+          <ProvidersTab onEdit={openEdit} />
         </Tabs.Panel>
         <Tabs.Panel value="models" pt="md">
           <ModelsTab />
         </Tabs.Panel>
       </Tabs>
-    </div>
+      <ProviderFormDrawer
+        opened={formOpen}
+        provider={editing}
+        onClose={() => setFormOpen(false)}
+      />
+    </ListPage>
   );
 }
 
-function ProvidersTab() {
+function ProvidersTab({ onEdit }: { onEdit: (provider: Provider) => void }) {
   const { data: providers } = useProviders();
-  const create = useCreateProvider();
   const del = useDeleteProvider();
   const refresh = useRefreshModels();
-  const [name, setName] = useState("");
-  const [kind, setKind] = useState<string | null>("generic");
-  const [baseUrl, setBaseUrl] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [modelsUrl, setModelsUrl] = useState("");
-  const [editing, setEditing] = useState<Provider | null>(null);
-
-  async function onCreate() {
-    try {
-      await create.mutateAsync({
-        name,
-        kind: kind ?? "generic",
-        base_url: baseUrl || undefined,
-        api_key: apiKey || undefined,
-        models_url: modelsUrl || undefined,
-      });
-      setName("");
-      setBaseUrl("");
-      setApiKey("");
-      setModelsUrl("");
-    } catch {
-      notifications.show({ message: "Failed to create provider", color: "red" });
-    }
-  }
 
   async function onRefresh(id: string) {
     try {
@@ -96,100 +112,307 @@ function ProvidersTab() {
   }
 
   return (
-    <div>
-      <div className="box">
-        <TextInput label="Name" value={name} onChange={(e) => setName(e.currentTarget.value)} />
-        <Select label="Kind" data={KINDS} value={kind} onChange={setKind} />
-        <TextInput label="Base URL" value={baseUrl} onChange={(e) => setBaseUrl(e.currentTarget.value)} />
-        <TextInput label="API key" value={apiKey} onChange={(e) => setApiKey(e.currentTarget.value)} />
-        <TextInput label="Models URL" value={modelsUrl} onChange={(e) => setModelsUrl(e.currentTarget.value)} />
-        <Button mt="md" onClick={onCreate} loading={create.isPending}>
-          Create provider
-        </Button>
-      </div>
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Kind</Table.Th>
-            <Table.Th>Actions</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {(providers ?? []).map((p) => (
-            <Table.Tr key={p.id}>
-              <Table.Td>{p.name}</Table.Td>
-              <Table.Td>{p.kind}</Table.Td>
-              <Table.Td>
-                <Button size="xs" onClick={() => onRefresh(p.id)}>
-                  Refresh models
-                </Button>{" "}
-                <Button size="xs" variant="light" onClick={() => setEditing(p)}>
-                  Edit
-                </Button>{" "}
-                <Button size="xs" color="red" onClick={() => del.mutate(p.id)}>
-                  Delete
-                </Button>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-      {editing && (
-        <ProviderEditModal provider={editing} onClose={() => setEditing(null)} />
-      )}
-    </div>
+    <DataTable<Provider>
+      rowKey={(provider) => provider.id}
+      rows={providers ?? []}
+      columns={[
+        { key: "name", header: "Name", render: (provider) => provider.name },
+        {
+          key: "kind",
+          header: "Kind",
+          render: (provider) => <Badge tone="info">{provider.kind}</Badge>,
+        },
+        {
+          key: "status",
+          header: "Status",
+          render: () => <StatusChip tone="success">ready</StatusChip>,
+        },
+        {
+          key: "actions",
+          header: "Actions",
+          render: (provider) => (
+            <div className={styles.actions}>
+              <IconButton
+                label="Refresh models"
+                icon={RiRefreshLine}
+                size={16}
+                onClick={() => onRefresh(provider.id)}
+              />
+              <IconButton
+                label="Edit"
+                icon={RiSettings3Line}
+                size={16}
+                onClick={() => onEdit(provider)}
+              />
+              <IconButton
+                label="Delete"
+                icon={RiDeleteBin6Line}
+                size={16}
+                color="red"
+                onClick={() => del.mutate(provider.id)}
+              />
+            </div>
+          ),
+        },
+      ]}
+    />
   );
 }
 
-function ProviderEditModal({
+function ProviderFormDrawer({
+  opened,
   provider,
   onClose,
 }: {
-  provider: Provider;
+  opened: boolean;
+  provider: Provider | null;
   onClose: () => void;
 }) {
+  const create = useCreateProvider();
   const update = useUpdateProvider();
-  const [name, setName] = useState(provider.name);
-  const [kind, setKind] = useState<string | null>(provider.kind);
-  const [baseUrl, setBaseUrl] = useState(provider.base_url ?? "");
+  const [name, setName] = useState("");
+  const [kind, setKind] = useState<string | null>("generic");
+  const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
-  const [modelsUrl, setModelsUrl] = useState(provider.models_url ?? "");
+  const [modelsUrl, setModelsUrl] = useState("");
+
+  useEffect(() => {
+    if (!opened) return;
+    setName(provider?.name ?? "");
+    setKind(provider?.kind ?? "generic");
+    setBaseUrl(provider?.base_url ?? "");
+    setApiKey("");
+    setModelsUrl(provider?.models_url ?? "");
+  }, [opened, provider]);
 
   async function onSave() {
     try {
-      await update.mutateAsync({
-        pid: provider.id,
-        body: {
+      if (provider) {
+        await update.mutateAsync({
+          pid: provider.id,
+          body: {
+            name,
+            kind: kind ?? provider.kind,
+            base_url: baseUrl,
+            models_url: modelsUrl,
+            ...(apiKey ? { api_key: apiKey } : {}),
+          },
+        });
+        notifications.show({ message: "Provider updated" });
+      } else {
+        await create.mutateAsync({
           name,
-          kind: kind ?? provider.kind,
-          base_url: baseUrl,
-          models_url: modelsUrl,
-          ...(apiKey ? { api_key: apiKey } : {}),
-        },
-      });
+          kind: kind ?? "generic",
+          base_url: baseUrl || undefined,
+          api_key: apiKey || undefined,
+          models_url: modelsUrl || undefined,
+        });
+        notifications.show({ message: "Provider created" });
+      }
       onClose();
     } catch {
-      notifications.show({ message: "Failed to update provider", color: "red" });
+      notifications.show({
+        message: provider ? "Failed to update provider" : "Failed to create provider",
+        color: "red",
+      });
     }
   }
 
   return (
-    <Modal opened onClose={onClose} title="Edit provider">
-      <TextInput label="Name" value={name} onChange={(e) => setName(e.currentTarget.value)} />
-      <Select label="Kind" data={KINDS} value={kind} onChange={setKind} />
-      <TextInput label="Base URL" value={baseUrl} onChange={(e) => setBaseUrl(e.currentTarget.value)} />
-      <TextInput
-        label="API key"
-        placeholder="leave blank to keep"
-        value={apiKey}
-        onChange={(e) => setApiKey(e.currentTarget.value)}
+    <Drawer
+      opened={opened}
+      onClose={onClose}
+      title={provider ? "Edit provider" : "New provider"}
+      size="md"
+    >
+      <FormField label="Name" required>
+        <TextInput value={name} onChange={(e) => setName(e.currentTarget.value)} />
+      </FormField>
+      <FormField label="Kind" required>
+        <Select data={KINDS} value={kind} onChange={setKind} />
+      </FormField>
+      <FormField label="Base URL" description="Provider API base, including /v1 when required.">
+        <TextInput
+          value={baseUrl}
+          onChange={(e) => setBaseUrl(e.currentTarget.value)}
+        />
+      </FormField>
+      <FormField label="API key">
+        <PasswordInput
+          placeholder={provider ? "leave blank to keep" : "sk-..."}
+          value={apiKey}
+          onChange={(e) => setApiKey(e.currentTarget.value)}
+        />
+      </FormField>
+      <FormField label="Models URL" description="Endpoint that returns the model list.">
+        <TextInput
+          value={modelsUrl}
+          onChange={(e) => setModelsUrl(e.currentTarget.value)}
+        />
+      </FormField>
+      <div className={styles.formActions}>
+        <Button variant="light" onClick={onClose}>
+          Cancel
+        </Button>
+        <Button onClick={onSave} loading={create.isPending || update.isPending}>
+          {provider ? "Save" : "Create provider"}
+        </Button>
+      </div>
+    </Drawer>
+  );
+}
+
+function ModelsTab() {
+  const { data: models } = useModels();
+  const { data: providers } = useProviders();
+  const create = useCreateModel();
+  const del = useDeleteModel();
+  const { data: labels } = useLabels();
+  const [providerId, setProviderId] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [contextWindow, setContextWindow] = useState<number | string>("");
+  const [labelFilter, setLabelFilter] = useState<string | null>(null);
+  const [editing, setEditing] = useState<Model | null>(null);
+  const [labelsOpen, setLabelsOpen] = useState(false);
+
+  const visibleModels = (models ?? []).filter(
+    (model) =>
+      !labelFilter || model.labels.some((label) => label.name === labelFilter),
+  );
+
+  function providerName(id: string) {
+    return providers?.find((provider) => provider.id === id)?.name ?? id;
+  }
+
+  async function onCreate() {
+    if (!providerId || !name) return;
+    try {
+      await create.mutateAsync({
+        provider_id: providerId,
+        name,
+        context_window:
+          contextWindow === "" ? undefined : Number(contextWindow),
+        labels: [],
+      });
+      setName("");
+      setContextWindow("");
+    } catch {
+      notifications.show({ message: "Failed to create model", color: "red" });
+    }
+  }
+
+  return (
+    <div className={styles.modelsLayout}>
+      <Panel>
+        <Panel.Header>Add model</Panel.Header>
+        <Panel.Body>
+          <div className={styles.modelForm}>
+            <FormField label="Provider" required>
+              <Select
+                data={(providers ?? []).map((provider) => ({
+                  value: provider.id,
+                  label: provider.name,
+                }))}
+                value={providerId}
+                onChange={setProviderId}
+              />
+            </FormField>
+            <FormField label="Model name" required>
+              <TextInput
+                value={name}
+                onChange={(e) => setName(e.currentTarget.value)}
+              />
+            </FormField>
+            <FormField
+              label="Context window"
+              description="Optional token window for custom/local models"
+            >
+              <NumberInput
+                min={1}
+                value={contextWindow}
+                onChange={setContextWindow}
+              />
+            </FormField>
+            <Button onClick={onCreate} loading={create.isPending}>
+              Create model
+            </Button>
+          </div>
+        </Panel.Body>
+      </Panel>
+
+      <TableToolbar>
+        <Select
+          label="Filter by label"
+          clearable
+          data={(labels ?? []).map((label) => label.name)}
+          value={labelFilter}
+          onChange={setLabelFilter}
+          w={220}
+        />
+      </TableToolbar>
+
+      <DataTable<Model>
+        rowKey={(model) => model.id}
+        rows={visibleModels}
+        columns={[
+          {
+            key: "provider",
+            header: "Provider",
+            render: (model) => providerName(model.provider_id),
+          },
+          { key: "name", header: "Name", render: (model) => model.name },
+          {
+            key: "context",
+            header: "Context window",
+            render: (model) => model.context_window ?? "—",
+          },
+          {
+            key: "labels",
+            header: "Labels",
+            render: (model) => (
+              <div className={styles.labels}>
+                {model.labels.map((label) => (
+                  <Badge key={label.id} tone="agent">
+                    {label.name}
+                  </Badge>
+                ))}
+              </div>
+            ),
+          },
+          {
+            key: "actions",
+            header: "Actions",
+            render: (model) => (
+              <div className={styles.actions}>
+                <Button
+                  size="compact-xs"
+                  variant="light"
+                  onClick={() => {
+                    setEditing(model);
+                    setLabelsOpen(true);
+                  }}
+                >
+                  Edit labels
+                </Button>
+                <IconButton
+                  label="Delete"
+                  icon={RiDeleteBin6Line}
+                  size={16}
+                  color="red"
+                  onClick={() => del.mutateAsync(model.id)}
+                />
+              </div>
+            ),
+          },
+        ]}
       />
-      <TextInput label="Models URL" value={modelsUrl} onChange={(e) => setModelsUrl(e.currentTarget.value)} />
-      <Button mt="md" onClick={onSave}>
-        Save
-      </Button>
-    </Modal>
+
+      <ModelLabelsModal
+        model={editing}
+        opened={labelsOpen}
+        onClose={() => setLabelsOpen(false)}
+      />
+    </div>
   );
 }
 
@@ -240,7 +463,7 @@ function ModelLabelsModal({
       title={model ? `Labels — ${model.name}` : "Labels"}
     >
       {rows.map((row, index) => (
-        <Group key={index} align="end">
+        <div key={index} className={styles.labelRow}>
           <TextInput
             label="Label"
             value={row.label}
@@ -259,7 +482,9 @@ function ModelLabelsModal({
             onChange={(value) =>
               setRows((prev) =>
                 prev.map((item, i) =>
-                  i === index ? { ...item, priority: Number(value) || 0 } : item,
+                  i === index
+                    ? { ...item, priority: Number(value) || 0 }
+                    : item,
                 ),
               )
             }
@@ -267,24 +492,28 @@ function ModelLabelsModal({
           <Button
             color="red"
             variant="subtle"
-            onClick={() => setRows((prev) => prev.filter((_, i) => i !== index))}
+            onClick={() =>
+              setRows((prev) => prev.filter((_, i) => i !== index))
+            }
           >
             Remove
           </Button>
-        </Group>
+        </div>
       ))}
       <Button
         variant="light"
-        onClick={() => setRows((prev) => [...prev, { label: "", priority: 0 }])}
+        onClick={() =>
+          setRows((prev) => [...prev, { label: "", priority: 0 }])
+        }
       >
         Add label
       </Button>
       {suggestions.length > 0 && (
-        <Group mt="sm">
+        <div className={styles.labels} style={{ marginTop: 12 }}>
           {suggestions.map((label) => (
             <Badge
               key={label.id}
-              style={{ cursor: "pointer" }}
+              tone="agent"
               onClick={() =>
                 setRows((prev) => [...prev, { label: label.name, priority: 0 }])
               }
@@ -292,134 +521,13 @@ function ModelLabelsModal({
               {label.name}
             </Badge>
           ))}
-        </Group>
+        </div>
       )}
-      <Button mt="md" onClick={onSave} loading={setLabels.isPending}>
-        Save
-      </Button>
-    </Modal>
-  );
-}
-
-function ModelsTab() {
-  const { data: models } = useModels();
-  const { data: providers } = useProviders();
-  const create = useCreateModel();
-  const del = useDeleteModel();
-  const [providerId, setProviderId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [contextWindow, setContextWindow] = useState<number | string>("");
-  const { data: labels } = useLabels();
-  const [labelFilter, setLabelFilter] = useState<string | null>(null);
-  const [editing, setEditing] = useState<Model | null>(null);
-  const [labelsOpen, setLabelsOpen] = useState(false);
-
-  const visibleModels = (models ?? []).filter(
-    (model) =>
-      !labelFilter || model.labels.some((label) => label.name === labelFilter),
-  );
-
-  function providerName(id: string) {
-    return providers?.find((p) => p.id === id)?.name ?? id;
-  }
-
-  async function onCreate() {
-    if (!providerId || !name) return;
-    try {
-      await create.mutateAsync({
-        provider_id: providerId,
-        name,
-        context_window:
-          contextWindow === "" ? undefined : Number(contextWindow),
-        labels: [],
-      });
-      setName("");
-      setContextWindow("");
-    } catch {
-      notifications.show({ message: "Failed to create model", color: "red" });
-    }
-  }
-
-  return (
-    <div>
-      <div className="box">
-        <Select
-          label="Provider"
-          data={(providers ?? []).map((p) => ({ value: p.id, label: p.name }))}
-          value={providerId}
-          onChange={setProviderId}
-        />
-        <TextInput
-          label="Model name"
-          value={name}
-          onChange={(e) => setName(e.currentTarget.value)}
-        />
-        <NumberInput
-          label="Context window"
-          description="Optional token window for custom/local models"
-          min={1}
-          value={contextWindow}
-          onChange={setContextWindow}
-        />
-        <Button mt="md" onClick={onCreate} loading={create.isPending}>
-          Create model
+      <div className={styles.formActions}>
+        <Button onClick={onSave} loading={setLabels.isPending}>
+          Save
         </Button>
       </div>
-      <Select
-        label="Filter by label"
-        clearable
-        data={(labels ?? []).map((label) => label.name)}
-        value={labelFilter}
-        onChange={setLabelFilter}
-      />
-      <Table>
-        <Table.Thead>
-          <Table.Tr>
-            <Table.Th>Provider</Table.Th>
-            <Table.Th>Name</Table.Th>
-            <Table.Th>Context window</Table.Th>
-            <Table.Th>Labels</Table.Th>
-            <Table.Th>Actions</Table.Th>
-          </Table.Tr>
-        </Table.Thead>
-        <Table.Tbody>
-          {visibleModels.map((m) => (
-            <Table.Tr key={m.id}>
-              <Table.Td>{providerName(m.provider_id)}</Table.Td>
-              <Table.Td>{m.name}</Table.Td>
-              <Table.Td>{m.context_window ?? ""}</Table.Td>
-              <Table.Td>
-                {m.labels.map((label) => (
-                  <Badge key={label.id} mr={4}>
-                    {label.name}
-                  </Badge>
-                ))}
-              </Table.Td>
-              <Table.Td>
-                <Button
-                  size="xs"
-                  variant="light"
-                  mr={4}
-                  onClick={() => {
-                    setEditing(m);
-                    setLabelsOpen(true);
-                  }}
-                >
-                  Edit labels
-                </Button>
-                <Button size="xs" color="red" onClick={() => del.mutateAsync(m.id)}>
-                  Delete
-                </Button>
-              </Table.Td>
-            </Table.Tr>
-          ))}
-        </Table.Tbody>
-      </Table>
-      <ModelLabelsModal
-        model={editing}
-        opened={labelsOpen}
-        onClose={() => setLabelsOpen(false)}
-      />
-    </div>
+    </Modal>
   );
 }

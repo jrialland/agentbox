@@ -1,11 +1,11 @@
-import { MantineProvider } from "@mantine/core";
 import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { RequireAuth } from "./components/auth/RequireAuth";
-import { AppShell } from "./components/layout/AppShell";
+import { ThemeProvider } from "./design-system/theme/ThemeProvider";
+import { CommandShell } from "./design-system/shell/CommandShell";
 import { AdminPage } from "./pages/AdminPage";
 import { AgentsPage } from "./pages/AgentsPage";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
@@ -14,14 +14,12 @@ import { LoginPage } from "./pages/LoginPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { SessionPage } from "./pages/SessionPage";
 import { SkillsPage } from "./pages/SkillsPage";
-import { ThemeSync } from "./theme/ThemeSync";
 
 const queryClient = new QueryClient();
 
 export function App() {
   return (
-    <MantineProvider defaultColorScheme="auto">
-      <ThemeSync />
+    <ThemeProvider>
       <Notifications />
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
@@ -29,7 +27,7 @@ export function App() {
             <Routes>
               <Route path="/login" element={<LoginPage />} />
               <Route element={<RequireAuth />}>
-                <Route element={<AppShell />}>
+                <Route element={<CommandShell />}>
                   <Route index element={<HomePage />} />
                   <Route path="admin" element={<AdminPage />} />
                   <Route path="agents" element={<AgentsPage />} />
@@ -43,6 +41,6 @@ export function App() {
           </BrowserRouter>
         </QueryClientProvider>
       </ModalsProvider>
-    </MantineProvider>
+    </ThemeProvider>
   );
 }

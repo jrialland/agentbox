@@ -60,4 +60,12 @@ def resolve_model(
             custom_output_text="Hello from the test provider",
             profile=profile,
         )
+    if kind == "test_tool":
+        from pydantic_ai.models.test import TestModel
+
+        return TestModel(
+            call_tools=["show_app"],
+            custom_output_text="Hello from the test provider",
+            profile=profile,
+        )
     raise ValueError(f"Unknown provider kind: {kind}")

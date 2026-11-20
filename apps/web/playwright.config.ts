@@ -11,6 +11,7 @@ export default defineConfig({
   testIgnore: ["**/prepare.ts", "**/stub-server.ts"],
   workers: 1,
   reporter: [["html", { open: "never" }]],
+  snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}{ext}",
   use: { baseURL: "http://localhost:5173", trace: "on-first-retry" },
   webServer: [
     {

@@ -9,7 +9,7 @@ test("skills page + slash activation", async ({ page, request }) => {
 
   await page.goto("/login");
   await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
@@ -51,3 +51,4 @@ test("skills page + slash activation", async ({ page, request }) => {
   await menu.getByRole("button", { name: new RegExp(skillName) }).click();
   await expect(page.getByLabel("Message")).toHaveValue(`/${skillName} `);
 });
+

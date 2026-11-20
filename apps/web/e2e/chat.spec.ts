@@ -5,7 +5,7 @@ const API = "http://localhost:8000";
 async function setupChat(page: Page, request: APIRequestContext): Promise<string> {
   await page.goto("/login");
   await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
@@ -79,3 +79,4 @@ test("chat streams, attaches, and forks", async ({ page, request }) => {
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Hello from the test provider")).toBeVisible({ timeout: 15000 });
 });
+

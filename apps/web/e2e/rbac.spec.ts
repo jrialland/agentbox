@@ -10,7 +10,7 @@ test("admin grants a non-admin user a permission", async ({ page, request }) => 
 
   await page.goto("/login");
   await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
@@ -71,3 +71,4 @@ test("admin grants a non-admin user a permission", async ({ page, request }) => 
   });
   expect(denied.status()).toBe(403);
 });
+

@@ -1,0 +1,58 @@
+@layer ds {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--ab-canvas);
+    color: var(--ab-text);
+    font-family: var(--ab-font-body);
+    font-size: var(--ab-text-md);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    background: var(--ab-phosphor);
+    color: var(--ab-canvas);
+  }
+
+  :focus-visible {
+    outline: var(--ab-focus-width) solid var(--ab-phosphor);
+    outline-offset: 2px;
+  }
+
+  .ab-grid-surface {
+    background-image:
+      linear-gradient(to right, var(--ab-grid) 1px, transparent 1px),
+      linear-gradient(to bottom, var(--ab-grid) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  .ab-scanlines {
+    position: relative;
+  }
+
+  .ab-scanlines::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 2px,
+      var(--ab-scanline) 3px
+    );
+    opacity: 0.35;
+  }
+}

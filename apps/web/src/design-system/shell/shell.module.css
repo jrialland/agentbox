@@ -1,0 +1,60 @@
+.shell {
+  display: grid;
+  grid-template-columns: var(--ab-rail-width) var(--ab-panel-width) minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--ab-canvas);
+}
+
+.projectPane {
+  min-width: 0;
+  border-right: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+  overflow: hidden;
+}
+
+.workspace {
+  min-width: 0;
+  overflow: auto;
+  padding: var(--ab-space-5);
+}
+
+.container {
+  width: 100%;
+  max-width: var(--ab-content-max);
+  margin: 0 auto;
+}
+
+.fullBleed {
+  width: 100%;
+}
+
+.mobileShell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 100vh;
+  background: var(--ab-canvas);
+}
+
+.mobileBody {
+  display: grid;
+  grid-template-columns: var(--ab-panel-width) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.mobileBodyPhone {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  min-height: 0;
+}
+
+@media (max-width: 1099px) {
+  .workspace {
+    padding: var(--ab-space-4);
+  }
+}
+
+@media (max-width: 767px) {
+  .workspace {
+    padding: var(--ab-space-3);
+  }
+}

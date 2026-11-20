@@ -1,0 +1,59 @@
+.authShell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: var(--ab-space-5);
+  background: var(--ab-canvas);
+}
+
+.authCard {
+  width: min(440px, 100%);
+  display: grid;
+  gap: var(--ab-space-3);
+  padding: var(--ab-space-6);
+  border: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+  box-shadow: 6px 6px 0 var(--ab-border);
+}
+
+.authBrand {
+  font-family: var(--ab-font-display);
+  font-size: 20px;
+  letter-spacing: 0.04em;
+}
+
+.authStatus,
+.authSubtitle {
+  margin: 0;
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 12px;
+}
+
+.dashboardCard {
+  display: grid;
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-4);
+  border: 1px solid var(--ab-border);
+  background: var(--ab-surface);
+}
+
+.dashboardCardTop {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.dashboardCard strong {
+  color: var(--ab-phosphor);
+  font-family: var(--ab-font-display);
+  font-size: 32px;
+  font-weight: 400;
+}
+
+.dashboardCard small {
+  color: var(--ab-text-muted);
+}

@@ -8,7 +8,7 @@ async function setupAppSession(
 ): Promise<string> {
   await page.goto("/login");
   await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
@@ -21,12 +21,17 @@ async function setupAppSession(
     headers: h,
     data: {
       name: `e2e-app-${suffix}`,
-      kind: "test",
+      kind: "test_tool",
       models_url: "http://localhost:9999/models",
     },
   });
   const provId = (await prov.json()).id;
   await request.post(`${API}/providers/${provId}/models/refresh`, { headers: h });
+  const modelName = `e2e-app-model-${suffix}`;
+  await request.post(`${API}/models`, {
+    headers: h,
+    data: { provider_id: provId, name: modelName, labels: [] },
+  });
 
   const agentName = `e2e-app-agent-${suffix}`;
   await request.post(`${API}/agents`, {
@@ -35,7 +40,7 @@ async function setupAppSession(
       name: agentName,
       description: "d",
       instructions: "i",
-      model: "e2e-model",
+      model: modelName,
       tool_bindings: [{ server_url: "http://localhost:9000/mcp", id: "test-app" }],
       mode_definitions: [
         { name: "ask", flags: { write: false } },
@@ -73,3 +78,5 @@ test("opens a right-side MCP App tab and renders it", async ({ page, request }) 
   const app = panel.frameLocator("iframe").first().frameLocator("iframe");
   await expect(app.getByText("Hello MCP App")).toBeVisible({ timeout: 30000 });
 });
+
+

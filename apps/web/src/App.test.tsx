@@ -21,6 +21,7 @@ test("redirects to login when unauthenticated", () => {
 test("renders the shell and home when authenticated", () => {
   useAuthStore.getState().setToken("tok");
   render(<App />);
-  expect(screen.getByText("Agents")).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "Agents" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
 });
+

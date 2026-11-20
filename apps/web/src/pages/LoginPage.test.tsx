@@ -1,9 +1,10 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { vi } from "vitest";
 
 import { api } from "../api/client";
 import { useAuthStore } from "../store/auth";
+import { renderWithTheme } from "../test/render";
 import { LoginPage } from "./LoginPage";
 
 beforeEach(() => {
@@ -20,7 +21,7 @@ test("logs in, stores token+user, and redirects", async () => {
     response: new Response(null, { status: 200 }),
   } as never);
 
-  render(
+  renderWithTheme(
     <MemoryRouter initialEntries={["/login"]}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -29,8 +30,8 @@ test("logs in, stores token+user, and redirects", async () => {
     </MemoryRouter>,
   );
 
-  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "alice" } });
-  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "pw" } });
+  fireEvent.change(screen.getByLabelText(/Username/), { target: { value: "alice" } });
+  fireEvent.change(screen.getByLabelText(/Password/), { target: { value: "pw" } });
   fireEvent.click(screen.getByRole("button", { name: "Log in" }));
 
   await waitFor(() => expect(useAuthStore.getState().token).toBe("tok"));
@@ -43,7 +44,7 @@ test("shows an error on bad credentials", async () => {
     response: new Response(null, { status: 401 }),
   } as never);
 
-  render(
+  renderWithTheme(
     <MemoryRouter initialEntries={["/login"]}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
@@ -51,9 +52,10 @@ test("shows an error on bad credentials", async () => {
     </MemoryRouter>,
   );
 
-  fireEvent.change(screen.getByLabelText("Username"), { target: { value: "alice" } });
-  fireEvent.change(screen.getByLabelText("Password"), { target: { value: "bad" } });
+  fireEvent.change(screen.getByLabelText(/Username/), { target: { value: "alice" } });
+  fireEvent.change(screen.getByLabelText(/Password/), { target: { value: "bad" } });
   fireEvent.click(screen.getByRole("button", { name: "Log in" }));
 
   await waitFor(() => expect(screen.getByText("Invalid credentials")).toBeInTheDocument());
 });
+
