@@ -2,8 +2,25 @@ import asyncio
 import json
 import os
 import pathlib
+import shutil
+import sys
+from urllib.parse import unquote, urlparse
+from urllib.request import url2pathname
 
 from loguru import logger
+
+
+def _path_from_uri(uri: str) -> pathlib.Path:
+    return pathlib.Path(url2pathname(unquote(urlparse(uri).path))).resolve()
+
+
+def _exec_command(command):
+    executable = shutil.which(command[0])
+    if executable is None:
+        return list(command)
+    if sys.platform == "win32" and executable.lower().endswith((".cmd", ".bat")):
+        return ["cmd", "/c", executable, *command[1:]]
+    return [executable, *command[1:]]
 
 
 class LspServer:
@@ -31,7 +48,7 @@ class LspServer:
 
     async def start(self):
         self.process = await asyncio.create_subprocess_exec(
-            *self.command,
+            *_exec_command(self.command),
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -127,9 +144,9 @@ class LspServer:
                             future.set_result(message.get("result"))
                 elif message.get("method") == "textDocument/publishDiagnostics":
                     params = message.get("params", {})
-                    uri = params.get("uri")
-                    self._diagnostics[uri] = params.get("diagnostics", [])
-                    event = self._diagnostic_events.get(uri)
+                    key = _path_from_uri(params.get("uri", ""))
+                    self._diagnostics[key] = params.get("diagnostics", [])
+                    event = self._diagnostic_events.get(key)
                     if event:
                         event.set()
                 elif message.get("method") in ("window/logMessage", "window/showMessage"):
@@ -147,8 +164,8 @@ class LspServer:
         target = pathlib.Path(path).resolve()
         uri = target.as_uri()
         text = target.read_text(encoding="utf-8")
-        version = self._versions.get(uri, 0) + 1
-        if uri not in self._versions:
+        version = self._versions.get(target, 0) + 1
+        if target not in self._versions:
             await self._notify(
                 "textDocument/didOpen",
                 {
@@ -168,10 +185,11 @@ class LspServer:
                     "contentChanges": [{"text": text}],
                 },
             )
-        self._versions[uri] = version
+        self._versions[target] = version
 
     async def diagnostics(self, path: str):
-        uri = pathlib.Path(path).resolve().as_uri()
+        target = pathlib.Path(path).resolve()
+        uri = target.as_uri()
         try:
             if "diagnosticProvider" in self._capabilities:
                 result = await self._request(
@@ -180,15 +198,17 @@ class LspServer:
                     timeout=self.diagnostics_timeout,
                 )
                 return (result or {}).get("items", [])
-            if uri in self._diagnostics:
-                return self._diagnostics[uri]
+            if target in self._diagnostics:
+                return self._diagnostics[target]
             event = asyncio.Event()
-            self._diagnostic_events[uri] = event
+            self._diagnostic_events[target] = event
+            if target in self._diagnostics:
+                return self._diagnostics[target]
             try:
                 await asyncio.wait_for(event.wait(), self.diagnostics_timeout)
             finally:
-                self._diagnostic_events.pop(uri, None)
-            return self._diagnostics.get(uri, [])
+                self._diagnostic_events.pop(target, None)
+            return self._diagnostics.get(target, [])
         except TimeoutError:
             return []
 

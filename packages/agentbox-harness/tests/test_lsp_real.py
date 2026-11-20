@@ -1,6 +1,7 @@
 import pathlib
 import shutil
 import subprocess
+import sys
 
 import pytest
 
@@ -23,10 +24,28 @@ def _available(tool: str) -> bool:
         return False
 
 
+def _install_typescript(project: pathlib.Path) -> None:
+    npm = shutil.which("npm")
+    if npm is None:
+        pytest.skip("npm not installed")
+    command = ["cmd", "/c", npm] if sys.platform == "win32" else [npm]
+    try:
+        result = subprocess.run(
+            [*command, "install", "--no-save", "--no-package-lock", "typescript@5.9.3"],
+            cwd=project,
+            capture_output=True,
+            timeout=180,
+        )
+    except Exception as exc:
+        pytest.skip(f"npm install typescript failed: {exc}")
+    if result.returncode != 0:
+        pytest.skip(f"npm install typescript failed: {result.stderr[-200:]!r}")
+
+
 async def _run(project: pathlib.Path, filename: str, content: str):
     manager = LspManager()
-    manager.initialize_timeout = 20.0
-    manager.diagnostics_timeout = 15.0
+    manager.initialize_timeout = 60.0
+    manager.diagnostics_timeout = 30.0
     path = project / filename
     path.write_text(content, encoding="utf-8")
     hook = make_lsp_hook(manager, "real", str(project))
@@ -48,13 +67,13 @@ async def test_python_ty(tmp_path):
     assert text and "error" in text.lower()
 
 
-@pytest.mark.skipif(
-    shutil.which("typescript-language-server") is None,
-    reason="typescript-language-server not installed",
-)
+@pytest.mark.skipif(shutil.which("npx") is None, reason="npx not installed")
 async def test_typescript_language_server(tmp_path):
     (tmp_path / "package.json").write_text("{}", encoding="utf-8")
-    (tmp_path / "tsconfig.json").write_text("{}", encoding="utf-8")
+    (tmp_path / "tsconfig.json").write_text(
+        '{"compilerOptions": {"strict": true}}', encoding="utf-8"
+    )
+    _install_typescript(tmp_path)
     text = await _run(tmp_path, "a.ts", 'const x: number = "no";\n')
     assert text and "error" in text.lower()
 

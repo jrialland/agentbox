@@ -22,7 +22,12 @@ DEFAULT_LSP_SERVERS = (
     LspStack(
         name="typescript",
         markers=("**/tsconfig.json", "**/package.json"),
-        command=("npx", "typescript-language-server", "--stdio"),
+        command=(
+            "npx",
+            "-y",
+            "typescript-language-server@latest",
+            "--stdio",
+        ),
         languages=("typescript", "typescriptreact", "javascript", "javascriptreact"),
         extensions=(".ts", ".tsx", ".js", ".jsx"),
     ),

@@ -58,8 +58,15 @@ Defaults:
 | Stack | Markers | Command | Extensions / languageIds |
 |---|---|---|---|
 | Python | `pyproject.toml`, `setup.py`, `requirements.txt`, `**/*.py` | `uvx ty server` | `.py`, `.pyi` / `python` |
-| TypeScript/JS | `**/tsconfig.json`, `**/package.json` | `npx typescript-language-server --stdio` | `.ts`, `.tsx`, `.js`, `.jsx` / `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
+| TypeScript/JS | `**/tsconfig.json`, `**/package.json` | `npx -y typescript-language-server@latest --stdio` | `.ts`, `.tsx`, `.js`, `.jsx` / `typescript`, `typescriptreact`, `javascript`, `javascriptreact` |
 | Rust | `**/Cargo.toml` | `rust-analyzer` | `.rs` / `rust` |
+
+> The TypeScript server needs a TypeScript 5.x installation in the project
+> (`typescript` dev dependency); TypeScript 7 no longer ships `tsserver.js`.
+> The integration test installs `typescript@5.9.3` into its temp workspace.
+>
+> `rust-analyzer` must be installed (e.g. `rustup component add rust-analyzer`);
+> there is no zero-install runner equivalent to `uvx`/`npx`.
 
 `lsp_servers_json` (settings) may replace this list with an array of the same
 fields.
@@ -218,7 +225,7 @@ initialize/didOpen/didChange/diagnostic/publishDiagnostics/shutdown.
 
 ### Real servers (availability-skipped, marked slow)
 - Python: `uvx ty server` on a file with a deliberate error.
-- TypeScript: `npx typescript-language-server --stdio` when available.
+- TypeScript: `npx -y typescript-language-server@latest --stdio` when available.
 - Rust: `rust-analyzer` when available.
 Each asserts the returned text contains a diagnostic; skipped when the tool is
 not on PATH.
