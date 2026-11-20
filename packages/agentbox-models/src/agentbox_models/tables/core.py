@@ -76,6 +76,16 @@ class SessionRow(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utcnow)
 
 
+class PlanItem(SQLModel, table=True):
+    id: str = Field(primary_key=True)
+    session_id: str = Field(foreign_key="sessionrow.id", index=True)
+    position: int = 0
+    content: str
+    status: str = "pending"
+    created_at: datetime = Field(default_factory=utcnow)
+    updated_at: datetime = Field(default_factory=utcnow)
+
+
 class TurnRow(SQLModel, table=True):
     id: str = Field(primary_key=True)
     session_id: str = Field(foreign_key="sessionrow.id")

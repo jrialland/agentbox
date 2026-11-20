@@ -13,6 +13,7 @@ from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.tables.core import (
     Agent,
     Model,
+    PlanItem,
     Provider,
     SessionAttachment,
     SessionRow,
@@ -114,6 +115,12 @@ async def delete_session_data(factory, session_id: str) -> None:
             )
         ).scalars().all():
             await s.delete(attachment)
+        for item in (
+            await s.execute(
+                select(PlanItem).where(PlanItem.session_id == session_id)
+            )
+        ).scalars().all():
+            await s.delete(item)
         row = (
             await s.execute(select(SessionRow).where(SessionRow.id == session_id))
         ).scalars().first()
