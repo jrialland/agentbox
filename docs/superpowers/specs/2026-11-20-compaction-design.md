@@ -17,7 +17,7 @@ and separated from chat/ACP/A2A transport code.
   after the run. `RunUsage` is cumulative across requests, so it is not the
   context size.
 - Providers that omit usage increment `RequestUsage.unmeasured_requests`;
-  `RequestUsage.has_values` distinguishes measured usage.
+  `RequestUsage.has_values()` distinguishes measured usage.
 - `model.profile["context_window"]` is populated by pydantic-ai for many known
   models (e.g. 128k for GPT-4o, 200k for Claude Sonnet 4.5), and is `None` for
   custom/local models. All model constructors accept an explicit
@@ -83,7 +83,7 @@ class TurnRow(SQLModel, table=True):
 `Turn` gains `context_tokens: int | None = None` and
 `created_at: datetime | None = None`. `SQLiteMessageLogStore` reads/writes
 both. Assistant turns record `result.response.usage.total_tokens` when
-`usage.has_values` is true; otherwise the value is `None`. `created_at` is used
+`usage.has_values()` is true; otherwise the value is `None`. `created_at` is used
 to tell whether a summary was produced after the latest usage sample.
 
 ### Summary turns
@@ -254,8 +254,9 @@ in chat, ACP, and A2A.
 `ModelCreate`/`ModelRead` include optional `context_window`. The provider
 model form gains an optional “Context window” number input.
 
-`GET /sessions/{sid}/messages` continues to return turns; summary turns have
-`role="summary"`.
+`GET /sessions/{sid}/messages` returns the active chain and **stops at a
+summary turn**, so the UI shows the summary notice plus retained turns rather
+than the summarized transcript. Summary turns have `role="summary"`.
 
 ACP `load_session` skips summary turns (internal context). A2A does not load
 history.

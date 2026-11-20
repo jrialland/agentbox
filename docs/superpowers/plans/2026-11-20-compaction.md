@@ -262,6 +262,12 @@ Update `InMemoryMessageLogStore.append`:
 Add to `Session`:
 
 ```python
+    async def append(self, turn: Turn, parent_id: str | None) -> None:
+        turn = replace(turn, parent_id=parent_id)
+        await self.store.append(turn)
+        self.head_id = turn.id
+        logger.debug("session turn appended session={} role={}", self.session_id, turn.role)
+
     async def insert_summary(
         self,
         summary: Turn,
@@ -1084,7 +1090,7 @@ from pydantic_ai.usage import RequestUsage
 
 
 def context_tokens_from_usage(usage: RequestUsage) -> int | None:
-    return usage.total_tokens if usage.has_values else None
+    return usage.total_tokens if usage.has_values() else None
 ```
 
 - [ ] **Step 4: Add the outcome code**
