@@ -132,6 +132,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | 25 | Session plan tools (TODO-*) | `specs/2026-11-19-plan-tools-design.md` | `plans/2026-11-19-plan-tools.md` |
 | 26 | Web search + URL fetch (keyless ddgs/SearXNG) | `specs/2026-11-20-web-search-design.md` | `plans/2026-11-20-web-search.md` |
 | 27 | Terminal management + project allowed roots | `specs/2026-11-20-terminal-design.md` | `plans/2026-11-20-terminal.md` |
+| 28 | Automatic compaction (usage-driven summaries + context-window recovery) | `specs/2026-11-20-compaction-design.md` | `plans/2026-11-20-compaction.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -144,7 +145,6 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D6 | **Duo mode** | Two-agent pairing: the primary receives the user message; the secondary answers the primary's questions. Turns continue automatically until a stop condition is met. |
 | D8 | **Sub-agent sessions** | Tools that let an agent start sub-sessions and monitor their progress (beyond the current agent-as-tool delegation). |
 | D9 | **Automatic session shrinking** | Drop past tool results that are no longer needed; strip multimodal content after a few turns; keep the context lean. |
-| D10 | **Automatic compaction** | Ask the model to summarize when the context window fills, then continue the session from the compacted context. |
 | D12 | **Agent plugins** | Support the standardized `.agents/plugins/` folder format that mixes skills, MCP configuration, and hooks. |
 | D13 | **Toolset packaging hygiene** | Declare each toolset as a separate artifact/package where possible; keep native toolsets embedded in Agentbox and, where possible, also expose them as standalone FastMCP stdio tools. |
 | D15 | **Virtual environment / sandboxing** | Opt-in per agent: run tools in a Bashkit environment on a temporary disk, isolating filesystem effects from the real project. |
