@@ -6,6 +6,7 @@ dev = [
     "ruff>=0.8",
     "ty",
     "bandit>=1.7",
+    "pytest-timeout>=2.3",
 ]
 
 [tool.ruff]
