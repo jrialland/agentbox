@@ -1,0 +1,212 @@
+.markdown-block {
+  color: var(--ab-text);
+  font-size: var(--ab-text-md);
+  line-height: 1.65;
+  min-width: 0;
+}
+
+.markdown-block > :first-child {
+  margin-top: 0;
+}
+
+.markdown-block > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-block h1,
+.markdown-block h2,
+.markdown-block h3,
+.markdown-block h4 {
+  color: var(--ab-text);
+  font-weight: 650;
+  line-height: 1.25;
+  margin: var(--ab-space-5) 0 var(--ab-space-3);
+}
+
+.markdown-block h1 {
+  font-size: var(--ab-text-3xl);
+}
+
+.markdown-block h2 {
+  font-size: var(--ab-text-2xl);
+}
+
+.markdown-block h3 {
+  font-size: var(--ab-text-xl);
+}
+
+.markdown-block p,
+.markdown-block ul,
+.markdown-block ol,
+.markdown-block blockquote,
+.markdown-block table {
+  margin: 0 0 var(--ab-space-4);
+}
+
+.markdown-block ul,
+.markdown-block ol {
+  padding-left: var(--ab-space-5);
+}
+
+.markdown-block li + li {
+  margin-top: var(--ab-space-1);
+}
+
+.markdown-block a {
+  color: var(--ab-cyan);
+  text-underline-offset: 3px;
+}
+
+.markdown-block strong {
+  color: var(--ab-text);
+  font-weight: 650;
+}
+
+.markdown-block blockquote {
+  border-left: 2px solid var(--ab-phosphor);
+  color: var(--ab-text-muted);
+  margin-left: 0;
+  padding: var(--ab-space-1) 0 var(--ab-space-1) var(--ab-space-4);
+}
+
+.markdown-block :not(pre) > code {
+  background: var(--ab-surface-raised);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  color: var(--ab-amber);
+  font-family: var(--ab-font-mono);
+  font-size: 0.92em;
+  padding: 1px 5px;
+}
+
+.markdown-block table {
+  border-collapse: collapse;
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.markdown-block th,
+.markdown-block td {
+  border: var(--ab-border-width) solid var(--ab-border);
+  padding: var(--ab-space-2) var(--ab-space-3);
+  text-align: left;
+}
+
+.markdown-block th {
+  background: var(--ab-surface-raised);
+  font-size: var(--ab-text-sm);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.markdown-block hr {
+  border: 0;
+  border-top: var(--ab-border-width) solid var(--ab-border);
+  margin: var(--ab-space-5) 0;
+}
+
+.md-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--ab-space-1);
+}
+
+.md-actions button,
+.md-code figcaption button {
+  background: none;
+  border: 0;
+  color: var(--ab-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ab-space-1);
+  font: inherit;
+  font-size: var(--ab-text-xs);
+  padding: var(--ab-space-1);
+}
+
+.md-actions button:hover,
+.md-code figcaption button:hover {
+  color: var(--ab-phosphor);
+}
+
+.md-code {
+  background: var(--ab-canvas);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  margin: 0 0 var(--ab-space-4);
+  overflow: hidden;
+}
+
+.md-code figcaption {
+  align-items: center;
+  background: var(--ab-surface-raised);
+  border-bottom: var(--ab-border-width) solid var(--ab-border);
+  color: var(--ab-text-muted);
+  display: flex;
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+  justify-content: space-between;
+  letter-spacing: 0.04em;
+  padding: 2px var(--ab-space-2) 2px var(--ab-space-3);
+}
+
+.md-code pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: var(--ab-space-3);
+}
+
+.md-code code {
+  background: none;
+  border: 0;
+  color: var(--ab-text);
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-sm);
+  line-height: 1.55;
+  padding: 0;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--ab-text-muted);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type {
+  color: var(--ab-magenta);
+}
+
+.hljs-string,
+.hljs-attr,
+.hljs-template-variable {
+  color: var(--ab-phosphor);
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet {
+  color: var(--ab-amber);
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-function .hljs-title,
+.hljs-built_in {
+  color: var(--ab-cyan);
+}
+
+.hljs-variable,
+.hljs-params,
+.hljs-property {
+  color: var(--ab-text);
+}
+
+.hljs-meta,
+.hljs-tag {
+  color: var(--ab-cyan);
+}
