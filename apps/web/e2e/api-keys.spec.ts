@@ -5,7 +5,7 @@ const API = "http://localhost:8000";
 test("API key: scope-limited, then revoked", async ({ page, request }) => {
   await page.goto("/login");
   await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
@@ -43,3 +43,4 @@ test("API key: scope-limited, then revoked", async ({ page, request }) => {
   await expect(page.getByRole("cell", { name: "revoked" }).first()).toBeVisible();
   expect((await request.get(`${API}/projects`, { headers: keyH })).status()).toBe(401);
 });
+

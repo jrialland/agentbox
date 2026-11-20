@@ -7,17 +7,19 @@ test("manage provider and agent end-to-end", async ({ page }) => {
 
   await page.goto("/login");
   await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
   // Provider
   await page.getByRole("link", { name: "Providers" }).click();
-  await page.getByLabel("Name").fill(providerName);
-  await page.getByRole("combobox", { name: "Kind" }).click();
+  await page.getByRole("button", { name: "New provider" }).click();
+  const providerDialog = page.getByRole("dialog");
+  await providerDialog.getByLabel("Name").fill(providerName);
+  await providerDialog.getByRole("combobox", { name: "Kind" }).click();
   await page.getByRole("option", { name: "generic" }).click();
-  await page.getByLabel("Models URL").fill("http://localhost:9999/models");
-  await page.getByRole("button", { name: "Create provider" }).click();
+  await providerDialog.getByLabel("Models URL").fill("http://localhost:9999/models");
+  await providerDialog.getByRole("button", { name: "Create provider" }).click();
   await expect(page.getByRole("cell", { name: providerName })).toBeVisible();
 
   await page
@@ -28,11 +30,13 @@ test("manage provider and agent end-to-end", async ({ page }) => {
   // Agent
   await page.getByRole("link", { name: "Agents" }).click();
   await page.waitForLoadState("networkidle");
-  await page.getByLabel("Name").fill(agentName);
-  await page.getByRole("combobox", { name: "Model" }).click();
-  await page.getByRole("option", { name: "e2e-model" }).click();
-  await page.getByLabel("write_file").check();
-  await page.getByRole("button", { name: "Create agent" }).click();
+  await page.getByRole("button", { name: "New agent" }).click();
+  const agentDialog = page.getByRole("dialog");
+  await agentDialog.getByLabel(/^Name/).fill(agentName);
+  await agentDialog.getByRole("combobox", { name: "Model" }).click();
+  await page.getByRole("option", { name: new RegExp(providerName) }).click();
+  await agentDialog.getByLabel("write_file").check();
+  await agentDialog.getByRole("button", { name: "Create agent" }).click();
   await expect(
     page.getByRole("row", { name: new RegExp(agentName) }),
   ).toBeVisible();
@@ -43,3 +47,5 @@ test("manage provider and agent end-to-end", async ({ page }) => {
     .click();
   await expect(page.getByRole("cell", { name: agentName })).toHaveCount(0);
 });
+
+

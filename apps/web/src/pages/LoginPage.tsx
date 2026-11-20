@@ -49,7 +49,7 @@ export function LoginPage() {
     <AuthCard title="Login" subtitle="Authenticate to open the console.">
       <form className={styles.form} onSubmit={onSubmit}>
         {error && <InlineError>{error}</InlineError>}
-        <FormField label="Username" required>
+        <FormField label="Username" htmlFor="username" required>
           <TextInput
             id="username"
             autoComplete="username"
@@ -57,7 +57,7 @@ export function LoginPage() {
             onChange={(e) => setUsername(e.currentTarget.value)}
           />
         </FormField>
-        <FormField label="Password" required>
+        <FormField label="Password" htmlFor="password" required>
           <PasswordInput
             id="password"
             autoComplete="current-password"

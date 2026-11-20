@@ -8,7 +8,7 @@ async function setupAppSession(
 ): Promise<string> {
   await page.goto("/login");
   await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
@@ -73,3 +73,4 @@ test("opens a right-side MCP App tab and renders it", async ({ page, request }) 
   const app = panel.frameLocator("iframe").first().frameLocator("iframe");
   await expect(app.getByText("Hello MCP App")).toBeVisible({ timeout: 30000 });
 });
+

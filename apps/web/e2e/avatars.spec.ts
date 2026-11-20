@@ -9,7 +9,7 @@ const TINY_PNG = Buffer.from(
 async function setup(page: Page, request: APIRequestContext) {
   await page.goto("/login");
   await page.getByLabel("Username").fill("admin");
-  await page.getByLabel("Password").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
@@ -80,3 +80,4 @@ test("agent avatars: default, upload, reset, chat header", async ({ page, reques
     page.getByTestId("session-agent").getByRole("img", { name: agentName }),
   ).toBeVisible();
 });
+

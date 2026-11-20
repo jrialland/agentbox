@@ -460,7 +460,7 @@ function ModelLabelsModal({
     <Modal
       opened={opened}
       onClose={onClose}
-      title={model ? `Labels - ${model.name}` : "Labels"}
+      title={model ? `Labels — ${model.name}` : "Labels"}
     >
       {rows.map((row, index) => (
         <div key={index} className={styles.labelRow}>
