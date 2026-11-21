@@ -113,7 +113,7 @@ Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These wo
 | UX-3 | Contextual help & structured editors | DONE | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
 | UX-4 | Data integrity, errors & navigation states | DONE | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
 
-The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-4 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, and `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, and `superpowers/plans/2026-11-21-ux-4-data-integrity.md`. The next cycle is not yet scheduled.
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-4 and D20 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`, and `superpowers/specs/2026-11-21-agents-md-project-instructions-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, `superpowers/plans/2026-11-21-ux-4-data-integrity.md`, and `superpowers/plans/2026-11-21-agents-md-project-instructions.md`. The next cycle is not yet scheduled.
 
 ## Sub-project history
 
@@ -152,6 +152,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 31 | UX-2 chat surface + runtime UX | `specs/2026-11-21-ux-2-chat-surface-design.md` | `plans/2026-11-21-ux-2-chat-surface.md` |
 | 32 | UX-3 contextual help + structured editors | `specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md` | `plans/2026-11-21-ux-3-contextual-help-structured-editors.md` |
 | 33 | UX-4 data integrity, errors + navigation states | `specs/2026-11-21-ux-4-data-integrity-design.md` | `plans/2026-11-21-ux-4-data-integrity.md` |
+| 34 | D20 AGENTS.md project instructions | `specs/2026-11-21-agents-md-project-instructions-design.md` | `plans/2026-11-21-agents-md-project-instructions.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -170,4 +171,3 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
 | D19 | **Rust LSP latency** | Replace rust-analyzer's 15 s push-mode settle window with `experimental/serverStatus` quiescence tracking, so clean Rust writes return immediately while keeping `didSave`-triggered diagnostics. |
-| D20 | **AGENTS.md** | When there is an AGENTS.md at the project root, include its content in the system prompt. During a session, if AGENTS.md is modified, the system prompt should be updated accordingly. Subagents also receive it. See https://agents.md/ for precise implementation details. |

@@ -1,5 +1,7 @@
 # D20 AGENTS.md Project Instructions Implementation Plan
 
+**Status:** COMPLETE
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Load global, project-root, and dynamically discovered nested AGENTS.md guidance into agent prompts with bounded size, correct precedence, refresh semantics, and subagent inheritance.
@@ -139,13 +141,13 @@ def test_read_failure_uses_last_known_content(tmp_path: pathlib.Path, monkeypatc
     project.mkdir()
     agents = project / "AGENTS.md"
     agents.write_text("known guidance", encoding="utf-8")
-    args = dict(
+    first = project_instructions.read_instruction_file(
+        agents,
         boundary=project,
         source="AGENTS.md",
         scope="project",
         max_bytes=project_instructions.MAX_INSTRUCTION_BYTES,
     )
-    first = project_instructions.read_instruction_file(agents, **args)
     assert first is not None and first.content == "known guidance"
 
     original_read = pathlib.Path.read_bytes
@@ -156,7 +158,13 @@ def test_read_failure_uses_last_known_content(tmp_path: pathlib.Path, monkeypatc
         return original_read(self)
 
     monkeypatch.setattr(pathlib.Path, "read_bytes", failing_read)
-    second = project_instructions.read_instruction_file(agents, **args)
+    second = project_instructions.read_instruction_file(
+        agents,
+        boundary=project,
+        source="AGENTS.md",
+        scope="project",
+        max_bytes=project_instructions.MAX_INSTRUCTION_BYTES,
+    )
     assert second is not None
     assert second.content == "known guidance"
 
@@ -365,7 +373,7 @@ def test_system_block_root_priority_over_global(tmp_path: pathlib.Path, monkeypa
 
     block = project_instructions.build_system_instruction_block(str(project), "s2")
     assert "1234567890" in block
-    assert "global" not in block
+    assert "Global instructions omitted" in block
 
 
 def test_removing_root_clears_it_on_next_build(tmp_path: pathlib.Path, monkeypatch):
@@ -519,7 +527,7 @@ async def test_discovers_nested_nearest_last(tmp_path: pathlib.Path):
     (project / "pkg" / "web" / "AGENTS.md").write_text("web", encoding="utf-8")
 
     found = project_instructions.discover_nested_agents(str(project), "pkg/web/app.ts")
-    assert [path.name for path in found] == ["AGENTS.md", "AGENTS.md", "AGENTS.md"]
+    assert [path.name for path in found] == ["AGENTS.md", "AGENTS.md"]
     assert [path.parent.name for path in found] == ["pkg", "web"]
 
 
@@ -789,7 +797,9 @@ async def test_prepare_agent_reregisters_nested_on_read(tmp_path: pathlib.Path, 
 
     prepared = await prepare_agent(factory, "bot", str(project), str(tmp_path / "skills"), session_id="s1")
     tools = prepared.registry.select_tools(Mode(name="agent", flags={"write": True}))
-    read_tool = next(tool for tool in tools if tool.__name__ == "read_text_file")
+    read_tool = next(
+        tool for tool in tools if getattr(tool, "__name__", "") == "read_text_file"
+    )
     output = await read_tool("pkg/file.txt")
     assert "pkg rules" in output
     await engine.dispose()

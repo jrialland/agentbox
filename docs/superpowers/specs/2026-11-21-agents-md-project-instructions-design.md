@@ -1,7 +1,7 @@
 # D20 - AGENTS.md Project Instructions
 
 - **Date:** 2026-11-21
-- **Status:** Draft (design approved; pending spec review)
+- **Status:** Approved
 - **Sub-project:** D20 - load global and project AGENTS.md guidance into agent and subagent system prompts, with standards-conformant nested discovery and live refresh.
 - **Source:** [`AGENTS.md`](https://agents.md/), OpenCode instruction rules, Codex AGENTS.md discovery docs, and the D20 entry in [`docs/ROADMAP.md`](../../ROADMAP.md).
 - **Roadmap:** `D20` in [`docs/ROADMAP.md`](../../ROADMAP.md).
