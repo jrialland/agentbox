@@ -27,13 +27,19 @@ function tone(status: string): Tone {
   return "neutral";
 }
 
-export function ActivityChips({ activity }: { activity: ActivitySummary }) {
+export function ActivityChips({
+  activity,
+  defaultOpen = false,
+}: {
+  activity: ActivitySummary;
+  defaultOpen?: boolean;
+}) {
   const tools = activity.tools ?? [];
   const reasoning = activity.reasoning_ms ?? 0;
   if (reasoning <= 0 && tools.length === 0) return null;
 
   return (
-    <details className={styles.activity}>
+    <details className={styles.activity} open={defaultOpen}>
       <summary>
         <span className={styles.activityLabel}>Activity</span>
         {reasoning > 0 && <Badge tone="info">Reasoning {duration(reasoning)}</Badge>}
@@ -62,3 +68,5 @@ export function ActivityChips({ activity }: { activity: ActivitySummary }) {
     </details>
   );
 }
+
+

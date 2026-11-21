@@ -33,6 +33,7 @@ const preview: Preview = {
           "Navigation",
           "Patterns",
           "Shell",
+          "Chat",
         ],
       },
     },
@@ -90,3 +91,4 @@ const preview: Preview = {
 };
 
 export default preview;
+
