@@ -290,6 +290,23 @@ async def _agent_spec(request: Request, sid: str):
     return await AgentRepository(factory).load(agent.name)
 
 
+async def _agent_spec_and_root(request: Request, sid: str):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        srow = (
+            await s.execute(select(SessionRow).where(SessionRow.id == sid))
+        ).scalars().first()
+        if srow is None:
+            raise HTTPException(status_code=404, detail="Session not found")
+        project = await s.get(Project, srow.project_id)
+    spec = await _agent_spec(request, sid)
+    return (
+        spec,
+        project.path if project is not None else "",
+        project.extra_roots if project is not None else [],
+    )
+
+
 @router.post("/{sid}/mcp/{server_id}/resources/read")
 async def read_app_resource(
     sid: str,
@@ -299,10 +316,19 @@ async def read_app_resource(
     _=Depends(require_permission("sessions:create")),
 ):
     from agentbox_api import mcp_relay
+    from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
-    spec = await _agent_spec(request, sid)
+    spec, project_root, extra_roots = await _agent_spec_and_root(request, sid)
     try:
-        return await mcp_relay.read_resource_for_app(spec, server_id, body.uri)
+        return await mcp_relay.read_resource_for_app(
+            get_mcp_session_manager(),
+            sid,
+            project_root,
+            spec,
+            server_id,
+            body.uri,
+            extra_roots,
+        )
     except KeyError:
         raise HTTPException(status_code=404, detail="MCP server not found") from None
 
@@ -316,11 +342,19 @@ async def call_app_tool(
     _=Depends(require_permission("sessions:create")),
 ):
     from agentbox_api import mcp_relay
+    from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
-    spec = await _agent_spec(request, sid)
+    spec, project_root, extra_roots = await _agent_spec_and_root(request, sid)
     try:
         return await mcp_relay.call_tool_for_app(
-            spec, server_id, body.name, body.arguments
+            get_mcp_session_manager(),
+            sid,
+            project_root,
+            spec,
+            server_id,
+            body.name,
+            body.arguments,
+            extra_roots,
         )
     except KeyError:
         raise HTTPException(status_code=404, detail="MCP server not found") from None
