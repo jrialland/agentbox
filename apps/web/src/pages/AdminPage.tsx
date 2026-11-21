@@ -359,7 +359,7 @@ function RolePermissionsModal({
   permissions: Permission[];
   onClose: () => void;
 }) {
-  const { data: current } = useRolePermissions(role.id);
+  const { data: current, error, refetch } = useRolePermissions(role.id);
   const save = useSetRolePermissions();
   const [selected, setSelected] = useState<string[] | null>(null);
   const value = selected ?? (current ?? []).map((p) => p.id);
@@ -369,18 +369,28 @@ function RolePermissionsModal({
   }
   return (
     <Modal opened onClose={onClose} title={`Permissions for ${role.name}`}>
-      <MultiSelect
-        label="Permissions"
-        data={permissions.map((p) => ({
-          value: p.id,
-          label: `${p.name} — ${describePermission(p.name, p.description)}`,
-        }))}
-        value={value}
-        onChange={setSelected}
-      />
-      <Button mt="md" onClick={onSave}>
-        Save
-      </Button>
+      {error ? (
+        <ErrorState
+          title="Could not load role permissions"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : (
+        <>
+          <MultiSelect
+            label="Permissions"
+            data={permissions.map((p) => ({
+              value: p.id,
+              label: `${p.name} — ${describePermission(p.name, p.description)}`,
+            }))}
+            value={value}
+            onChange={setSelected}
+          />
+          <Button mt="md" onClick={onSave}>
+            Save
+          </Button>
+        </>
+      )}
     </Modal>
   );
 }
@@ -563,7 +573,7 @@ function UserRolesModal({
   roles: Role[];
   onClose: () => void;
 }) {
-  const { data: current } = useUserRoles(user.id);
+  const { data: current, error, refetch } = useUserRoles(user.id);
   const save = useSetUserRoles();
   const [selected, setSelected] = useState<string[] | null>(null);
   const value = selected ?? (current ?? []).map((r) => r.id);
@@ -573,15 +583,25 @@ function UserRolesModal({
   }
   return (
     <Modal opened onClose={onClose} title={`Roles for ${user.username}`}>
-      <MultiSelect
-        label="Roles"
-        data={roles.map((r) => ({ value: r.id, label: r.name }))}
-        value={value}
-        onChange={setSelected}
-      />
-      <Button mt="md" onClick={onSave}>
-        Save
-      </Button>
+      {error ? (
+        <ErrorState
+          title="Could not load user roles"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : (
+        <>
+          <MultiSelect
+            label="Roles"
+            data={roles.map((r) => ({ value: r.id, label: r.name }))}
+            value={value}
+            onChange={setSelected}
+          />
+          <Button mt="md" onClick={onSave}>
+            Save
+          </Button>
+        </>
+      )}
     </Modal>
   );
 }
