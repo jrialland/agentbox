@@ -1,6 +1,7 @@
 import { notifications } from "@mantine/notifications";
 import {
   RiDeleteBin6Line,
+  RiEditLine,
   RiImageAddLine,
   RiImageCircleLine,
   RiRobot2Line,
@@ -26,9 +27,11 @@ import styles from "./agents.module.css";
 export function AgentList({
   agents,
   onNew,
+  onEdit,
 }: {
   agents: Agent[];
   onNew: () => void;
+  onEdit: (agent: Agent) => void;
 }) {
   const del = useDeleteAgent();
   const upload = useUploadAvatar();
@@ -129,6 +132,12 @@ export function AgentList({
                   icon={RiRobot2Line}
                   size={16}
                   onClick={() => setCardAgent(agent.name)}
+                />
+                <IconButton
+                  label="Edit"
+                  icon={RiEditLine}
+                  size={16}
+                  onClick={() => onEdit(agent)}
                 />
                 <IconButton
                   label="Delete"

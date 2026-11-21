@@ -215,6 +215,28 @@ export async function createAgent(body: {
   return data as Agent;
 }
 
+export async function updateAgent(
+  name: string,
+  body: {
+    name: string;
+    description: string;
+    instructions: string;
+    model?: string;
+    model_label?: string;
+    tool_bindings: Record<string, unknown>[];
+    mode_definitions: Record<string, unknown>[];
+    sub_agent_ids: string[];
+  },
+): Promise<Agent> {
+  const { data, error, response } = await api.PUT("/agents/{name}", {
+    params: { path: { name } },
+    body,
+  });
+  if (error || !response.ok)
+    throw toApiError(error, "Failed to update agent", response.status);
+  return data as Agent;
+}
+
 export async function deleteAgent(name: string): Promise<void> {
   const { error, response } = await api.DELETE("/agents/{name}", {
     params: { path: { name } },

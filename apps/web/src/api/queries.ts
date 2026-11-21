@@ -51,6 +51,7 @@ import {
   setRolePermissions,
   setUserRoles,
   testProvider,
+  updateAgent,
   updatePermission,
   updateProject,
   updateProvider,
@@ -192,6 +193,20 @@ export function useCreateAgent() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: createAgent,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["agents"] }),
+  });
+}
+
+export function useUpdateAgent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      name,
+      body,
+    }: {
+      name: string;
+      body: Parameters<typeof updateAgent>[1];
+    }) => updateAgent(name, body),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["agents"] }),
   });
 }

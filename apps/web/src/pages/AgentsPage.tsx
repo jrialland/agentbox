@@ -1,11 +1,12 @@
 import { RiAddLine } from "@remixicon/react";
 import { useState } from "react";
 
+import type { Agent } from "../api/endpoints";
 import { useAgents } from "../api/queries";
 import { ErrorState } from "../design-system/patterns/ErrorState";
 import { ListPage } from "../design-system/patterns/ListPage";
 import { Button } from "../design-system/primitives/Button";
-import { AgentCreateDrawer } from "./agents/AgentCreateDrawer";
+import { AgentFormDrawer } from "./agents/AgentFormDrawer";
 import { AgentList } from "./agents/AgentList";
 
 export const NATIVE_TOOLS = [
@@ -47,7 +48,9 @@ export function buildToolBindings(tools: string[]) {
 
 export function AgentsPage() {
   const { data: agents, error, refetch } = useAgents();
-  const [createOpen, setCreateOpen] = useState(false);
+  const [editor, setEditor] = useState<
+    { mode: "create" } | { mode: "edit"; agent: Agent } | null
+  >(null);
   const agentList = agents ?? [];
 
   if (error) {
@@ -67,17 +70,22 @@ export function AgentsPage() {
       actions={
         <Button
           leftSection={<RiAddLine size={16} />}
-          onClick={() => setCreateOpen(true)}
+          onClick={() => setEditor({ mode: "create" })}
         >
           New agent
         </Button>
       }
     >
-      <AgentList agents={agentList} onNew={() => setCreateOpen(true)} />
-      <AgentCreateDrawer
-        opened={createOpen}
-        onClose={() => setCreateOpen(false)}
-        subAgentOptions={agentList.map((agent) => agent.name)}
+      <AgentList
+        agents={agentList}
+        onNew={() => setEditor({ mode: "create" })}
+        onEdit={(agent) => setEditor({ mode: "edit", agent })}
+      />
+      <AgentFormDrawer
+        opened={editor !== null}
+        onClose={() => setEditor(null)}
+        agent={editor?.mode === "edit" ? editor.agent : undefined}
+        subAgentOptions={agentList.map((item) => item.name)}
       />
     </ListPage>
   );
