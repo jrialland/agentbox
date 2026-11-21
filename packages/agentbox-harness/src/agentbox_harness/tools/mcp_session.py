@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 
 from loguru import logger
 from pydantic_ai.mcp import MCPToolset
+from pydantic_ai.messages import CustomEvent
 
 from agentbox_harness.spec import McpToolBinding
 from agentbox_harness.tools.mcp import build_mcp_toolset, mcp_toolset_id
@@ -22,6 +23,12 @@ class McpWarning:
 class SessionToolsets:
     toolsets: list[MCPToolset] = field(default_factory=list)
     warnings: list[McpWarning] = field(default_factory=list)
+
+
+@dataclass(kw_only=True)
+class McpWarningEvent(CustomEvent, name="mcp.warning"):
+    server: str
+    message: str
 
 
 @dataclass

@@ -136,3 +136,10 @@ async def test_cwd_escape_warns_and_starts_nothing(tmp_path):
     assert "escapes allowed roots" in result.warnings[0].message
 
     await manager.close_session("s1")
+
+def test_warning_event_payload():
+    from agentbox_harness.tools.mcp_session import McpWarningEvent
+
+    event = McpWarningEvent(server="srv", message="boom")
+    assert event.name == "mcp.warning"
+    assert event.to_payload() == {"server": "srv", "message": "boom"}

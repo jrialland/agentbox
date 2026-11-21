@@ -40,5 +40,8 @@ class Settings(BaseSettings):
     compaction_keep_turns: int = 4
     compaction_input_budget_tokens: int = 16_000
     compaction_max_summary_chars: int = 8_000
+    mcp_idle_ttl_seconds: float = 1800
+    mcp_start_timeout_seconds: float = 30
+    mcp_sweep_interval_seconds: float = 60
 
     model_config = SettingsConfigDict(env_file=".env")

@@ -14,3 +14,11 @@ def test_settings_env(monkeypatch):
     s = Settings()
     assert s.jwt_secret.get_secret_value() == "e" * 32
     assert s.database_url == "sqlite+aiosqlite:///:memory:"
+
+def test_mcp_lifecycle_defaults():
+    from agentbox_api.config import Settings
+
+    settings = Settings(jwt_secret="s" * 32)
+    assert settings.mcp_idle_ttl_seconds == 1800
+    assert settings.mcp_start_timeout_seconds == 30
+    assert settings.mcp_sweep_interval_seconds == 60

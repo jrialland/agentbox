@@ -35,21 +35,40 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        import asyncio
+        from contextlib import suppress
+
         from agentbox_api.subsessions import (
             reconcile_running_sub_sessions,
             shutdown_sub_sessions,
         )
+        from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
         configure_logging(settings)
         configure_lsp(settings)
+        manager = get_mcp_session_manager()
+        manager.start_timeout = settings.mcp_start_timeout_seconds
+
+        async def sweep_loop():
+            while True:
+                await asyncio.sleep(settings.mcp_sweep_interval_seconds)
+                await manager.sweep_idle(settings.mcp_idle_ttl_seconds)
+
+        sweep_task = asyncio.create_task(sweep_loop())
         await reconcile_running_sub_sessions(session_factory)
         logger.info("agentbox api starting")
-        yield
-        logger.info("agentbox api stopping")
-        await get_lsp_manager().shutdown()
-        await get_job_manager().shutdown()
-        await shutdown_sub_sessions()
-        await engine.dispose()
+        try:
+            yield
+        finally:
+            logger.info("agentbox api stopping")
+            sweep_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await sweep_task
+            await manager.close_all()
+            await get_lsp_manager().shutdown()
+            await get_job_manager().shutdown()
+            await shutdown_sub_sessions()
+            await engine.dispose()
 
     app = FastAPI(lifespan=lifespan)
     app.state.engine = engine
