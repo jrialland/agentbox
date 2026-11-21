@@ -5,16 +5,23 @@ import {
   RiFolderLine,
   RiRobot2Line,
 } from "@remixicon/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
-import { useAgents, useProjects, useSessions } from "../api/queries";
+import { useAgents, useModels, useProjects, useProviders, useSessions } from "../api/queries";
 import { NewProjectModal } from "../components/projects/NewProjectModal";
 import { Button } from "../design-system/primitives/Button";
 import { DashboardCard } from "../design-system/patterns/DashboardCard";
 import { EmptyStatePanel } from "../design-system/patterns/EmptyStatePanel";
 import { PageContainer } from "../design-system/shell/PageContainer";
 import { PageHeader } from "../design-system/primitives/PageHeader";
+import { HomeChecklist } from "../onboarding/HomeChecklist";
+import { OnboardingWizard } from "../onboarding/OnboardingWizard";
+import {
+  deriveOnboardingProgress,
+  type OnboardingStep,
+} from "../onboarding/onboardingProgress";
+import { useOnboardingPreference } from "../onboarding/useOnboardingPreference";
 import { Panel } from "../design-system/primitives/Panel";
 import styles from "./home.module.css";
 
@@ -22,12 +29,31 @@ export function HomePage() {
   const { data: projects } = useProjects();
   const { data: sessions } = useSessions();
   const { data: agents } = useAgents();
+  const { data: providers } = useProviders();
+  const { data: models } = useModels();
   const [projectOpen, setProjectOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [wizardStep, setWizardStep] = useState<OnboardingStep>("welcome");
   const navigate = useNavigate();
+  const { dismissed, dismiss, reset } = useOnboardingPreference();
 
   const projectList = projects ?? [];
   const sessionList = sessions ?? [];
   const agentList = agents ?? [];
+  const snapshot = {
+    providers: providers?.length ?? 0,
+    models: models?.length ?? 0,
+    agents: agentList.length,
+    sessions: sessionList.length,
+  };
+  const progress = deriveOnboardingProgress(snapshot);
+
+  useEffect(() => {
+    if (snapshot.providers === 0 && snapshot.agents === 0 && !dismissed) {
+      setWizardOpen(true);
+    }
+  }, [snapshot.providers, snapshot.agents, dismissed]);
+
   const recentSessions = [...sessionList]
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
     .slice(0, 6);
@@ -73,6 +99,16 @@ export function HomePage() {
           </Button>
         </div>
       </section>
+
+      <div className={styles.setupRow}>
+        <HomeChecklist
+          progress={progress}
+          onOpenStep={(step) => {
+            setWizardStep(step);
+            setWizardOpen(true);
+          }}
+        />
+      </div>
 
       <div className={styles.stats}>
         <DashboardCard
@@ -162,6 +198,19 @@ export function HomePage() {
         opened={projectOpen}
         onClose={() => setProjectOpen(false)}
       />
+      <OnboardingWizard
+        opened={wizardOpen}
+        initialStep={wizardStep}
+        onClose={() => {
+          dismiss();
+          setWizardOpen(false);
+        }}
+        onDone={(sessionId) => {
+          reset();
+          setWizardOpen(false);
+          navigate(`/sessions/${sessionId}`);
+        }}
+      />
     </PageContainer>
   );
 }
@@ -177,4 +226,6 @@ function IconLink({ sessionId }: { sessionId: string }) {
     </Link>
   );
 }
+
+
 

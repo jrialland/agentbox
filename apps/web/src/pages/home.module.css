@@ -112,3 +112,7 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+.setupRow {
+  margin-bottom: var(--ab-space-5);
+}
