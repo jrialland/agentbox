@@ -111,3 +111,28 @@ async def test_env_values_are_not_logged(tmp_path):
         logger.remove(sink)
 
     assert all("do-not-log-me" not in message for message in messages)
+
+async def test_idle_sweep_closes_entry(tmp_path):
+    manager = McpSessionManager(start_timeout=20)
+    await manager.toolsets_for("s1", [_binding()], str(tmp_path))
+    await manager.sweep_idle(0)
+    assert "s1" not in manager._entries
+
+
+async def test_cwd_escape_warns_and_starts_nothing(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir()
+    manager = McpSessionManager(start_timeout=20)
+    binding = McpToolBinding(
+        id="echo",
+        command=sys.executable,
+        args=[str(SERVER)],
+        cwd="../outside",
+    )
+    result = await manager.toolsets_for("s1", [binding], str(root))
+
+    assert result.toolsets == []
+    assert result.warnings[0].server_id == "echo"
+    assert "escapes allowed roots" in result.warnings[0].message
+
+    await manager.close_session("s1")

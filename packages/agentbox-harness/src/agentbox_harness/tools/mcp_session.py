@@ -96,7 +96,11 @@ class McpSessionManager:
         extra_roots: list[str] | None,
     ) -> tuple[MCPToolset | None, McpWarning | None]:
         server_id = mcp_toolset_id(binding)
-        cwd = resolve_project_path(binding.cwd, project_root, extra_roots)
+        try:
+            cwd = resolve_project_path(binding.cwd, project_root, extra_roots)
+        except ValueError as exc:
+            logger.warning("mcp cwd rejected session={} server={}", session_id, server_id)
+            return None, McpWarning(server_id, str(exc))
         try:
             toolset = build_mcp_toolset(binding, cwd=str(cwd))
             await asyncio.wait_for(toolset.__aenter__(), timeout=self.start_timeout)
@@ -124,6 +128,18 @@ class McpSessionManager:
                 await toolset.__aexit__(None, None, None)
             except Exception:
                 logger.warning("mcp toolset close failed session={}", session_id)
+
+    async def sweep_idle(self, ttl_seconds: float) -> None:
+        now = self._clock()
+        stale = [
+            session_id
+            for session_id, entry in list(self._entries.items())
+            if now - entry.last_used >= ttl_seconds
+        ]
+        for session_id in stale:
+            await self.close_session(session_id)
+        if stale:
+            logger.debug("mcp idle sweep closed count={}", len(stale))
 
     async def close_all(self) -> None:
         for session_id in list(self._entries):
