@@ -80,7 +80,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Requirement | Status | Notes |
 |---|---|---|
 | Start an agentic session via A2A using an API key | DONE | API-key-authenticated `/a2a/{agent}`. |
-| Only designated agents (with an agent card) support A2A | PARTIAL | API + card storage work, but the card UI is a raw JSON textarea with no schema, validation, preview, or help (UX-3). |
+| Only designated agents (with an agent card) support A2A | DONE | Agents with a stored card are exposed. Structured editor with validation, JSON fallback, and in-app help. |
 
 ## MCP Apps
 
@@ -110,10 +110,10 @@ Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These wo
 |---|---|---|---|---|---|
 | UX-1 | Design system, shell & product character | DONE | P0/P1 | Brand kit, design tokens, typography, RemixIcon system, responsive shell, nav/sidebar, page titles, empty-state visual language, form layout, dark mode, replace/rescope Bulma. | E1–E6, C1–C2, C7–C10, G |
 | UX-2 | Chat surface & runtime UX | DONE | P0/P1 | Markdown stylesheet, safe Mermaid rendering, auto-scroll/sticky composer, thinking/running status, stop control, persisted reasoning/tool traces, attachment history, fork banner, per-turn errors/retry, icon composer. | A1–A12 |
-| UX-3 | Contextual help & structured editors | PLANNED | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
+| UX-3 | Contextual help & structured editors | DONE | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
 | UX-4 | Data integrity, errors & navigation states | PLANNED | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
 
-The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 and UX-2 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md` and `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md` and `superpowers/plans/2026-11-21-ux-2-chat-surface.md`. Next cycle: **UX-3** contextual help and structured editors.
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1, UX-2, and UX-3 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, and `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, and `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`. Next cycle: **UX-4** data integrity, errors, and navigation states.
 
 ## Sub-project history
 
@@ -150,6 +150,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 29 | Sub-agent sessions (background children, monitoring, cancellation) | `specs/2026-11-20-subagent-sessions-design.md` | `plans/2026-11-20-subagent-sessions.md` |
 | 30 | UX-1 design system + command shell | `specs/2026-11-20-ux-1-design-system-design.md` | `plans/2026-11-20-ux-1-design-system.md` |
 | 31 | UX-2 chat surface + runtime UX | `specs/2026-11-21-ux-2-chat-surface-design.md` | `plans/2026-11-21-ux-2-chat-surface.md` |
+| 32 | UX-3 contextual help + structured editors | `specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md` | `plans/2026-11-21-ux-3-contextual-help-structured-editors.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -168,5 +169,3 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
 | D19 | **Rust LSP latency** | Replace rust-analyzer's 15 s push-mode settle window with `experimental/serverStatus` quiescence tracking, so clean Rust writes return immediately while keeping `didSave`-triggered diagnostics. |
-
-

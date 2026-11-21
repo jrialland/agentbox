@@ -1,5 +1,7 @@
 # UX-3 Contextual Help and Structured Editors Implementation Plan
 
+**Status:** COMPLETE
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Make Agentbox setup learnable in place by adding shared in-app help, provider connection testing/presets, structured A2A and agent editors, scope guidance, guided empty states, and a first-run onboarding wizard.
@@ -2169,7 +2171,7 @@ git commit -m "docs(ux): add UX-3 screenshot pack"
 ### Task 15: E2E coverage for onboarding, provider test, and editors
 
 **Files:**
-- Create: `apps/web/e2e/ux3-onboarding.spec.ts`
+- Create: `apps/web/e2e/00-ux3-onboarding.spec.ts`
 - Create: `apps/web/e2e/ux3-editors.spec.ts`
 
 **Interfaces:**
@@ -2178,7 +2180,7 @@ git commit -m "docs(ux): add UX-3 screenshot pack"
 
 - [ ] **Step 1: Write onboarding/provider test**
 
-`ux3-onboarding.spec.ts`:
+`00-ux3-onboarding.spec.ts`:
 
 ```ts
 import { expect, test } from "@playwright/test";
@@ -2322,7 +2324,7 @@ Expected: all existing and new tests pass.
 - [ ] **Step 4: Commit**
 
 ```powershell
-git add apps/web/e2e/ux3-onboarding.spec.ts apps/web/e2e/ux3-editors.spec.ts
+git add apps/web/e2e/00-ux3-onboarding.spec.ts apps/web/e2e/ux3-editors.spec.ts
 git commit -m "test(web): cover UX-3 setup and editors"
 ```
 
@@ -2386,17 +2388,3 @@ git commit -m "docs: complete UX-3"
 **Placeholder scan:** No TBD/TODO steps; each test and implementation step names concrete files, signatures, and expected outcomes.
 
 **Type consistency:** `ProviderDraft`, `ProviderTestResult`, `HelpId`, `StructuredA2ACard`, `AgentMode`, `OnboardingStep`, and `OnboardingProgress` keep the same names across tasks. `useTestProvider`, `applyProviderPreset`, `mergeStructuredCard`, `deriveOnboardingProgress`, and `HomeChecklist` are defined before later tasks consume them.
-
-
-
-
-
-
-
-
-
-
-
-
-
-

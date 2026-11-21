@@ -110,7 +110,7 @@ UX-3 makes setup learnable in place and removes the remaining JSON-first configu
   - version (required)
   - provider organization and URL
   - documentation URL
-  - capabilities: streaming, push notifications, state transition history
+  - capabilities: streaming, push notifications
   - default input/output modes
   - skills repeater
 - Each skill row edits: id, name, description, tags, and examples.
