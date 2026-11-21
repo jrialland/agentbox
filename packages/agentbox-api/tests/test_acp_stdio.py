@@ -67,3 +67,32 @@ async def test_acp_stdio_end_to_end(tmp_path):
         )
         assert "Hello from the test provider" in text
 
+
+async def test_acp_close_session_stops_mcp_manager(monkeypatch):
+    from agentbox_harness.tools.mcp_session import McpSessionManager
+
+    closed: list[str] = []
+
+    async def fake_close(self, session_id):
+        closed.append(session_id)
+
+    class FakeJobs:
+        async def kill_session(self, session_id):
+            return None
+
+    async def fake_cancel_sub_sessions(factory, session_id):
+        return None
+
+    monkeypatch.setattr(McpSessionManager, "close_session", fake_close)
+    monkeypatch.setattr(
+        "agentbox_api.acp_server.get_job_manager", lambda: FakeJobs()
+    )
+    monkeypatch.setattr(
+        "agentbox_api.subsessions.cancel_sub_sessions", fake_cancel_sub_sessions
+    )
+
+    from agentbox_api.acp_server import AgentboxAcpAgent
+
+    agent = AgentboxAcpAgent("acp-test", None, None)
+    await agent.close_session("s1")
+    assert "s1" in closed

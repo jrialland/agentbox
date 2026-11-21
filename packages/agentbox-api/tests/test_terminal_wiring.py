@@ -77,3 +77,20 @@ async def test_delete_session_data_kills_jobs(monkeypatch):
         assert fake.killed == ["s1"]
     finally:
         await engine.dispose()
+
+async def test_delete_session_data_closes_mcp(monkeypatch):
+    from agentbox_harness.tools.mcp_session import McpSessionManager
+
+    closed: list[str] = []
+
+    async def fake_close(self, session_id):
+        closed.append(session_id)
+
+    monkeypatch.setattr(McpSessionManager, "close_session", fake_close)
+    engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
+    await init_db(engine)
+    try:
+        await delete_session_data(factory, "s1")
+        assert "s1" in closed
+    finally:
+        await engine.dispose()

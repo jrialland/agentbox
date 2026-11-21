@@ -13,7 +13,7 @@ import os
 import pathlib
 import re
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import cast
 
 import acp
@@ -146,6 +146,7 @@ class AcpSession:
     mode: str
     sub_session_runner: object | None = None
     run: Run | None = None
+    extra_roots: list[str] = field(default_factory=list)
 
 
 def _slug(value: str) -> str:
@@ -187,6 +188,9 @@ class AgentboxAcpAgent:
         self._settings = settings
         self._client: acp.Client | None = None
         self._sessions: dict[str, AcpSession] = {}
+        from agentbox_harness.tools.mcp_session import get_mcp_session_manager
+
+        self.mcp_manager = get_mcp_session_manager()
 
     def on_connect(self, conn: acp.Client) -> None:
         self._client = conn
@@ -256,6 +260,7 @@ class AgentboxAcpAgent:
         self._sessions[session_id] = AcpSession(
             session_id, cwd, project_id, runtime.agent_id, spec, runtime.model,
             prepared.registry, mode, prepared.sub_session_runner,
+            extra_roots=project.extra_roots,
         )
         logger.info("acp session new agent={} session={}", self._agent_name, session_id)
         return s.NewSessionResponse(session_id=session_id, modes=_modes(spec, mode))
@@ -278,6 +283,7 @@ class AgentboxAcpAgent:
             store=store,
             head_id=await _latest_leaf(self._factory, session_id),
             mode_name=sess.mode,
+            extra_roots=sess.extra_roots,
         )
         harness = Harness(
             registry=sess.registry,
@@ -286,6 +292,14 @@ class AgentboxAcpAgent:
             compaction=compaction_config_from_settings(self._settings),
             sub_session_runner=sess.sub_session_runner,
         )
+        warnings = (await harness.prepare_mcp(session)).warnings
+        for warning in warnings:
+            logger.warning(
+                "acp mcp server unavailable session={} server={} error={}",
+                session_id,
+                warning.server_id,
+                warning.message,
+            )
         bus = EventBus()
         sub = bus.subscribe()
         run = await harness.run(session, text, bus, prompt_override=parts)
@@ -416,6 +430,7 @@ class AgentboxAcpAgent:
     async def close_session(self, session_id, **kwargs):
         from agentbox_api.subsessions import cancel_sub_sessions
 
+        await self.mcp_manager.close_session(session_id)
         await get_job_manager().kill_session(session_id)
         await cancel_sub_sessions(self._factory, session_id)
         sess = self._sessions.pop(session_id, None)
@@ -459,6 +474,7 @@ class AgentboxAcpAgent:
             prepared.registry,
             _default_mode(spec),
             prepared.sub_session_runner,
+            extra_roots=project.extra_roots,
         )
         self._sessions[session_id] = sess
         return sess
@@ -494,6 +510,9 @@ async def _serve(agent_name: str) -> None:
     settings = Settings(jwt_secret=secret)
     configure_logging(settings)
     configure_lsp(settings)
+    from agentbox_harness.tools.mcp_session import get_mcp_session_manager
+
+    get_mcp_session_manager().start_timeout = settings.mcp_start_timeout_seconds
     engine, factory = create_engine_and_sessionmaker(settings.database_url)
     await init_db(engine)
     await seed_admin(factory)

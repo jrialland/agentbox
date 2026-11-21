@@ -144,7 +144,9 @@ async def delete_session_data(factory, session_id: str) -> None:
     """Delete a session's turns, attachments, and row."""
     from agentbox_api.project_instructions import clear_instruction_state
     from agentbox_api.subsessions import cancel_sub_sessions
+    from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
+    await get_mcp_session_manager().close_session(session_id)
     clear_instruction_state(session_id)
     await get_job_manager().kill_session(session_id)
     await cancel_sub_sessions(factory, session_id)

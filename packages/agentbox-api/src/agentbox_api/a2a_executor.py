@@ -128,6 +128,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             store=SQLiteMessageLogStore(self._factory, session_id),
             head_id=await _latest_leaf(self._factory, session_id),
             mode_name="agent",
+            extra_roots=project.extra_roots if project is not None else [],
         )
         harness = Harness(
             registry=prepared.registry,
@@ -136,6 +137,14 @@ class AgentboxA2AExecutor(AgentExecutor):
             compaction=compaction_config_from_settings(self._settings),
             sub_session_runner=prepared.sub_session_runner,
         )
+        warnings = (await harness.prepare_mcp(session)).warnings
+        for warning in warnings:
+            logger.warning(
+                "a2a mcp server unavailable session={} server={} error={}",
+                session_id,
+                warning.server_id,
+                warning.message,
+            )
         bus = EventBus()
         sub = bus.subscribe()
         run = await harness.run(session, get_message_text(message), bus)

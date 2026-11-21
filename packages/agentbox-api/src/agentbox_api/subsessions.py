@@ -5,6 +5,7 @@ import uuid
 from dataclasses import dataclass
 from typing import Any
 
+from loguru import logger
 from sqlmodel import select
 
 from agentbox_api.skills import prepare_agent
@@ -167,6 +168,7 @@ class ApiSubSessionRunner:
             store=store_factory(),
             head_id=None,
             mode_name="agent",
+            extra_roots=self._context.extra_roots,
         )
         harness = Harness(
             registry=prepared.registry,
@@ -175,6 +177,14 @@ class ApiSubSessionRunner:
             sub_session_runner=prepared.sub_session_runner,
             compaction=self._context.compaction,
         )
+        warnings = (await harness.prepare_mcp(session)).warnings
+        for warning in warnings:
+            logger.warning(
+                "sub-session mcp server unavailable session={} server={} error={}",
+                child_id,
+                warning.server_id,
+                warning.message,
+            )
         bus = EventBus()
         try:
             run = await harness.run(session, text, bus)
