@@ -14,6 +14,12 @@ from PIL import Image
 from pydantic_ai.messages import BinaryContent
 from pydantic_ai.tools import ToolReturn
 
+from agentbox_harness.tools.grep import (
+    MAX_GREP_CONTEXT_LINES,
+    GrepOptions,
+    run_grep,
+)
+
 CALL_TIMEOUT_SECONDS = 15.0
 MAX_WALK_ENTRIES = 100_000
 
@@ -279,6 +285,31 @@ class FilesystemToolbox:
         if errors:
             output += "\nNote: incomplete search:\n" + "\n".join(errors)
         return output
+
+    async def grep(
+        self,
+        pattern: str,
+        path: str = ".",
+        fixed_strings: bool = False,
+        ignore_case: bool = False,
+        include: list[str] | None = None,
+        exclude: list[str] | None = None,
+        context_lines: int = 0,
+    ) -> str:
+        if not 0 <= context_lines <= MAX_GREP_CONTEXT_LINES:
+            raise ValueError("context_lines must be between 0 and 3")
+        resolved = await self._resolve(path)
+        options = GrepOptions(
+            pattern=pattern,
+            root=resolved,
+            project_root=self.root_dir,
+            fixed_strings=fixed_strings,
+            ignore_case=ignore_case,
+            include=tuple(include or ()),
+            exclude=tuple(exclude or ()),
+            context_lines=context_lines,
+        )
+        return await self._blocking(run_grep, options)
 
     async def list_allowed_directories(self) -> str:
         return "\n".join(str(root) for root in self._read_roots)

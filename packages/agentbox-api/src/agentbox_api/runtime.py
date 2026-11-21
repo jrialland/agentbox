@@ -78,6 +78,7 @@ def build_registry(
         ("list_directory_with_sizes", box.list_directory_with_sizes),
         ("directory_tree", box.directory_tree),
         ("search_files", box.search_files),
+        ("grep", box.grep),
         ("get_file_info", box.get_file_info),
         ("list_allowed_directories", box.list_allowed_directories),
     ]

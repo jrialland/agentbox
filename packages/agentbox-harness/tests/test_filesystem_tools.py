@@ -339,3 +339,24 @@ async def test_extra_write_root_listing_and_delete_guard(root, tmp_path):
     assert str(external.resolve()) in await box.list_allowed_directories()
     with pytest.raises(ValueError):
         await box.delete_path(str(external), recursive=True)
+
+
+async def test_grep_through_filesystem_toolbox(root):
+    box = FilesystemToolbox(root)
+    await box.write_file("a.txt", "first\nneedle\n")
+    await box.write_file("b.md", "needle\n")
+
+    out = await box.grep("needle")
+    assert "a.txt:2:1:needle" in out
+    assert "b.md:1:1:needle" in out
+
+    assert (await box.grep("needle", include=["*.md"])).count("needle") == 1
+    assert "No matches." in await box.grep("missing")
+
+
+async def test_grep_rejects_bad_context_and_path_escape(root):
+    box = FilesystemToolbox(root)
+    with pytest.raises(ValueError):
+        await box.grep("x", context_lines=4)
+    with pytest.raises(PathEscapesRootError):
+        await box.grep("x", path="../outside")
