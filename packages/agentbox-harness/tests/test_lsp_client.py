@@ -1,3 +1,4 @@
+import asyncio
 import pathlib
 import sys
 
@@ -69,3 +70,31 @@ async def test_unknown_server_request_returns_method_not_found(tmp_path):
     server._send = fake_send
     await server._handle_server_request({"id": 9, "method": "unknown/request"})
     assert sent[0]["error"]["code"] == -32601
+
+
+async def test_advertises_and_ingests_server_status(tmp_path):
+    server = await LspServer(
+        command("--server-status", "--clean"),
+        tmp_path,
+        quiescence="server_status",
+    ).start()
+    try:
+        for _ in range(100):
+            if server._tracker is not None and server._tracker.seq > 0:
+                break
+            await asyncio.sleep(0.02)
+        assert server._tracker is not None
+        assert server._tracker.quiescent is True
+        assert server._tracker.health == "ok"
+    finally:
+        await server.stop()
+
+
+async def test_no_tracker_without_quiescence(tmp_path):
+    server = await LspServer(
+        command("--server-status", "--clean"), tmp_path
+    ).start()
+    try:
+        assert server._tracker is None
+    finally:
+        await server.stop()

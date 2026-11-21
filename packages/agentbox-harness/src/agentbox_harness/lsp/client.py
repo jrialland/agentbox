@@ -9,6 +9,8 @@ from urllib.request import url2pathname
 
 from loguru import logger
 
+from agentbox_harness.lsp.quiescence import ServerStatusTracker
+
 
 def _path_from_uri(uri: str) -> pathlib.Path:
     return pathlib.Path(url2pathname(unquote(urlparse(uri).path))).resolve()
@@ -31,6 +33,7 @@ class LspServer:
         *,
         pull=True,
         settle=3.0,
+        quiescence: str | None = None,
         initialize_timeout=10.0,
         diagnostics_timeout=5.0,
     ):
@@ -38,6 +41,7 @@ class LspServer:
         self.root = pathlib.Path(root)
         self.pull = pull
         self.settle = settle
+        self.quiescence = quiescence
         self.initialize_timeout = initialize_timeout
         self.diagnostics_timeout = diagnostics_timeout
         self.process = None
@@ -48,6 +52,9 @@ class LspServer:
         self._diagnostics = {}
         self._diagnostic_events = {}
         self._capabilities = {}
+        self._tracker = (
+            ServerStatusTracker() if quiescence == "server_status" else None
+        )
         self.dead = False
         self._write_lock = asyncio.Lock()
 
@@ -68,6 +75,8 @@ class LspServer:
         capabilities: dict = {"textDocument": {"publishDiagnostics": {}}}
         if self.pull:
             capabilities["textDocument"]["diagnostic"] = {}
+        if self._tracker is not None:
+            capabilities.update(self._tracker.client_capabilities())
         result = await self._request(
             "initialize",
             {
@@ -180,7 +189,13 @@ class LspServer:
                     event = self._diagnostic_events.get(key)
                     if event:
                         event.set()
-                elif message.get("method") in ("window/logMessage", "window/showMessage"):
+                elif message.get("method") == "experimental/serverStatus":
+                    if self._tracker is not None:
+                        self._tracker.handle(message.get("params", {}))
+                elif message.get("method") in (
+                    "window/logMessage",
+                    "window/showMessage",
+                ):
                     logger.debug("lsp notification {}", message.get("params", {}))
         except Exception:
             logger.exception("lsp reader failed")

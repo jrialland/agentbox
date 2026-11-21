@@ -1,5 +1,6 @@
 import json
 import sys
+import time
 
 
 def read_message():
@@ -24,14 +25,53 @@ def send(message):
 
 
 def main():
-    push = "--push" in sys.argv
+    push = "--push" in sys.argv or "--server-status" in sys.argv
+    server_status = "--server-status" in sys.argv
     no_response = "--no-response" in sys.argv
+    error = "--error" in sys.argv
+    stale = "--stale" in sys.argv
+    busy = "--busy" in sys.argv
+    busy_then_quiet = "--busy-then-quiet" in sys.argv
+    status_enabled = False
+
+    def send_status(quiescent):
+        send(
+            {
+                "jsonrpc": "2.0",
+                "method": "experimental/serverStatus",
+                "params": {"health": "ok", "quiescent": quiescent},
+            }
+        )
+
+    def publish(uri, diagnostics):
+        send(
+            {
+                "jsonrpc": "2.0",
+                "method": "textDocument/publishDiagnostics",
+                "params": {"uri": uri, "diagnostics": diagnostics},
+            }
+        )
+
+    error_diagnostic = {
+        "range": {"start": {"line": 0, "character": 0}},
+        "severity": 1,
+        "message": "fake error",
+        "source": "fake",
+    }
+
     while True:
         message = read_message()
         if message is None:
             break
         method = message.get("method")
         if method == "initialize":
+            capability = (
+                message.get("params", {})
+                .get("capabilities", {})
+                .get("experimental", {})
+                .get("serverStatusNotification")
+            )
+            status_enabled = bool(server_status and capability)
             send(
                 {
                     "jsonrpc": "2.0",
@@ -41,27 +81,33 @@ def main():
                     },
                 }
             )
+            if status_enabled:
+                send_status(True)
         elif method == "textDocument/didOpen":
-            if push:
-                send(
-                    {
-                        "jsonrpc": "2.0",
-                        "method": "textDocument/publishDiagnostics",
-                        "params": {
-                            "uri": message["params"]["textDocument"]["uri"],
-                            "diagnostics": [
-                                {
-                                    "range": {
-                                        "start": {"line": 0, "character": 0}
-                                    },
-                                    "severity": 1,
-                                    "message": "fake error",
-                                    "source": "fake",
-                                }
-                            ],
-                        },
-                    }
+            if push and not server_status:
+                publish(
+                    message["params"]["textDocument"]["uri"],
+                    [error_diagnostic],
                 )
+        elif method == "textDocument/didSave":
+            if not status_enabled:
+                continue
+            uri = message["params"]["textDocument"]["uri"]
+            if not stale:
+                send_status(False)
+            if busy:
+                publish(uri, [error_diagnostic])
+                continue
+            if busy_then_quiet:
+                time.sleep(0.2)
+                send_status(True)
+                continue
+            if error:
+                publish(uri, [error_diagnostic])
+            else:
+                publish(uri, [])
+            if not stale:
+                send_status(True)
         elif method == "textDocument/diagnostic":
             if no_response:
                 continue
