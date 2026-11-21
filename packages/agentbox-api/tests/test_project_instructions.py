@@ -99,13 +99,13 @@ def test_read_failure_uses_last_known_content(
     project.mkdir()
     agents = project / "AGENTS.md"
     agents.write_text("known guidance", encoding="utf-8")
-    args = dict(
+    first = project_instructions.read_instruction_file(
+        agents,
         boundary=project,
         source="AGENTS.md",
         scope="project",
         max_bytes=project_instructions.MAX_INSTRUCTION_BYTES,
     )
-    first = project_instructions.read_instruction_file(agents, **args)
     assert first is not None and first.content == "known guidance"
 
     original_read = pathlib.Path.read_bytes
@@ -116,7 +116,13 @@ def test_read_failure_uses_last_known_content(
         return original_read(self)
 
     monkeypatch.setattr(pathlib.Path, "read_bytes", failing_read)
-    second = project_instructions.read_instruction_file(agents, **args)
+    second = project_instructions.read_instruction_file(
+        agents,
+        boundary=project,
+        source="AGENTS.md",
+        scope="project",
+        max_bytes=project_instructions.MAX_INSTRUCTION_BYTES,
+    )
     assert second is not None
     assert second.content == "known guidance"
 
@@ -331,7 +337,7 @@ async def test_prepare_agent_registers_nested_hook(
         factory, "bot", str(project), str(tmp_path / "skills"), session_id="s2"
     )
     tools = prepared.registry.select_tools(Mode(name="agent", flags={"write": True}))
-    read_tool = next(tool for tool in tools if tool.__name__ == "read_text_file")
+    read_tool = next(tool for tool in tools if getattr(tool, "__name__", "") == "read_text_file")
     output = await read_tool("pkg/file.txt")
     assert "pkg rules" in output
     project_instructions.clear_instruction_state("s2")
