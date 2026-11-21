@@ -84,12 +84,15 @@ export function SessionPage() {
   const sessionQuery = useSession(id);
   const notFound =
     sessionQuery.error instanceof ApiError && sessionQuery.error.status === 404;
-  const sessionEnabled = !notFound;
+  const sessionEnabled = sessionQuery.isSuccess && !notFound;
   const { data: session } = sessionQuery;
-  const { data: messages } = useMessages(id, sessionEnabled);
-  const { data: lsp } = useSessionLsp(id, sessionEnabled);
+  const messagesQuery = useMessages(id, sessionEnabled);
+  const lspQuery = useSessionLsp(id, sessionEnabled);
   const chat = useChat(API_URL, token, id);
-  const { data: plan } = useSessionPlan(id, chat.running, sessionEnabled);
+  const planQuery = useSessionPlan(id, chat.running, sessionEnabled);
+  const { data: messages } = messagesQuery;
+  const { data: lsp } = lspQuery;
+  const { data: plan } = planQuery;
   const qc = useQueryClient();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<string | null>("agent");
@@ -196,26 +199,44 @@ export function SessionPage() {
             </Button>
             <h1>Session</h1>
           </div>
-          <PlanPanel items={plan?.items ?? []} />
+          {planQuery.error ? (
+            <ErrorCard
+              label="plan unavailable"
+              error={{ message: planQuery.error.message }}
+              onRetry={() => void planQuery.refetch()}
+              testId="plan-error"
+            />
+          ) : (
+            <PlanPanel items={plan?.items ?? []} />
+          )}
           <div className={styles.messages} ref={messagesRef}>
-            {(messages ?? []).map((message) =>
-              message.role === "summary" ? (
-                <SummaryNotice key={message.id} content={message.content} />
-              ) : (
-                <MessageTurn
-                  key={message.id}
-                  message={message as ChatMessage}
-                  agentName={agentName}
-                  sessionId={id}
-                  onRetry={retry}
-                  onEdit={(message) => {
-                    setPreviousInput(input);
-                    setInput(message.content);
-                    setForkMode(true);
-                    setForkFromTurnId(message.parent_id ?? null);
-                  }}
-                />
-              ),
+            {messagesQuery.error ? (
+              <ErrorCard
+                label="messages unavailable"
+                error={{ message: messagesQuery.error.message }}
+                onRetry={() => void messagesQuery.refetch()}
+                testId="messages-error"
+              />
+            ) : (
+              (messages ?? []).map((message) =>
+                message.role === "summary" ? (
+                  <SummaryNotice key={message.id} content={message.content} />
+                ) : (
+                  <MessageTurn
+                    key={message.id}
+                    message={message as ChatMessage}
+                    agentName={agentName}
+                    sessionId={id}
+                    onRetry={retry}
+                    onEdit={(message) => {
+                      setPreviousInput(input);
+                      setInput(message.content);
+                      setForkMode(true);
+                      setForkFromTurnId(message.parent_id ?? null);
+                    }}
+                  />
+                ),
+              )
             )}
             {chat.segments.length > 0 && (
               <div className={styles.liveTurn} data-testid="live-turn">
@@ -272,25 +293,36 @@ export function SessionPage() {
         onClose={() => setAboutOpen(false)}
         title="About this session"
       >
-        <p>Detected stacks</p>
-        <ul>
-          {(lsp?.detected ?? []).map((name) => (
-            <li key={name}>{name}</li>
-          ))}
-        </ul>
-        <p>Active language servers</p>
-        {lsp && lsp.active.length > 0 ? (
-          <ul>
-            {lsp.active.map((server) => (
-              <li key={server.stack}>
-                {server.stack} — {server.status} ({server.documents} docs)
-                <br />
-                <code>{server.command}</code>
-              </li>
-            ))}
-          </ul>
+        {lspQuery.error ? (
+          <ErrorCard
+            label="language servers unavailable"
+            error={{ message: lspQuery.error.message }}
+            onRetry={() => void lspQuery.refetch()}
+            testId="lsp-error"
+          />
         ) : (
-          <p>No active language servers yet.</p>
+          <>
+            <p>Detected stacks</p>
+            <ul>
+              {(lsp?.detected ?? []).map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+            <p>Active language servers</p>
+            {lsp && lsp.active.length > 0 ? (
+              <ul>
+                {lsp.active.map((server) => (
+                  <li key={server.stack}>
+                    {server.stack} — {server.status} ({server.documents} docs)
+                    <br />
+                    <code>{server.command}</code>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No active language servers yet.</p>
+            )}
+          </>
         )}
       </Modal>
     </PageContainer>
