@@ -23,7 +23,6 @@ import {
 import { DataTable } from "../design-system/data/DataTable";
 import { FormField } from "../design-system/forms/FormField";
 import { NumberInput } from "../design-system/forms/NumberInput";
-import { PasswordInput } from "../design-system/forms/PasswordInput";
 import { Select } from "../design-system/forms/Select";
 import { TextInput } from "../design-system/forms/TextInput";
 import { IconButton } from "../design-system/icons/IconButton";
@@ -37,16 +36,11 @@ import { StatusChip } from "../design-system/primitives/StatusChip";
 import { TableToolbar } from "../design-system/data/TableToolbar";
 import { Tabs } from "../design-system/primitives/Tabs";
 import styles from "./providers.module.css";
-
-const KINDS = [
-  "generic",
-  "openai_legacy",
-  "openai_responses",
-  "anthropic",
-  "moonshot",
-  "deepseek",
-  "ollama",
-];
+import { ProviderForm } from "./providers/ProviderForm";
+import {
+  EMPTY_PROVIDER_DRAFT,
+  type ProviderDraft,
+} from "./providers/providerPresets";
 
 export function ProvidersPage() {
   const [tab, setTab] = useState<string | null>("providers");
@@ -170,19 +164,17 @@ function ProviderFormDrawer({
 }) {
   const create = useCreateProvider();
   const update = useUpdateProvider();
-  const [name, setName] = useState("");
-  const [kind, setKind] = useState<string | null>("generic");
-  const [baseUrl, setBaseUrl] = useState("");
-  const [apiKey, setApiKey] = useState("");
-  const [modelsUrl, setModelsUrl] = useState("");
+  const [draft, setDraft] = useState<ProviderDraft>(EMPTY_PROVIDER_DRAFT);
 
   useEffect(() => {
     if (!opened) return;
-    setName(provider?.name ?? "");
-    setKind(provider?.kind ?? "generic");
-    setBaseUrl(provider?.base_url ?? "");
-    setApiKey("");
-    setModelsUrl(provider?.models_url ?? "");
+    setDraft({
+      name: provider?.name ?? "",
+      kind: provider?.kind ?? "generic",
+      baseUrl: provider?.base_url ?? "",
+      modelsUrl: provider?.models_url ?? "",
+      apiKey: "",
+    });
   }, [opened, provider]);
 
   async function onSave() {
@@ -191,21 +183,21 @@ function ProviderFormDrawer({
         await update.mutateAsync({
           pid: provider.id,
           body: {
-            name,
-            kind: kind ?? provider.kind,
-            base_url: baseUrl,
-            models_url: modelsUrl,
-            ...(apiKey ? { api_key: apiKey } : {}),
+            name: draft.name,
+            kind: draft.kind,
+            base_url: draft.baseUrl,
+            models_url: draft.modelsUrl,
+            ...(draft.apiKey ? { api_key: draft.apiKey } : {}),
           },
         });
         notifications.show({ message: "Provider updated" });
       } else {
         await create.mutateAsync({
-          name,
-          kind: kind ?? "generic",
-          base_url: baseUrl || undefined,
-          api_key: apiKey || undefined,
-          models_url: modelsUrl || undefined,
+          name: draft.name,
+          kind: draft.kind,
+          base_url: draft.baseUrl || undefined,
+          api_key: draft.apiKey || undefined,
+          models_url: draft.modelsUrl || undefined,
         });
         notifications.show({ message: "Provider created" });
       }
@@ -225,31 +217,11 @@ function ProviderFormDrawer({
       title={provider ? "Edit provider" : "New provider"}
       size="md"
     >
-      <FormField label="Name" required>
-        <TextInput value={name} onChange={(e) => setName(e.currentTarget.value)} />
-      </FormField>
-      <FormField label="Kind" required>
-        <Select data={KINDS} value={kind} onChange={setKind} />
-      </FormField>
-      <FormField label="Base URL" description="Provider API base, including /v1 when required.">
-        <TextInput
-          value={baseUrl}
-          onChange={(e) => setBaseUrl(e.currentTarget.value)}
-        />
-      </FormField>
-      <FormField label="API key">
-        <PasswordInput
-          placeholder={provider ? "leave blank to keep" : "sk-..."}
-          value={apiKey}
-          onChange={(e) => setApiKey(e.currentTarget.value)}
-        />
-      </FormField>
-      <FormField label="Models URL" description="Endpoint that returns the model list.">
-        <TextInput
-          value={modelsUrl}
-          onChange={(e) => setModelsUrl(e.currentTarget.value)}
-        />
-      </FormField>
+      <ProviderForm
+        value={draft}
+        onChange={setDraft}
+        providerId={provider?.id}
+      />
       <div className={styles.formActions}>
         <Button variant="light" onClick={onClose}>
           Cancel
@@ -531,3 +503,4 @@ function ModelLabelsModal({
     </Modal>
   );
 }
+

@@ -37,3 +37,17 @@
   align-items: end;
   margin-bottom: var(--ab-space-2);
 }
+
+.guidance {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-sm);
+  margin: 0 0 var(--ab-space-3);
+}
+
+.testRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-space-3);
+  margin-bottom: var(--ab-space-3);
+}
