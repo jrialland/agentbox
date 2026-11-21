@@ -2,6 +2,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import time
 
 import pytest
 
@@ -92,3 +93,55 @@ async def test_rust_analyzer(tmp_path):
         tmp_path, "src/main.rs", 'fn main() { let x: i32 = "no"; }\n'
     )
     assert text and "error" in text.lower()
+
+
+@pytest.mark.skipif(
+    not _available("rust-analyzer") or shutil.which("cargo") is None,
+    reason="rust-analyzer/cargo not installed",
+)
+async def test_rust_analyzer_clean_write_is_fast(tmp_path):
+    (tmp_path / "Cargo.toml").write_text(
+        "[package]\nname = 'x'\nversion = '0.1.0'\nedition = '2021'\n",
+        encoding="utf-8",
+    )
+    (tmp_path / "src").mkdir()
+    main = tmp_path / "src" / "main.rs"
+    manager = LspManager()
+    manager.initialize_timeout = 60.0
+    manager.diagnostics_timeout = 60.0
+    hook = make_lsp_hook(manager, "real", str(tmp_path))
+    try:
+        main.write_text(
+            'fn main() { let x: i32 = 1; println!("{}", x); }\n',
+            encoding="utf-8",
+        )
+        await hook(
+            ToolHookContext(
+                tool_name="write_file",
+                args={"path": str(main)},
+                root=tmp_path,
+                result="ok",
+            )
+        )
+        server = next(iter(manager._servers.values()), None)
+        assert server is not None
+        if server._tracker is None or server._tracker.seq == 0:
+            pytest.skip("rust-analyzer did not send experimental/serverStatus")
+        main.write_text(
+            'fn main() { let x: i32 = 2; println!("{}", x); }\n',
+            encoding="utf-8",
+        )
+        started = time.perf_counter()
+        text = await hook(
+            ToolHookContext(
+                tool_name="write_file",
+                args={"path": str(main)},
+                root=tmp_path,
+                result="ok",
+            )
+        )
+        elapsed = time.perf_counter() - started
+        assert text is None
+        assert elapsed < 2.0
+    finally:
+        await manager.shutdown()
