@@ -1,0 +1,43 @@
+.helpLink {
+  background: none;
+  border: 0;
+  color: var(--ab-cyan);
+  cursor: pointer;
+  font: inherit;
+  padding: 0;
+  text-align: left;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.helpLink:hover {
+  color: var(--ab-phosphor);
+}
+
+.popoverText {
+  color: var(--ab-text);
+  font-size: var(--ab-text-sm);
+  margin: 0 0 var(--ab-space-2);
+  max-width: 280px;
+}
+
+.drawerSection {
+  display: grid;
+  gap: var(--ab-space-2);
+  margin-bottom: var(--ab-space-4);
+}
+
+.drawerSection h3 {
+  font-size: var(--ab-text-md);
+  margin: 0;
+}
+
+.drawerSection p,
+.drawerSection ul {
+  color: var(--ab-text-muted);
+  margin: 0;
+}
+
+.drawerSection ul {
+  padding-left: var(--ab-space-5);
+}

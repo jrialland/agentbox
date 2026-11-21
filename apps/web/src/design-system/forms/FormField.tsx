@@ -8,6 +8,7 @@ export function FormField({
   error,
   required,
   htmlFor,
+  help,
   children,
 }: {
   label: string;
@@ -15,13 +16,17 @@ export function FormField({
   error?: string | null;
   required?: boolean;
   htmlFor?: string;
+  help?: ReactNode;
   children: ReactNode;
 }) {
   const content = (
     <>
-      <span className={styles.label}>
-        {label}
-        {required && <span aria-hidden="true"> *</span>}
+      <span className={styles.labelRow}>
+        <span className={styles.label}>
+          {label}
+          {required && <span aria-hidden="true"> *</span>}
+        </span>
+        {help}
       </span>
       {description && <span className={styles.description}>{description}</span>}
       {children}
@@ -36,10 +41,13 @@ export function FormField({
   if (htmlFor) {
     return (
       <div className={styles.field}>
-        <label className={styles.label} htmlFor={htmlFor}>
-          {label}
-          {required && <span aria-hidden="true"> *</span>}
-        </label>
+        <span className={styles.labelRow}>
+          <label className={styles.label} htmlFor={htmlFor}>
+            {label}
+            {required && <span aria-hidden="true"> *</span>}
+          </label>
+          {help}
+        </span>
         {description && (
           <span className={styles.description}>{description}</span>
         )}
@@ -55,3 +63,4 @@ export function FormField({
 
   return <label className={styles.field}>{content}</label>;
 }
+

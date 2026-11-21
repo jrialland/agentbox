@@ -42,3 +42,9 @@
   gap: var(--ab-space-2);
   margin-top: var(--ab-space-4);
 }
+
+.labelRow {
+  align-items: center;
+  display: flex;
+  gap: var(--ab-space-2);
+}

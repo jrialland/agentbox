@@ -5,6 +5,7 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { ThemeProvider } from "./design-system/theme/ThemeProvider";
+import { HelpProvider } from "./help/HelpProvider";
 import { CommandShell } from "./design-system/shell/CommandShell";
 import { AdminPage } from "./pages/AdminPage";
 import { AgentsPage } from "./pages/AgentsPage";
@@ -20,6 +21,7 @@ const queryClient = new QueryClient();
 export function App() {
   return (
     <ThemeProvider>
+      <HelpProvider>
       <Notifications />
       <ModalsProvider>
         <QueryClientProvider client={queryClient}>
@@ -41,6 +43,8 @@ export function App() {
           </BrowserRouter>
         </QueryClientProvider>
       </ModalsProvider>
+      </HelpProvider>
     </ThemeProvider>
   );
 }
+
