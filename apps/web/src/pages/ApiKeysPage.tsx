@@ -1,5 +1,5 @@
 import { notifications } from "@mantine/notifications";
-import { RiDeleteBin6Line } from "@remixicon/react";
+import { RiDeleteBin6Line, RiKey2Line } from "@remixicon/react";
 import { useEffect, useRef, useState } from "react";
 
 import type { ApiKey } from "../api/endpoints";
@@ -10,6 +10,7 @@ import { Select } from "../design-system/forms/Select";
 import { TextInput } from "../design-system/forms/TextInput";
 import { IconButton } from "../design-system/icons/IconButton";
 import { Modal } from "../design-system/overlays/Modal";
+import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
 import { ListPage } from "../design-system/patterns/ListPage";
 import { Badge } from "../design-system/primitives/Badge";
 import { Button } from "../design-system/primitives/Button";
@@ -82,11 +83,13 @@ export function ApiKeysPage() {
               description="Select the permissions this key may use."
               help={<HelpTip id="api.scopes" />}
             >
-              <ScopePicker
-                available={[...new Set(user?.permissions ?? [])]}
-                value={scopes}
-                onChange={setScopes}
-              />
+              <div id="api-key-scopes">
+                <ScopePicker
+                  available={[...new Set(user?.permissions ?? [])]}
+                  value={scopes}
+                  onChange={setScopes}
+                />
+              </div>
             </FormField>
             <FormField label="Expires">
               <Select
@@ -102,6 +105,23 @@ export function ApiKeysPage() {
         </Panel.Body>
       </Panel>
 
+      {(keys ?? []).length === 0 ? (
+        <GuidedEmptyState
+          icon={RiKey2Line}
+          title="No API keys yet"
+          description="Create a scoped credential for scripts, integrations, or A2A clients."
+          helpId="api.scopes"
+          action={
+            <Button
+              onClick={() =>
+                document.getElementById("api-key-scopes")?.scrollIntoView()
+              }
+            >
+              Choose scopes
+            </Button>
+          }
+        />
+      ) : (
       <DataTable<ApiKey>
         rowKey={(key) => key.id}
         rows={keys ?? []}
@@ -160,6 +180,7 @@ export function ApiKeysPage() {
           },
         ]}
       />
+      )}
 
       <Modal
         opened={!!created}
@@ -180,4 +201,5 @@ export function ApiKeysPage() {
     </ListPage>
   );
 }
+
 

@@ -17,7 +17,8 @@ import { AgentAvatar } from "../../components/agents/AgentAvatar";
 import { DataTable } from "../../design-system/data/DataTable";
 import { IconButton } from "../../design-system/icons/IconButton";
 import { Badge } from "../../design-system/primitives/Badge";
-import { EmptyStatePanel } from "../../design-system/patterns/EmptyStatePanel";
+import { Button } from "../../design-system/primitives/Button";
+import { GuidedEmptyState } from "../../design-system/patterns/GuidedEmptyState";
 import { AgentCardModal } from "./AgentCardModal";
 import styles from "./agents.module.css";
 
@@ -51,15 +52,12 @@ export function AgentList({
 
   if (agents.length === 0) {
     return (
-      <EmptyStatePanel
+      <GuidedEmptyState
         icon={RiRobot2Line}
         title="No agents"
         description="Configure an agent with a model, instructions, and tools."
-        action={
-          <button type="button" className={styles.linkButton} onClick={onNew}>
-            Create your first agent
-          </button>
-        }
+        helpId="agent.tools"
+        action={<Button onClick={onNew}>Create your first agent</Button>}
       />
     );
   }
@@ -148,3 +146,4 @@ export function AgentList({
     </>
   );
 }
+

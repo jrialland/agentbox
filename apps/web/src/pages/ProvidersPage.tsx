@@ -28,6 +28,7 @@ import { TextInput } from "../design-system/forms/TextInput";
 import { IconButton } from "../design-system/icons/IconButton";
 import { Drawer } from "../design-system/overlays/Drawer";
 import { Modal } from "../design-system/overlays/Modal";
+import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
 import { ListPage } from "../design-system/patterns/ListPage";
 import { Badge } from "../design-system/primitives/Badge";
 import { Button } from "../design-system/primitives/Button";
@@ -76,7 +77,7 @@ export function ProvidersPage() {
           <Tabs.Tab value="models">Models</Tabs.Tab>
         </Tabs.List>
         <Tabs.Panel value="providers" pt="md">
-          <ProvidersTab onEdit={openEdit} />
+          <ProvidersTab onEdit={openEdit} onCreate={openCreate} />
         </Tabs.Panel>
         <Tabs.Panel value="models" pt="md">
           <ModelsTab />
@@ -91,7 +92,13 @@ export function ProvidersPage() {
   );
 }
 
-function ProvidersTab({ onEdit }: { onEdit: (provider: Provider) => void }) {
+function ProvidersTab({
+  onEdit,
+  onCreate,
+}: {
+  onEdit: (provider: Provider) => void;
+  onCreate: () => void;
+}) {
   const { data: providers } = useProviders();
   const del = useDeleteProvider();
   const refresh = useRefreshModels();
@@ -103,6 +110,18 @@ function ProvidersTab({ onEdit }: { onEdit: (provider: Provider) => void }) {
     } catch {
       notifications.show({ message: "Failed to refresh models", color: "red" });
     }
+  }
+
+  if ((providers ?? []).length === 0) {
+    return (
+      <GuidedEmptyState
+        icon={RiAddLine}
+        title="No providers yet"
+        description="Connect a model endpoint to discover models and create agents."
+        helpId="provider.kind"
+        action={<Button onClick={onCreate}>Add your first provider</Button>}
+      />
+    );
   }
 
   return (
@@ -503,4 +522,5 @@ function ModelLabelsModal({
     </Modal>
   );
 }
+
 

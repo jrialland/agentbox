@@ -1,5 +1,5 @@
 import { notifications } from "@mantine/notifications";
-import { RiDeleteBin6Line, RiSettings3Line } from "@remixicon/react";
+import { RiBookOpenLine, RiDeleteBin6Line, RiSettings3Line } from "@remixicon/react";
 import { useState } from "react";
 
 import { fetchSkill } from "../api/endpoints";
@@ -9,6 +9,7 @@ import { FormField } from "../design-system/forms/FormField";
 import { TextInput } from "../design-system/forms/TextInput";
 import { Textarea } from "../design-system/forms/Textarea";
 import { IconButton } from "../design-system/icons/IconButton";
+import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
 import { ListPage } from "../design-system/patterns/ListPage";
 import { Button } from "../design-system/primitives/Button";
 import { Panel } from "../design-system/primitives/Panel";
@@ -67,6 +68,7 @@ export function SkillsPage() {
           <div style={{ display: "grid", gap: 12, maxWidth: 720 }}>
             <FormField label="Name" required>
               <TextInput
+                id="skill-name"
                 value={name}
                 disabled={editing !== null}
                 onChange={(e) => setName(e.currentTarget.value)}
@@ -100,6 +102,19 @@ export function SkillsPage() {
         </Panel.Body>
       </Panel>
 
+      {(skills ?? []).length === 0 ? (
+        <GuidedEmptyState
+          icon={RiBookOpenLine}
+          title="No skills yet"
+          description="Create a reusable instruction pack and invoke it from chat with /."
+          helpId="skills.overview"
+          action={
+            <Button onClick={() => document.getElementById("skill-name")?.focus()}>
+              Create your first skill
+            </Button>
+          }
+        />
+      ) : (
       <DataTable<SkillRow>
         rowKey={(skill) => skill.name}
         rows={(skills ?? []) as SkillRow[]}
@@ -143,6 +158,8 @@ export function SkillsPage() {
           },
         ]}
       />
+      )}
     </ListPage>
   );
 }
+
