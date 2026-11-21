@@ -208,3 +208,19 @@ async def test_quiescence_without_status_falls_back_to_settle(tmp_path):
         assert result[0]["message"] == "fake error"
     finally:
         await server.stop()
+
+
+async def test_quiescence_returns_cached_publish_after_save(tmp_path):
+    path = tmp_path / "a.rs"
+    path.write_text("fn main() {}", encoding="utf-8")
+    server = await _quiescence_server(tmp_path, "--stale", "--error", settle=1.0, timeout=1.0)
+    try:
+        await server.sync_document(str(path), "rust")
+        await server.save_document(str(path))
+        await asyncio.sleep(0.1)
+        started = asyncio.get_running_loop().time()
+        result = await server.diagnostics(str(path))
+        assert result[0]["message"] == "fake error"
+        assert _elapsed(started) < 0.5
+    finally:
+        await server.stop()

@@ -290,6 +290,8 @@ class LspServer:
     async def _quiescence_wait(self, target, grace):
         tracker = self._tracker
         assert tracker is not None
+        if target in self._diagnostics and tracker.quiescent is True:
+            return self._diagnostics[target]
         busy_seq_at_start = tracker.busy_seq
         publish_at_start = self._publish_counts.get(target, 0)
         event = asyncio.Event()
