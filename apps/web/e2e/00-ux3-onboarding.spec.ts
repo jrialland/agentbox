@@ -33,7 +33,8 @@ test("first-run wizard tests a provider and completes setup", async ({ page }) =
   await wizard.getByLabel("Project path").fill(".");
   await wizard.getByRole("button", { name: "Create project and start session" }).click();
 
-  await wizard.getByRole("button", { name: "Open Home" }).click();
+  await expect(page).toHaveURL(/\/sessions\//, { timeout: 15000 });
+  await expect(page.getByTestId("composer")).toBeVisible();
   await page.goto("/");
   await expect(page.getByText("4 of 4 complete")).toBeVisible();
 });

@@ -13,6 +13,13 @@ from pydantic_ai.messages import (
     ThinkingPartDelta,
 )
 
+_MAX_ACTIVITY_TEXT = 4_000
+
+
+def _preview(value: object) -> str:
+    text = value if isinstance(value, str) else str(value)
+    return text[:_MAX_ACTIVITY_TEXT]
+
 
 @dataclass
 class ToolActivity:
@@ -20,6 +27,8 @@ class ToolActivity:
     started_at: float
     status: str = "success"
     ended_at: float | None = None
+    args: str = ""
+    result: str = ""
 
 
 @dataclass
@@ -27,6 +36,7 @@ class RunActivityCollector:
     started_at: float = field(default_factory=time.monotonic)
     reasoning_started_at: float | None = None
     reasoning_ms: int = 0
+    reasoning_text: str = ""
     tools: dict[str, ToolActivity] = field(default_factory=dict)
     text: str = ""
 
@@ -35,15 +45,19 @@ class RunActivityCollector:
         if (
             isinstance(event, PartStartEvent)
             and isinstance(event.part, ThinkingPart)
-            and self.reasoning_started_at is None
         ):
-            self.reasoning_started_at = now
+            if self.reasoning_started_at is None:
+                self.reasoning_started_at = now
+            self.reasoning_text = _preview(self.reasoning_text + event.part.content)
         if (
             isinstance(event, PartDeltaEvent)
             and isinstance(event.delta, ThinkingPartDelta)
-            and self.reasoning_started_at is None
         ):
-            self.reasoning_started_at = now
+            if self.reasoning_started_at is None:
+                self.reasoning_started_at = now
+            self.reasoning_text = _preview(
+                self.reasoning_text + (event.delta.content_delta or "")
+            )
         if (
             isinstance(event, PartEndEvent)
             and isinstance(event.part, ThinkingPart)
@@ -59,6 +73,7 @@ class RunActivityCollector:
             self.tools[event.tool_call_id] = ToolActivity(
                 name=event.part.tool_name,
                 started_at=now,
+                args=_preview(event.part.args_as_json_str()),
             )
         if isinstance(event, FunctionToolResultEvent):
             tool = self.tools.get(event.tool_call_id)
@@ -67,6 +82,7 @@ class RunActivityCollector:
                 tool.status = (
                     "success" if event.part.outcome == "success" else "error"
                 )
+                tool.result = _preview(event.part.content)
 
     def summary(self, status: str, error: dict | None = None) -> dict:
         reasoning_ms = self.reasoning_ms
@@ -77,6 +93,7 @@ class RunActivityCollector:
         return {
             "status": status,
             "reasoning_ms": reasoning_ms,
+            "reasoning_text": self.reasoning_text,
             "tools": [
                 {
                     "name": tool.name,
@@ -85,6 +102,8 @@ class RunActivityCollector:
                         ((tool.ended_at or time.monotonic()) - tool.started_at)
                         * 1000
                     ),
+                    "args": tool.args,
+                    "result": tool.result,
                 }
                 for tool in self.tools.values()
             ],

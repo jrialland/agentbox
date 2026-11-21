@@ -4,6 +4,19 @@ import styles from "./chat.module.css";
 
 export type RunError = { code?: string | number; message?: string };
 
+function friendlyMessage(message: string): string {
+  if (/401|403|authentication fails|invalid.*api key/i.test(message)) {
+    return "Provider authentication failed. Check the API key in Providers.";
+  }
+  if (/429|rate limit/i.test(message)) {
+    return "The provider rate limit was reached. Wait a moment and retry.";
+  }
+  if (/timeout|timed out/i.test(message)) {
+    return "The provider did not respond in time. Check the endpoint and retry.";
+  }
+  return message;
+}
+
 export function ErrorCard({
   error,
   onRetry,
@@ -15,6 +28,8 @@ export function ErrorCard({
   label?: string;
   testId?: string;
 }) {
+  const raw = error.message ?? "The run failed.";
+  const friendly = friendlyMessage(raw);
   return (
     <div className={styles.errorCard} role="alert" data-testid={testId}>
       <div className={styles.errorHead}>
@@ -23,7 +38,13 @@ export function ErrorCard({
           <code className={styles.errorCode}>{error.code}</code>
         )}
       </div>
-      <p>{error.message ?? "The run failed."}</p>
+      <p>{friendly}</p>
+      {friendly !== raw && (
+        <details className={styles.errorDetails}>
+          <summary>Details</summary>
+          <pre>{raw}</pre>
+        </details>
+      )}
       <Button variant="light" size="compact-sm" onClick={onRetry}>
         Retry
       </Button>

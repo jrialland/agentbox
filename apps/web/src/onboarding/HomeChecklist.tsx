@@ -21,26 +21,35 @@ export function HomeChecklist({
         </Badge>
       </Panel.Header>
       <Panel.Body>
-        <ul style={{ display: "grid", gap: 8, listStyle: "none", margin: 0, padding: 0 }}>
-          {progress.items.map((item) => (
-            <li
-              key={item.id}
-              style={{ alignItems: "center", display: "flex", gap: 8 }}
-            >
-              <StatusChip tone={item.done ? "success" : "neutral"}>
-                {item.done ? "done" : "next"}
-              </StatusChip>
-              <span style={{ flex: 1 }}>{item.label}</span>
-            </li>
-          ))}
-        </ul>
-        {!progress.complete && (
-          <Button mt="sm" onClick={() => onOpenStep(progress.nextStep)}>
-            Continue
-          </Button>
-        )}
-        {progress.complete && (
+        {progress.complete ? (
           <StatusChip tone="success">setup complete</StatusChip>
+        ) : (
+          <>
+            <ul
+              style={{
+                display: "grid",
+                gap: 8,
+                listStyle: "none",
+                margin: 0,
+                padding: 0,
+              }}
+            >
+              {progress.items.map((item) => (
+                <li
+                  key={item.id}
+                  style={{ alignItems: "center", display: "flex", gap: 8 }}
+                >
+                  <StatusChip tone={item.done ? "success" : "neutral"}>
+                    {item.done ? "done" : "next"}
+                  </StatusChip>
+                  <span style={{ flex: 1 }}>{item.label}</span>
+                </li>
+              ))}
+            </ul>
+            <Button mt="sm" onClick={() => onOpenStep(progress.nextStep)}>
+              Continue
+            </Button>
+          </>
         )}
       </Panel.Body>
     </Panel>

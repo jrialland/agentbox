@@ -36,7 +36,7 @@ export function useAutoScroll<T extends HTMLElement>(
     if (typeof el.scrollTo === "function") {
       el.scrollTo({
         top: el.scrollHeight,
-        behavior: prefersReducedMotion() ? "auto" : "smooth",
+        behavior: "auto",
       });
     } else {
       el.scrollTop = el.scrollHeight;

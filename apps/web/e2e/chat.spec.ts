@@ -1,65 +1,9 @@
-import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
-const API = "http://localhost:8000";
-
-async function setupChat(page: Page, request: APIRequestContext): Promise<string> {
-  await page.goto("/login");
-  await page.getByLabel("Username").fill("admin");
-  await page.getByRole("textbox", { name: "Password" }).fill("admin");
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
-
-  const raw = await page.evaluate(() => sessionStorage.getItem("agentbox-auth"));
-  const token = JSON.parse(raw as string).state.token as string;
-  const h = { Authorization: `Bearer ${token}` };
-
-  const suffix = Date.now();
-  const prov = await request.post(`${API}/providers`, {
-    headers: h,
-    data: {
-      name: `e2e-test-${suffix}`,
-      kind: "test",
-      models_url: "http://localhost:9999/models",
-    },
-  });
-  const provId = (await prov.json()).id;
-  await request.post(`${API}/providers/${provId}/models/refresh`, { headers: h });
-  const modelName = `e2e-model-${suffix}`;
-  await request.post(`${API}/models`, {
-    headers: h,
-    data: { provider_id: provId, name: modelName, labels: [] },
-  });
-
-  await request.post(`${API}/agents`, {
-    headers: h,
-    data: {
-      name: `e2e-agent-${suffix}`,
-      description: "d",
-      instructions: "i",
-      model: modelName,
-      tool_bindings: [],
-      mode_definitions: [
-        { name: "ask", flags: { write: false } },
-        { name: "agent", flags: { write: true } },
-      ],
-      sub_agent_ids: [],
-    },
-  });
-
-  const proj = await request.post(`${API}/projects`, {
-    headers: h,
-    data: { name: `e2e-proj-${suffix}`, path: "." },
-  });
-  const projId = (await proj.json()).id;
-  const sess = await request.post(`${API}/sessions`, {
-    headers: h,
-    data: { project_id: projId, agent_id: `e2e-agent-${suffix}` },
-  });
-  return (await sess.json()).id;
-}
+import { setupSession } from "./helpers";
 
 test("chat streams, attaches, and forks", async ({ page, request }) => {
-  const sessionId = await setupChat(page, request);
+  const sessionId = await setupSession(page, request, "test");
   await page.goto(`/sessions/${sessionId}`);
   await page.waitForLoadState("networkidle");
 

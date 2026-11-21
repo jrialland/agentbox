@@ -4,6 +4,7 @@ import {
   RiDeleteBin6Line,
   RiRefreshLine,
   RiSettings3Line,
+  RiWifiLine,
 } from "@remixicon/react";
 import { useEffect, useState } from "react";
 
@@ -18,6 +19,7 @@ import {
   useProviders,
   useRefreshModels,
   useSetModelLabels,
+  useTestProvider,
   useUpdateProvider,
 } from "../api/queries";
 import { DataTable } from "../design-system/data/DataTable";
@@ -105,9 +107,40 @@ function ProvidersTab({
   const { data: providers, error, refetch } = useProviders();
   const del = useDeleteProvider();
   const refresh = useRefreshModels();
+  const test = useTestProvider();
+  const [verified, setVerified] = useState<Record<string, boolean>>({});
   const [providerToDelete, setProviderToDelete] = useState<Provider | null>(
     null,
   );
+
+  async function onTest(provider: Provider) {
+    try {
+      const result = await test.mutateAsync({
+        kind: provider.kind,
+        base_url: provider.base_url,
+        models_url: provider.models_url,
+        provider_id: provider.id,
+      });
+      if (result.ok) {
+        setVerified((current) => ({ ...current, [provider.id]: true }));
+        notifications.show({
+          message: `Connected — ${result.model_count ?? 0} models in ${result.latency_ms}ms`,
+        });
+      } else {
+        setVerified((current) => {
+          const next = { ...current };
+          delete next[provider.id];
+          return next;
+        });
+        notifications.show({
+          message: result.error?.message ?? "Connection test failed",
+          color: "red",
+        });
+      }
+    } catch {
+      notifications.show({ message: "Connection test failed", color: "red" });
+    }
+  }
 
   async function onRefresh(id: string) {
     try {
@@ -155,13 +188,24 @@ function ProvidersTab({
           {
             key: "status",
             header: "Status",
-            render: () => <StatusChip tone="success">ready</StatusChip>,
+            render: (provider) =>
+              verified[provider.id] ? (
+                <StatusChip tone="success">verified</StatusChip>
+              ) : (
+                <StatusChip tone="neutral">configured</StatusChip>
+              ),
           },
           {
             key: "actions",
             header: "Actions",
             render: (provider) => (
               <div className={styles.actions}>
+                <IconButton
+                  label="Test connection"
+                  icon={RiWifiLine}
+                  size={16}
+                  onClick={() => void onTest(provider)}
+                />
                 <IconButton
                   label="Refresh models"
                   icon={RiRefreshLine}
@@ -280,6 +324,7 @@ function ProviderFormDrawer({
         onChange={setDraft}
         providerId={provider?.id}
         errors={errors}
+        onSubmit={onSave}
       />
       <div className={styles.formActions}>
         <Button variant="light" onClick={onClose}>
@@ -365,6 +410,7 @@ function ModelsTab() {
           <div className={styles.modelForm}>
             <FormField label="Provider" required>
               <Select
+                placeholder="Select a provider"
                 data={(providers ?? []).map((provider) => ({
                   value: provider.id,
                   label: provider.name,
@@ -375,6 +421,7 @@ function ModelsTab() {
             </FormField>
             <FormField label="Model name" required>
               <TextInput
+                placeholder="e.g. deepseek-v4-pro"
                 value={name}
                 onChange={(e) => setName(e.currentTarget.value)}
               />
@@ -385,6 +432,7 @@ function ModelsTab() {
             >
               <NumberInput
                 min={1}
+                placeholder="e.g. 128000"
                 value={contextWindow}
                 onChange={setContextWindow}
               />
@@ -399,6 +447,7 @@ function ModelsTab() {
       <TableToolbar>
         <Select
           label="Filter by label"
+          placeholder="Filter by label"
           clearable
           data={(labels ?? []).map((label) => label.name)}
           value={labelFilter}

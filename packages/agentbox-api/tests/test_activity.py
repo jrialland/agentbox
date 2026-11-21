@@ -37,11 +37,14 @@ def test_activity_collector_records_tools_and_reasoning():
     summary = collector.summary("success")
     assert summary["status"] == "success"
     assert summary["reasoning_ms"] >= 0
+    assert summary["reasoning_text"] == "hmm"
     assert summary["tools"] == [
         {
             "name": "read_text_file",
             "status": "success",
             "duration_ms": summary["tools"][0]["duration_ms"],
+            "args": "{}",
+            "result": "ok",
         }
     ]
 

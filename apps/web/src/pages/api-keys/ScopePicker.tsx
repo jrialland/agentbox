@@ -34,7 +34,9 @@ export function ScopePicker({
     <div style={{ display: "grid", gap: 8 }}>
       <div style={{ alignItems: "center", display: "flex", gap: 8 }}>
         <Badge tone={value.length > 0 ? "success" : "warning"}>
-          {value.length} selected
+          <span style={{ fontFamily: "var(--ab-font-mono)" }}>
+            {value.length} selected
+          </span>
         </Badge>
         <Button
           size="compact-xs"

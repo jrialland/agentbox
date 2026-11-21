@@ -21,6 +21,11 @@ describe("MarkdownBlock", () => {
     expect(code?.querySelector(".hljs-keyword")).toBeTruthy();
   });
 
+  it("omits empty code fences while streaming", () => {
+    render(<MarkdownBlock content={"Before\n\n```python\n```\n\nAfter"} />);
+    expect(document.querySelector(".md-code")).toBeNull();
+  });
+
   it("copies fenced source from the code block button", async () => {
     const writeText = vi.fn(async () => undefined);
     Object.assign(navigator, { clipboard: { writeText } });

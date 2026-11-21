@@ -45,3 +45,27 @@ test("authenticated pages avoid horizontal overflow", async ({ page }) => {
     }
   }
 });
+
+test("mobile navigation exposes every destination", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/login");
+  await page.getByLabel("Username").fill("admin");
+  await page.getByRole("textbox", { name: "Password" }).fill("admin");
+  await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+
+  const nav = page.getByRole("navigation", { name: "Primary navigation" });
+  for (const name of [
+    "Home",
+    "Agents",
+    "Providers",
+    "Skills",
+    "API keys",
+    "Admin",
+  ]) {
+    await expect(nav.getByRole("link", { name })).toBeVisible();
+  }
+  expect(
+    await nav.evaluate((el) => el.scrollWidth - el.clientWidth),
+  ).toBeLessThanOrEqual(1);
+});

@@ -1,5 +1,7 @@
 import { expect, test } from "@playwright/test";
 
+import { login } from "./helpers";
+
 const API = "http://localhost:8000";
 
 test("admin grants a non-admin user a permission", async ({ page, request }) => {
@@ -8,11 +10,7 @@ test("admin grants a non-admin user a permission", async ({ page, request }) => 
   const userName = `e2e-user-${suffix}`;
   const probe = `e2e:probe-${suffix}`;
 
-  await page.goto("/login");
-  await page.getByLabel("Username").fill("admin");
-  await page.getByRole("textbox", { name: "Password" }).fill("admin");
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
+  await login(page);
 
   await page.getByRole("link", { name: "Admin" }).click();
 
@@ -59,10 +57,10 @@ test("admin grants a non-admin user a permission", async ({ page, request }) => 
   await expect(page.getByRole("dialog")).toBeHidden();
 
   // The non-admin user can read projects but cannot create agents.
-  const login = await request.post(`${API}/auth/login`, {
+  const apiLogin = await request.post(`${API}/auth/login`, {
     data: { username: userName, password: "pw" },
   });
-  const token = (await login.json()).access_token;
+  const token = (await apiLogin.json()).access_token;
   const h = { Authorization: `Bearer ${token}` };
   expect((await request.get(`${API}/projects`, { headers: h })).status()).toBe(200);
   const denied = await request.post(`${API}/agents`, {

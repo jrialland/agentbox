@@ -113,7 +113,72 @@ Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These wo
 | UX-3 | Contextual help & structured editors | DONE | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
 | UX-4 | Data integrity, errors & navigation states | DONE | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
 
-The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-4, D19, D20, and D21 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`, `superpowers/specs/2026-11-21-rust-lsp-quiescence-design.md`, `superpowers/specs/2026-11-21-agents-md-project-instructions-design.md`, and `superpowers/specs/2026-11-21-grep-content-search-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, `superpowers/plans/2026-11-21-ux-4-data-integrity.md`, `superpowers/plans/2026-11-21-rust-lsp-quiescence.md`, `superpowers/plans/2026-11-21-agents-md-project-instructions.md`, and `superpowers/plans/2026-11-21-grep-content-search.md`. The next cycle is not yet scheduled.
+| UX-5 | Live review remediation (5.1-5.44) | DONE | P1/P2 | Viewport-bound chat, Mermaid sizing/controls/fullscreen, onboarding/navigation, mobile nav, provider status, activity traces, token usage, and polish. | L1-L15, UX-5.1-5.44 |
+
+### UX-5 live review remediation (high priority)
+
+Source: [2026-11-21 UX-5 live review](reviews/2026-11-21-ux-5/report.md). Captured against a
+real backend, a real DeepSeek provider, and live Playwright screenshots. These items take
+priority over new protocol features because UX-2/UX-3/UX-4 were signed off on Storybook captures
+that did not exercise the integrated shell, live streaming, or wide Mermaid output.
+
+| ID | Finding (from UX-5) | Priority | Status | Plan |
+|---|---|---|---|---|
+| UX-5.1 | Session shell is not viewport-bound; `.messages` is not the scroll container (28px tall on an empty session) | P1 | DONE | `superpowers/plans/2026-11-21-ux-5-chat-layout-mermaid.md` |
+| UX-5.2 | Composer is not pinned; it scrolls off-screen below a long answer | P1 | DONE | same wave-1 plan |
+| UX-5.3 | Auto-follow does not work during streaming, and "Jump to latest" never appears | P1 | DONE | same wave-1 plan |
+| UX-5.4 | Sending a follow-up does not scroll/anchor the new Q/A pair, so the previous answer sits above the new question (reported from `13-chat-long-finished.png`) | P1 | DONE | same wave-1 plan |
+| UX-5.5 | Horizontal Mermaid diagrams render as ~300x26 unreadable thumbnails | P1 | DONE | same wave-1 plan |
+| UX-5.6 | Rendered Mermaid diagrams have no visible zoom/pan controls | P2 | DONE | not yet written |
+| UX-5.7 | Rendered Mermaid diagrams have no copy-source action (fallback only) | P2 | DONE | not yet written |
+| UX-5.8 | Untitled sessions expose the raw agent id on Home; `Session`, `Session 1`, and the hex id disagree across Home/tree/header | P2 | DONE | not yet written |
+| UX-5.9 | Onboarding wizard opens on an already-configured instance because it evaluates before setup queries load | P2 | DONE | not yet written |
+| UX-5.10 | Onboarding step row (`Welcome Provider Agent Session Done`) is run-on with no separators or active/complete state | P3 | DONE | not yet written |
+| UX-5.11 | "Create project and start session" leaves the user on Home instead of opening the created session | P2 | DONE | not yet written |
+| UX-5.12 | Mobile nav hides API keys and Admin off-screen with no overflow affordance | P2 | DONE | not yet written |
+| UX-5.13 | Persisted activity drops the reasoning text, keeping only its duration | P2 | DONE | not yet written |
+| UX-5.14 | Persisted activity drops tool arguments and results, keeping only name/status/duration | P2 | DONE | not yet written |
+| UX-5.15 | Sub-millisecond tool durations display as `0ms` instead of `<1ms` | P3 | DONE | not yet written |
+| UX-5.16 | Provider authentication errors expose the raw runtime payload (status, model, body, request id) | P3 | DONE | not yet written |
+| UX-5.17 | Providers -> Models form: the Context window label is vertically misaligned with Provider/Model name | P3 | DONE | not yet written |
+| UX-5.18 | Empty form fields show no placeholders/examples (Models, Skills, Admin, Agent drawer) | P3 | DONE | not yet written |
+| UX-5.19 | Pixel font makes `0 selected` read as `8 selected`; Home zero-count stats have the same ambiguity | P3 | DONE | not yet written |
+| UX-5.20 | `Copy Markdown` sits on its own detached, right-aligned row below the `REVIEWER` label | P3 | DONE | not yet written |
+| UX-5.21 | Chat prose runs the full ~1540px content width at 1920px with no readable measure | P3 | DONE | not yet written |
+| UX-5.22 | Empty sessions have no guidance or suggested prompts, only a blank canvas | P3 | DONE | not yet written |
+| UX-5.23 | The completed setup checklist keeps a large permanent block on Home | P3 | DONE | not yet written |
+| UX-5.24 | A project path of `.` renders as a stray dot on the Home projects card | P3 | DONE | not yet written |
+| UX-5.25 | No favicon: every page logs `404 /favicon.ico` | P3 | DONE | not yet written |
+| UX-5.26 | Every session load fires a transient `404 /api/agents/Agent/avatar?v=0` before the real agent name is known | P3 | DONE | not yet written |
+| UX-5.27 | API-key/password inputs are not inside a `<form>` (Chromium warning; Enter does not submit) | P3 | DONE | not yet written |
+| UX-5.28 | An incomplete code fence renders empty code-block chrome while streaming | P3 | DONE | not yet written |
+| UX-5.29 | Token/context usage is stored (`turnrow.context_tokens`) but never surfaced in the UI | P3 | DONE | not yet written |
+| UX-5.30 | Live reasoning is rendered inside a collapsed `<details>`, so it is easy to miss while streaming | P3 | DONE | not yet written |
+| UX-5.31 | Provider status shows `READY` even when the stored key is invalid and live runs fail with 401 | P2 | DONE | not yet written |
+| UX-5.32 | MCP split view can clip the composer when the chat content is long (found in wave-1 code review) | P1 | DONE | `.split` row constraint + `.chat` flex column; split e2e asserts composer visibility |
+| UX-5.33 | Long project/session lists are clipped by the fixed-height shell (found in wave-1 code review) | P1 | DONE | `ProjectPanel` pane now scrolls (`overflow-y: auto`) |
+| UX-5.34 | The Mermaid width rule upscaled vertical/small diagrams instead of only wide ones (found in wave-1 code review) | P2 | DONE | Removed the `max-width: 100% !important` override; vertical-diagram e2e added |
+| UX-5.35 | The follow-up anchoring e2e was a false positive (turn 2 was never waited for) (found in wave-1 code review) | P2 | DONE | Rewritten with two-user/two-assistant turn counts and viewport assertions |
+| UX-5.36 | No mobile, split-view, or jump-to-latest regression coverage (found in wave-1 code review) | P2 | DONE | Mobile session test, split composer assertion, jump-to-latest test |
+| UX-5.37 | Session error/not-found routes inherit the non-scrolling workspace and can clip a tall error state | P3 | DONE | not yet written |
+| UX-5.38 | `Workspace` hard-codes `/sessions/:id`, duplicating the route in `App.tsx` | P3 | DONE | not yet written |
+| UX-5.39 | Auto-follow restarts a smooth scroll on every streamed segment; can lag/jitter | P3 | DONE | not yet written |
+| UX-5.40 | Mixed EOL/CRLF in touched files creates noisy diffs and trailing-whitespace warnings | P3 | DONE | targeted normalization; `git diff --check` clean |
+| UX-5.41 | E2E login/setup helpers are duplicated across specs | P3 | DONE | migrate specs to `e2e/helpers.ts` |
+| UX-5.42 | Rail uses `min-height: 100vh` inside a fixed `100dvh` shell; footer can clip when `dvh < vh` | P3 | DONE | not yet written |
+| UX-5.43 | A newly sent question is not rendered optimistically while its answer streams | P3 | DONE | not yet written |
+| UX-5.44 | Mermaid diagrams had no fullscreen view | P3 | DONE | Browser Fullscreen API toggle, `:fullscreen` layout, unit + Playwright enter/exit coverage |
+
+All UX-5 items are high priority: P1/P2 items come before any new protocol feature work, and P3
+items are tracked so none is dropped. Wave 1 (UX-5.1 through UX-5.5 plus review follow-ups
+UX-5.32 through UX-5.36) and wave 2 (UX-5.6 through UX-5.26, UX-5.28 through UX-5.31, and
+UX-5.37 through UX-5.40, UX-5.42, UX-5.43, UX-5.44) are DONE after the live re-verification
+(Vitest 184/184, Playwright 37/37, agentbox-api 179/179, providers 18/18, build, Ruff, Ty, and the
+live DeepSeek screenshots in `reviews/2026-11-21-ux-5/assets/post-fix-*.png`). The e2e login/setup
+helpers are now shared in `apps/web/e2e/helpers.ts`. **All UX-5 items are DONE**; no row is
+considered complete until it is verified against the live app, not just Storybook.
+
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-5, D19, D20, and D21 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`, `superpowers/specs/2026-11-21-rust-lsp-quiescence-design.md`, `superpowers/specs/2026-11-21-agents-md-project-instructions-design.md`, and `superpowers/specs/2026-11-21-grep-content-search-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, `superpowers/plans/2026-11-21-ux-4-data-integrity.md`, `superpowers/plans/2026-11-21-ux-5-chat-layout-mermaid.md`, `superpowers/plans/2026-11-21-rust-lsp-quiescence.md`, `superpowers/plans/2026-11-21-agents-md-project-instructions.md`, and `superpowers/plans/2026-11-21-grep-content-search.md`. The UX-5 evidence is in `reviews/2026-11-21-ux-5/`. The next cycle is not yet scheduled.
 
 ## Sub-project history
 
@@ -162,7 +227,7 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 
 | ID | Future evolution | Notes / intended scope |
 |---|---|---|
-| D3 | **Automatic RAG over `/docs`** | Configurable embedding model; when "RAG on documentation" is opted in, chunk Markdown under the project's `/docs/`, embed into a local vector DB (e.g. Qdrant), and inject retrieved context as a system message immediately after the user message. |
+| D3 | **Automatic RAG over `/docs`** | Configurable embedding model; when "RAG on documentation" is opted in, index Markdown under the project's `/docs/` and inject retrieved context as a system message immediately after the user message. zero conf on user side, just opt-in. docs is watched for modification, index is updated automatically |
 | D5 | **Complex agent workflows** | Move beyond the current ReAct loop: a graphical graph builder with nodes such as post-turn code checks, "ralph mode" re-run completion, and a decision model choosing the next step. |
 | D6 | **Duo mode** | Two-agent pairing: the primary receives the user message; the secondary answers the primary's questions. Turns continue automatically until a stop condition is met. |
 | D9 | **Automatic session shrinking** | Drop past tool results that are no longer needed; strip multimodal content after a few turns; keep the context lean. |

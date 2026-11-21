@@ -3,11 +3,10 @@
   border: var(--ab-border-width) solid var(--ab-border);
   border-radius: var(--ab-radius-md);
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: var(--ab-space-2);
   padding: var(--ab-space-2);
-  position: sticky;
-  bottom: var(--ab-space-3);
 }
 
 .dragging {

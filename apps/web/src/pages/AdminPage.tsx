@@ -123,11 +123,13 @@ function PermissionsTab() {
         <Panel.Body>
           <TextInput
             label="Permission name"
+            placeholder="e.g. reports:read"
             value={name}
             onChange={(e) => setName(e.currentTarget.value)}
           />
           <Textarea
             label="Description"
+            placeholder="What does this permission allow?"
             value={description}
             onChange={(e) => setDescription(e.currentTarget.value)}
           />
@@ -239,11 +241,13 @@ function RolesTab() {
         <Panel.Body>
           <TextInput
             label="Role name"
+            placeholder="e.g. operator"
             value={name}
             onChange={(e) => setName(e.currentTarget.value)}
           />
           <Textarea
             label="Description"
+            placeholder="What is this role for?"
             value={description}
             onChange={(e) => setDescription(e.currentTarget.value)}
           />

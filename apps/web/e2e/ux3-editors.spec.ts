@@ -1,25 +1,14 @@
-import { expect, type Page, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+
+import { login } from "./helpers";
 
 const API = "http://localhost:8000";
-
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel("Username").fill("admin");
-  await page.getByRole("textbox", { name: "Password" }).fill("admin");
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
-}
 
 test("A2A structured edits, JSON errors, presets, and scope warning", async ({
   page,
   request,
 }) => {
-  await login(page);
-  const token = await page.evaluate(() => {
-    const raw = sessionStorage.getItem("agentbox-auth");
-    return JSON.parse(raw as string).state.token as string;
-  });
-  const headers = { Authorization: `Bearer ${token}` };
+  const headers = await login(page);
   const suffix = Date.now();
   const provider = await request.post(`${API}/providers`, {
     headers,

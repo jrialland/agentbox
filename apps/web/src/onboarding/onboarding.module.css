@@ -9,7 +9,23 @@
   flex-wrap: wrap;
   font-family: var(--ab-font-mono);
   font-size: var(--ab-text-xs);
-  gap: var(--ab-space-2);
+  gap: var(--ab-space-1);
+  align-items: center;
+}
+
+.step,
+.stepActive {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ab-space-1);
+}
+
+.stepActive {
+  color: var(--ab-phosphor);
+}
+
+.stepSep {
+  color: var(--ab-border);
 }
 
 .error {

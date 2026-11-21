@@ -6,16 +6,20 @@ export type ToolActivitySummary = {
   name: string;
   status: string;
   duration_ms: number;
+  args?: string;
+  result?: string;
 };
 
 export type ActivitySummary = {
   status?: string;
   reasoning_ms?: number;
+  reasoning_text?: string;
   tools?: ToolActivitySummary[];
   error?: { code?: number; message?: string } | null;
 };
 
 function duration(ms: number): string {
+  if (ms < 1) return "<1ms";
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
 }
@@ -65,6 +69,26 @@ export function ActivityChips({
           </li>
         ))}
       </ul>
+      {reasoning > 0 && activity.reasoning_text && (
+        <details className={styles.toolDetails}>
+          <summary>Reasoning text</summary>
+          <pre>{activity.reasoning_text}</pre>
+        </details>
+      )}
+      {tools.map((tool, index) =>
+        tool.args || tool.result ? (
+          <details
+            key={`${tool.name}-details-${index}`}
+            className={styles.toolDetails}
+          >
+            <summary>
+              <code>{tool.name}</code> details
+            </summary>
+            {tool.args && <pre>{tool.args}</pre>}
+            {tool.result && <pre>{tool.result}</pre>}
+          </details>
+        ) : null,
+      )}
     </details>
   );
 }

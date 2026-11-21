@@ -1,5 +1,6 @@
 import { Button, Modal, TextInput } from "@mantine/core";
 import { notifications } from "@mantine/notifications";
+import { RiChat3Line } from "@remixicon/react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -22,15 +23,22 @@ import { useChat } from "../chat/useChat";
 import { AgentAvatar } from "../components/agents/AgentAvatar";
 import { API_URL } from "../config";
 import { ErrorState } from "../design-system/patterns/ErrorState";
+import { EmptyState } from "../design-system/primitives/EmptyState";
 import { PageContainer } from "../design-system/shell/PageContainer";
 import { StatusChip } from "../design-system/primitives/StatusChip";
+import { sessionTitle } from "../lib/sessionTitle";
 import { useAuthStore } from "../store/auth";
 import { SessionNotFound } from "./session/SessionNotFound";
 import styles from "./session.module.css";
 
 function duration(ms: number) {
+  if (ms < 1) return "<1ms";
   if (ms < 1000) return `${ms}ms`;
   return `${(ms / 1000).toFixed(1)}s`;
+}
+
+function formatTokens(value: number) {
+  return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : `${value}`;
 }
 
 function toolTone(status: string): "success" | "danger" | "warning" | "neutral" {
@@ -47,7 +55,10 @@ function LiveSegment({ segment }: { segment: Segment }) {
   if (segment.kind === "reasoning") {
     const elapsed = segment.endedAt ? segment.endedAt - segment.startedAt : 0;
     return (
-      <details className={styles.reasoning}>
+      <details
+        className={styles.reasoning}
+        open={segment.status === "streaming"}
+      >
         <summary>
           {segment.status === "streaming" ? "Thinking." : `Thought ${duration(elapsed)}`}
         </summary>
@@ -97,6 +108,7 @@ export function SessionPage() {
   const { data: plan } = planQuery;
   const qc = useQueryClient();
   const [input, setInput] = useState("");
+  const [pendingUser, setPendingUser] = useState<string | null>(null);
   const [mode, setMode] = useState<string | null>("agent");
   const [forkFromTurnId, setForkFromTurnId] = useState<string | null>(null);
   const [forkMode, setForkMode] = useState(false);
@@ -153,15 +165,21 @@ export function SessionPage() {
     setInput("");
     setForkMode(false);
     setForkFromTurnId(null);
-    await chat.send(content, {
-      mode: mode ?? "agent",
-      fork: doFork,
-      forkFromTurnId: forkFrom,
-      attachmentIds,
-      skill,
-    });
-    setSkill(null);
-    await refresh();
+    setPendingUser(content);
+    scrollToBottom();
+    try {
+      await chat.send(content, {
+        mode: mode ?? "agent",
+        fork: doFork,
+        forkFromTurnId: forkFrom,
+        attachmentIds,
+        skill,
+      });
+      setSkill(null);
+    } finally {
+      setPendingUser(null);
+      await refresh();
+    }
   }
 
   function userTurnFor(messageId: string) {
@@ -199,7 +217,11 @@ export function SessionPage() {
     );
   }
 
-  const agentName = session?.agent_name ?? "Agent";
+  const agentName = session?.agent_name ?? "";
+  const contextTokens = [...(messages ?? [])]
+    .reverse()
+    .find((message) => message.role === "assistant" && message.context_tokens)
+    ?.context_tokens;
 
   return (
     <PageContainer fullBleed>
@@ -209,12 +231,20 @@ export function SessionPage() {
           chat={
             <div className={styles.main}>
           <div className={styles.header} data-testid="session-agent">
-            <AgentAvatar name={agentName} />
-            <span>{agentName}</span>
+            {agentName && <AgentAvatar name={agentName} />}
+            <span>{agentName || "Agent"}</span>
             <Button size="compact-xs" variant="light" onClick={() => setAboutOpen(true)}>
               About
             </Button>
-            <h1>{session?.title?.trim() || "Session"}</h1>
+            <h1>{sessionTitle(session?.title)}</h1>
+            {contextTokens ? (
+              <span
+                className={styles.contextUsage}
+                title="Context tokens after the last completed turn"
+              >
+                {formatTokens(contextTokens)} tokens
+              </span>
+            ) : null}
             <Button
               size="compact-xs"
               variant="light"
@@ -263,7 +293,27 @@ export function SessionPage() {
           ) : (
             <PlanPanel items={plan?.items ?? []} />
           )}
-          <div className={styles.messages} ref={messagesRef}>
+          <div className={styles.messages} ref={messagesRef} data-testid="messages">
+            {!messagesQuery.error &&
+              !messagesQuery.isLoading &&
+              (messages ?? []).length === 0 &&
+              chat.segments.length === 0 &&
+              !chat.running && (
+                <div className={styles.emptySession}>
+                  <EmptyState
+                    icon={RiChat3Line}
+                    title="Start the conversation"
+                    description="Ask a question, type / for skills, or @ to reference a project file."
+                  />
+                </div>
+              )}
+            {pendingUser && (
+              <MessageTurn
+                message={{ id: "pending-user", role: "user", content: pendingUser }}
+                agentName={agentName || "Agent"}
+                sessionId={id}
+              />
+            )}
             {messagesQuery.error ? (
               <ErrorCard
                 label="messages unavailable"
@@ -279,7 +329,7 @@ export function SessionPage() {
                   <MessageTurn
                     key={message.id}
                     message={message as ChatMessage}
-                    agentName={agentName}
+                    agentName={agentName || "Agent"}
                     sessionId={id}
                     onRetry={retry}
                     onEdit={(message) => {

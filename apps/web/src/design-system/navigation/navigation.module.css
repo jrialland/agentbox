@@ -3,7 +3,8 @@
   grid-template-rows: auto 1fr auto;
   align-items: start;
   width: var(--ab-rail-width);
-  min-height: 100vh;
+  height: 100%;
+  min-height: 0;
   padding: var(--ab-space-2) 0;
   border-right: 1px solid var(--ab-border);
   background: var(--ab-surface);
@@ -123,8 +124,9 @@
 
 .mobileNav {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  overflow-x: auto;
+  overflow-x: visible;
   padding: var(--ab-space-2) var(--ab-space-3);
   border-top: 1px solid var(--ab-border);
   background: var(--ab-surface);

@@ -24,7 +24,10 @@ test("renders the chat composer", async () => {
       </QueryClientProvider>
     </MantineProvider>,
   );
-  expect(await screen.findByRole("heading", { name: "Session" })).toBeInTheDocument();
+  expect(
+    await screen.findByRole("heading", { name: "Untitled session" }),
+  ).toBeInTheDocument();
+  expect(screen.getByText("Start the conversation")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Send" })).toBeInTheDocument();
 });
 

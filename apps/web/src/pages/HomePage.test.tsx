@@ -6,7 +6,10 @@ import { ApiError } from "../api/errors";
 import { ThemeProvider } from "../design-system/theme/ThemeProvider";
 import { HomePage } from "./HomePage";
 
-const state = vi.hoisted(() => ({ projectsError: null as Error | null }));
+const state = vi.hoisted(() => ({
+  projectsError: null as Error | null,
+  setupLoading: false,
+}));
 
 vi.mock("../api/queries", () => ({
   useProjects: () => ({
@@ -16,7 +19,7 @@ vi.mock("../api/queries", () => ({
           {
             id: "p1",
             name: "Demo",
-            path: "/demo",
+            path: ".",
             owner_id: "u1",
             created_at: "t1",
             extra_roots: [],
@@ -49,9 +52,12 @@ vi.mock("../api/queries", () => ({
       },
     ],
   }),
-  useAgents: () => ({ data: [{ name: "Reviewer" }] }),
-  useProviders: () => ({ data: [{ id: "p1" }] }),
-  useModels: () => ({ data: [{ id: "m1" }] }),
+  useAgents: () =>
+    state.setupLoading ? { data: undefined } : { data: [{ name: "Reviewer" }] },
+  useProviders: () =>
+    state.setupLoading ? { data: undefined } : { data: [{ id: "p1" }] },
+  useModels: () =>
+    state.setupLoading ? { data: undefined } : { data: [{ id: "m1" }] },
   useCreateProject: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useCreateProvider: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useRefreshModels: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -63,6 +69,7 @@ vi.mock("../api/queries", () => ({
 
 beforeEach(() => {
   state.projectsError = null;
+  state.setupLoading = false;
 });
 
 test("renders the command center dashboard", () => {
@@ -75,14 +82,28 @@ test("renders the command center dashboard", () => {
   );
   expect(screen.getByRole("heading", { name: "Home" })).toBeInTheDocument();
   expect(screen.getAllByText("Demo").length).toBeGreaterThan(0);
-  expect(screen.getByText("Reviewer")).toBeInTheDocument();
   expect(screen.getByText("Release plan")).toBeInTheDocument();
-  expect(screen.getByText("Whitespace")).toBeInTheDocument();
-  expect(screen.getByText("Provider connected")).toBeInTheDocument();
-  expect(screen.getByText("Agent ready")).toBeInTheDocument();
+  expect(screen.getAllByText("Untitled session")).toHaveLength(2);
+  expect(screen.getByText("Project root")).toBeInTheDocument();
+  expect(screen.getByText("setup complete")).toBeInTheDocument();
+  expect(screen.queryByText("Provider connected")).not.toBeInTheDocument();
   expect(
     screen.getByRole("button", { name: /new project/i }),
   ).toBeInTheDocument();
+});
+
+test("does not auto-open onboarding before setup data loads", () => {
+  state.setupLoading = true;
+  render(
+    <ThemeProvider forceScheme="dark">
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    </ThemeProvider>,
+  );
+  expect(
+    screen.queryByRole("dialog", { name: "Set up Agentbox" }),
+  ).not.toBeInTheDocument();
 });
 
 test("shows an error state instead of an empty project list", () => {

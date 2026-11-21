@@ -121,12 +121,14 @@ export function AgentCreateDrawer({
       <Section title="Identity">
         <FormField label="Name" required error={errors.name}>
           <TextInput
+            placeholder="e.g. Reviewer"
             value={name}
             onChange={(e) => setName(e.currentTarget.value)}
           />
         </FormField>
         <FormField label="Description">
           <TextInput
+            placeholder="What is this agent for?"
             value={description}
             onChange={(e) => setDescription(e.currentTarget.value)}
           />
@@ -134,6 +136,7 @@ export function AgentCreateDrawer({
         <FormField label="Instructions">
           <Textarea
             minRows={4}
+            placeholder="System prompt and operating instructions"
             value={instructions}
             onChange={(e) => setInstructions(e.currentTarget.value)}
           />
@@ -148,6 +151,7 @@ export function AgentCreateDrawer({
         </FormField>
         <FormField label="Model" required error={errors.model}>
           <Select
+            placeholder="Choose a model"
             data={modelOptions}
             value={modelRef}
             onChange={setModelRef}

@@ -5,6 +5,17 @@
   min-width: 0;
 }
 
+.markdown-block > p,
+.markdown-block > ul,
+.markdown-block > ol,
+.markdown-block > blockquote,
+.markdown-block > h1,
+.markdown-block > h2,
+.markdown-block > h3,
+.markdown-block > h4 {
+  max-width: 78ch;
+}
+
 .markdown-block > :first-child {
   margin-top: 0;
 }
@@ -242,8 +253,48 @@
   padding: var(--ab-space-3);
 }
 
+.mermaid-tools {
+  display: flex;
+  gap: var(--ab-space-1);
+  justify-content: flex-end;
+  padding-bottom: var(--ab-space-2);
+}
+
+.mermaid-block:fullscreen {
+  background: var(--ab-canvas);
+  border: 0;
+  border-radius: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  margin: 0;
+  padding: var(--ab-space-4);
+  width: 100vw;
+}
+
+.mermaid-block:fullscreen > .react-transform-wrapper {
+  flex: 1 1 auto;
+  height: 100%;
+  min-height: 0;
+}
+
+.mermaid-block:fullscreen .mermaid-tools {
+  flex: 0 0 auto;
+}
+
+.mermaid-block:fullscreen .mermaid-canvas {
+  align-items: center;
+  height: 100%;
+}
+
 .mermaid-canvas {
   display: flex;
   justify-content: center;
   min-width: min-content;
+  width: 100%;
+}
+
+.mermaid-canvas svg {
+  height: auto;
+  width: 100%;
 }

@@ -89,6 +89,16 @@ def test_resolve_deterministic_chat_providers():
     assert isinstance(flaky, FunctionModel)
 
 
+def test_resolve_long_fixture():
+    m = resolve_model(Provider(id="p", name="long", kind="test_long"), "long-model")
+    assert isinstance(m, TestModel)
+    text = m.custom_output_text
+    assert text is not None
+    assert text.startswith("# Long fixture")
+    assert "flowchart LR" in text
+    assert "Composer --> Agent" in text
+
+
 def test_resolve_unknown_kind_raises():
     with pytest.raises(ValueError):
         resolve_model(Provider(id="p", name="x", kind="bogus"), "m")

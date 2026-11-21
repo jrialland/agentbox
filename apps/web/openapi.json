@@ -3319,6 +3319,17 @@
             "type": "string",
             "title": "Created At"
           },
+          "context_tokens": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Tokens"
+          },
           "activity": {
             "anyOf": [
               {

@@ -69,25 +69,28 @@ export function SkillsPage() {
         <Panel.Header>{editing ? `Edit skill · ${editing}` : "New skill"}</Panel.Header>
         <Panel.Body>
           <div style={{ display: "grid", gap: 12, maxWidth: 720 }}>
-            <FormField label="Name" required>
-              <TextInput
-                id="skill-name"
-                value={name}
+        <FormField label="Name" required>
+          <TextInput
+            id="skill-name"
+            placeholder="e.g. release-notes"
+            value={name}
                 disabled={editing !== null}
                 onChange={(e) => setName(e.currentTarget.value)}
               />
             </FormField>
-            <FormField label="Description" required>
-              <Textarea
-                minRows={2}
-                value={description}
+        <FormField label="Description" required>
+          <Textarea
+            minRows={2}
+            placeholder="When should the agent use this skill?"
+            value={description}
                 onChange={(e) => setDescription(e.currentTarget.value)}
               />
             </FormField>
-            <FormField label="Body (Markdown)">
-              <Textarea
-                minRows={6}
-                value={body}
+        <FormField label="Body (Markdown)">
+          <Textarea
+            minRows={6}
+            placeholder="Markdown instructions for the agent"
+            value={body}
                 onChange={(e) => setBody(e.currentTarget.value)}
               />
             </FormField>

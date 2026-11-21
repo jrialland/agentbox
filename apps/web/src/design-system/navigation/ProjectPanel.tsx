@@ -12,6 +12,7 @@ import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import type { Project } from "../../api/endpoints";
+import { sessionTitle } from "../../lib/sessionTitle";
 import {
   useDeleteProject,
   useDeleteSession,
@@ -121,7 +122,7 @@ export function ProjectPanel() {
                     </div>
                   </div>
                   <ul className={styles.sessions}>
-                    {projectSessions.map((session, index) => (
+                    {projectSessions.map((session) => (
                       <li key={session.id} className={styles.sessionRow}>
                         {renaming === session.id ? (
                           <TextInput
@@ -143,7 +144,7 @@ export function ProjectPanel() {
                         ) : (
                           <Link to={`/sessions/${session.id}`}>
                             <span className={styles.sessionTitle}>
-                              {session.title?.trim() || `Session ${index + 1}`}
+                              {sessionTitle(session.title)}
                             </span>
                           </Link>
                         )}

@@ -1,5 +1,7 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { renderWithTheme as render } from "../test/render";
 
 const mermaidMock = vi.hoisted(() => ({
   parse: vi.fn(async () => true),
@@ -39,6 +41,99 @@ describe("MermaidBlock", () => {
     render(<MermaidBlock source="graph TD; A-->B" complete />);
     await waitFor(() => expect(screen.getByTestId("diagram")).toBeTruthy());
     expect(mermaidMock.parse).toHaveBeenCalledWith("graph TD; A-->B");
+  });
+
+  it("offers zoom and copy controls for a rendered diagram", async () => {
+    render(<MermaidBlock source="graph TD; A-->B" complete />);
+    await waitFor(() => expect(screen.getByTestId("diagram")).toBeTruthy());
+    expect(screen.getByRole("button", { name: "Zoom in" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Zoom out" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Reset zoom" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Copy diagram" })).toBeTruthy();
+  });
+
+  it("toggles fullscreen with the browser fullscreen API", async () => {
+    const enabledDescriptor = Object.getOwnPropertyDescriptor(
+      document,
+      "fullscreenEnabled",
+    );
+    const elementDescriptor = Object.getOwnPropertyDescriptor(
+      document,
+      "fullscreenElement",
+    );
+    const originalRequest = HTMLElement.prototype.requestFullscreen;
+    const originalExit = document.exitFullscreen;
+    let current: Element | null = null;
+
+    Object.defineProperty(document, "fullscreenEnabled", {
+      configurable: true,
+      value: true,
+    });
+    Object.defineProperty(document, "fullscreenElement", {
+      configurable: true,
+      get: () => current,
+    });
+    HTMLElement.prototype.requestFullscreen = vi.fn(async function (
+      this: HTMLElement,
+    ) {
+      current = this;
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+    document.exitFullscreen = vi.fn(async () => {
+      current = null;
+      document.dispatchEvent(new Event("fullscreenchange"));
+    });
+
+    try {
+      const { unmount } = render(
+        <MermaidBlock source="graph TD; A-->B" complete />,
+      );
+      await waitFor(() => expect(screen.getByTestId("diagram")).toBeTruthy());
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Enter fullscreen" }),
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Exit fullscreen" }),
+        ).toBeTruthy(),
+      );
+
+      fireEvent.click(
+        screen.getByRole("button", { name: "Exit fullscreen" }),
+      );
+      await waitFor(() =>
+        expect(
+          screen.getByRole("button", { name: "Enter fullscreen" }),
+        ).toBeTruthy(),
+      );
+      unmount();
+    } finally {
+      if (enabledDescriptor) {
+        Object.defineProperty(
+          document,
+          "fullscreenEnabled",
+          enabledDescriptor,
+        );
+      } else {
+        Reflect.deleteProperty(document, "fullscreenEnabled");
+      }
+      if (elementDescriptor) {
+        Object.defineProperty(
+          document,
+          "fullscreenElement",
+          elementDescriptor,
+        );
+      } else {
+        Reflect.deleteProperty(document, "fullscreenElement");
+      }
+      if (originalRequest) {
+        HTMLElement.prototype.requestFullscreen = originalRequest;
+      } else {
+        Reflect.deleteProperty(HTMLElement.prototype, "requestFullscreen");
+      }
+      document.exitFullscreen = originalExit;
+    }
   });
 
   it("shows a compact fallback and cleans up on failure", async () => {

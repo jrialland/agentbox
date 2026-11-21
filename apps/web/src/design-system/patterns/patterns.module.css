@@ -49,7 +49,7 @@
 
 .dashboardCard strong {
   color: var(--ab-phosphor);
-  font-family: var(--ab-font-display);
+  font-family: var(--ab-font-mono);
   font-size: 32px;
   font-weight: 400;
 }

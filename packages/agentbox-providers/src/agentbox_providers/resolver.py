@@ -15,6 +15,20 @@ from agentbox_providers.api_keys import resolve_api_key
 
 _flaky_attempts: dict[str, int] = {}
 
+_LONG_FIXTURE_TEXT = (
+    "# Long fixture\n\n"
+    + (
+        "Agentbox streams a message through the harness, the model, and the tool layer, "
+        "then renders the answer as Markdown with headings, lists, tables, and diagrams. "
+    )
+    * 30
+    + "\n\n## Wide diagram\n\n"
+    "```mermaid\nflowchart LR\n  Composer --> Agent\n  Agent --> Model\n"
+    "  Model --> Tools\n  Tools --> Reply\n```\n\n"
+    "## Table\n\n| Step | Owner |\n| --- | --- |\n| Compose | User |\n"
+    "| Stream | Harness |\n| Answer | Model |\n"
+)
+
 
 def resolve_model(
     provider: Provider, model_name: str, context_window: int | None = None
@@ -148,6 +162,14 @@ def resolve_model(
 
         return FunctionModel(
             stream_function=flaky_stream, model_name=model_name, profile=profile
+        )
+    if kind == "test_long":
+        from pydantic_ai.models.test import TestModel
+
+        return TestModel(
+            call_tools=[],
+            custom_output_text=_LONG_FIXTURE_TEXT,
+            profile=profile,
         )
     raise ValueError(f"Unknown provider kind: {kind}")
 

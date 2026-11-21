@@ -11,7 +11,7 @@ const state = vi.hoisted(() => ({
   segments: [] as Record<string, unknown>[],
   running: false,
   error: null as string | null,
-  send: vi.fn(async () => undefined),
+  send: vi.fn<() => Promise<void>>(async () => undefined),
   cancel: vi.fn(async () => undefined),
   reset: vi.fn(),
   closeApp: vi.fn(),
@@ -73,6 +73,42 @@ describe("SessionPage chat surface", () => {
     state.reset.mockClear();
     renameMock.mockClear();
     notifyMock.mockClear();
+  });
+
+  it("shows the user's message optimistically while the run is in flight", async () => {
+    let release: () => void = () => {};
+    state.send = vi.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    renderPage();
+
+    fireEvent.change(screen.getByLabelText("Message"), {
+      target: { value: "hello there" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Send" }));
+
+    expect(await screen.findByText("hello there")).toBeInTheDocument();
+    release();
+    await waitFor(() => expect(state.reset).toHaveBeenCalled());
+  });
+
+  it("shows the last completed turn's context token usage", () => {
+    state.messages = [
+      { id: "u1", role: "user", content: "Question" },
+      {
+        id: "a1",
+        role: "assistant",
+        content: "Answer",
+        parent_id: "u1",
+        context_tokens: 5800,
+      },
+    ];
+    renderPage();
+
+    expect(screen.getByText("5.8k tokens")).toBeInTheDocument();
   });
 
   it("shows the session title in the header", () => {

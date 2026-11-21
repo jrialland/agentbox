@@ -60,19 +60,28 @@ function extractCode(children: ReactNode): {
   };
 }
 
-export function MarkdownBlock({ content }: { content: string }) {
+export function MarkdownBlock({
+  content,
+  showCopy = true,
+}: {
+  content: string;
+  showCopy?: boolean;
+}) {
   const pending = unclosedFence(content);
   return (
     <div className="markdown-block">
-      <div className="md-actions">
-        <CopyButton value={content} label="Copy Markdown" />
-      </div>
+      {showCopy && (
+        <div className="md-actions">
+          <CopyButton value={content} label="Copy Markdown" />
+        </div>
+      )}
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         components={{
           pre({ children }) {
             const fence = extractCode(children);
             if (!fence) return <pre>{children}</pre>;
+            if (!fence.code.trim()) return null;
             if (fence.language === "mermaid") {
               const complete = !(
                 pending?.language === "mermaid" && pending.code === fence.code

@@ -21,6 +21,25 @@ describe("ErrorCard", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(onRetry).toHaveBeenCalled();
   });
+
+  it("shows a friendly provider auth message with raw details", () => {
+    render(
+      <ErrorCard
+        error={{
+          message:
+            "status_code: 401, body: {'message': 'Authentication Fails, Your api key is invalid'}",
+        }}
+        onRetry={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "Provider authentication failed. Check the API key in Providers.",
+      ),
+    ).toBeTruthy();
+    expect(screen.getByText("Details")).toBeTruthy();
+  });
 });
 
 describe("RunStatus", () => {

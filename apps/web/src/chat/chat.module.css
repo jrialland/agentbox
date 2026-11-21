@@ -16,6 +16,18 @@
   gap: var(--ab-space-2);
 }
 
+.turnAction {
+  margin-left: auto;
+}
+
+.errorDetails pre {
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+  margin: var(--ab-space-2) 0 0;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
 .role {
   color: var(--ab-text-muted);
   font-family: var(--ab-font-display);

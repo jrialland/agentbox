@@ -1,14 +1,8 @@
 import { expect, type APIRequestContext, type Page, test } from "@playwright/test";
 
-const API = "http://localhost:8000";
+import { login } from "./helpers";
 
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel("Username").fill("admin");
-  await page.getByRole("textbox", { name: "Password" }).fill("admin");
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
-}
+const API = "http://localhost:8000";
 
 async function createSessionFixture(page: Page, request: APIRequestContext) {
   const token = await page.evaluate(() => {

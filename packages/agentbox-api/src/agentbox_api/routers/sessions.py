@@ -178,6 +178,7 @@ class MessageRead(BaseModel):
     content: str
     parent_id: str | None = None
     created_at: str
+    context_tokens: int | None = None
     activity: dict | None = None
     attachments: list[dict] | None = None
 
@@ -211,6 +212,7 @@ async def list_messages(
             content=r.content,
             parent_id=r.parent_id,
             created_at=r.created_at.isoformat() if r.created_at else "",
+            context_tokens=r.context_tokens,
             activity=r.activity,
             attachments=r.attachments,
         )

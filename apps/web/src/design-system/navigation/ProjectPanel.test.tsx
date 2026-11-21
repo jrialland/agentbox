@@ -97,7 +97,7 @@ beforeEach(() => {
 test("renders projects with grouped sessions and navigates", async () => {
   renderPanel();
   expect(await screen.findByText("Proj A")).toBeInTheDocument();
-  const session = await screen.findByText("Session 1");
+  const session = await screen.findByText("Untitled session");
   fireEvent.click(session);
   await waitFor(() =>
     expect(screen.getByText("Session page")).toBeInTheDocument(),

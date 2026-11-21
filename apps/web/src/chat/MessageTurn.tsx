@@ -1,4 +1,5 @@
 import { Button } from "../design-system/primitives/Button";
+import { CopyButton } from "../design-system/primitives/CopyButton";
 import { StatusChip } from "../design-system/primitives/StatusChip";
 import { ActivityChips, type ActivitySummary } from "./ActivityChips";
 import { AttachmentChip, type AttachmentMeta } from "./AttachmentChip";
@@ -50,11 +51,18 @@ export function MessageTurn({
             Edit
           </Button>
         )}
+        {!isUser && message.content && (
+          <span className={styles.turnAction}>
+            <CopyButton value={message.content} label="Copy Markdown" />
+          </span>
+        )}
       </header>
       {isUser ? (
         <p className={styles.userText}>{message.content}</p>
       ) : (
-        message.content && <MarkdownBlock content={message.content} />
+        message.content && (
+          <MarkdownBlock content={message.content} showCopy={false} />
+        )
       )}
       {message.attachments && message.attachments.length > 0 && (
         <div className={styles.attachments}>

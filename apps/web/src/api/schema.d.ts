@@ -955,6 +955,8 @@ export interface components {
             parent_id?: string | null;
             /** Created At */
             created_at: string;
+            /** Context Tokens */
+            context_tokens?: number | null;
             /** Activity */
             activity?: {
                 [key: string]: unknown;

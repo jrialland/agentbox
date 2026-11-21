@@ -108,6 +108,7 @@ export function Composer({
   return (
     <div
       className={`${styles.composer} ${dragging ? styles.dragging : ""}`}
+      data-testid="composer"
       onDragOver={(event) => {
         event.preventDefault();
         setDragging(true);

@@ -22,6 +22,7 @@ export function ProviderForm({
   onChange,
   providerId,
   errors,
+  onSubmit,
 }: {
   value: ProviderDraft;
   onChange: (value: ProviderDraft) => void;
@@ -29,6 +30,7 @@ export function ProviderForm({
   errors?: Partial<
     Record<"name" | "kind" | "baseUrl" | "modelsUrl" | "apiKey", string>
   >;
+  onSubmit?: () => void;
 }) {
   const test = useTestProvider();
   const [result, setResult] = useState<ProviderTestResult | null>(null);
@@ -63,7 +65,12 @@ export function ProviderForm({
   }
 
   return (
-    <>
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit?.();
+      }}
+    >
       <FormField label="Name" required error={errors?.name}>
         <TextInput
           value={value.name}
@@ -127,6 +134,6 @@ export function ProviderForm({
         </Button>
         {result && <ProviderTestResultView result={result} />}
       </div>
-    </>
+    </form>
   );
 }

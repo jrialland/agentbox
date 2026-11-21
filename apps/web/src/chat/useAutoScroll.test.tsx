@@ -7,6 +7,7 @@ import { useAutoScroll } from "./useAutoScroll";
 function makeScroller() {
   const el = document.createElement("div");
   let top = 1000;
+  let lastOptions: ScrollToOptions | null = null;
   Object.defineProperty(el, "scrollHeight", { value: 1000, configurable: true });
   Object.defineProperty(el, "clientHeight", { value: 100, configurable: true });
   Object.defineProperty(el, "scrollTop", {
@@ -17,7 +18,9 @@ function makeScroller() {
     },
   });
   el.scrollTo = ((options: ScrollToOptions | number) => {
-    top = typeof options === "number" ? options : (options.top ?? top);
+    lastOptions =
+      typeof options === "number" ? { top: options } : options;
+    top = lastOptions.top ?? top;
   }) as typeof el.scrollTo;
   document.body.append(el);
   return {
@@ -27,6 +30,9 @@ function makeScroller() {
     },
     set top(value: number) {
       top = value;
+    },
+    get lastOptions() {
+      return lastOptions;
     },
   };
 }
@@ -52,6 +58,7 @@ describe("useAutoScroll", () => {
     });
     rerender({ n: 1 });
     expect(scroller.top).toBe(1000);
+    expect(scroller.lastOptions?.behavior).toBe("auto");
   });
 
   it("stays put when scrolled up, then jumps to latest", () => {

@@ -33,12 +33,26 @@
   min-width: 180px;
 }
 
+.contextUsage {
+  color: var(--ab-text-muted);
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+  white-space: nowrap;
+}
+
 .messages {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: var(--ab-space-4) var(--ab-space-1) var(--ab-space-3) 0;
   position: relative;
+}
+
+.emptySession {
+  display: grid;
+  place-items: center;
+  min-height: 100%;
 }
 
 .jump {

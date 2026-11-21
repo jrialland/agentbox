@@ -1,5 +1,6 @@
 .split {
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   height: 100%;
   min-height: 0;
   width: 100%;
@@ -9,14 +10,17 @@
 .app {
   min-height: 0;
   min-width: 0;
-  overflow: auto;
 }
 
 .chat {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding-right: var(--ab-space-2);
 }
 
 .app {
+  overflow: auto;
   padding-left: var(--ab-space-2);
 }
 

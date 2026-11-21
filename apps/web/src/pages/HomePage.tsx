@@ -23,6 +23,7 @@ import {
   type OnboardingStep,
 } from "../onboarding/onboardingProgress";
 import { useOnboardingPreference } from "../onboarding/useOnboardingPreference";
+import { sessionTitle } from "../lib/sessionTitle";
 import { Panel } from "../design-system/primitives/Panel";
 import styles from "./home.module.css";
 
@@ -64,13 +65,15 @@ export function HomePage() {
     sessions: sessionList.length,
   };
   const progress = deriveOnboardingProgress(snapshot);
+  const setupLoaded = providers !== undefined && agents !== undefined;
 
   useEffect(() => {
-    if (providersError || agentsError) return;
+    if (!setupLoaded || providersError || agentsError) return;
     if (snapshot.providers === 0 && snapshot.agents === 0 && !dismissed) {
       setWizardOpen(true);
     }
   }, [
+    setupLoaded,
     snapshot.providers,
     snapshot.agents,
     dismissed,
@@ -183,7 +186,7 @@ export function HomePage() {
                 {recentSessions.map((session) => (
                   <li key={session.id} className={styles.sessionRow}>
                     <Link to={`/sessions/${session.id}`}>
-                      <strong>{session.title?.trim() || session.agent_id}</strong>
+                      <strong>{sessionTitle(session.title)}</strong>
                       <span>{projectName(session.project_id)}</span>
                     </Link>
                     <IconLink sessionId={session.id} />
@@ -221,7 +224,9 @@ export function HomePage() {
                 {projectList.map((project) => (
                   <li key={project.id}>
                     <span>{project.name}</span>
-                    <code>{project.path}</code>
+                    <code>
+                      {project.path === "." ? "Project root" : project.path}
+                    </code>
                   </li>
                 ))}
               </ul>

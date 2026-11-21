@@ -35,6 +35,22 @@ export const DEFAULT_ONBOARDING_TOOLS = [
   "get_file_info",
 ];
 
+const STEP_ORDER: OnboardingStep[] = [
+  "welcome",
+  "provider",
+  "agent",
+  "session",
+  "done",
+];
+
+const STEP_LABELS: Record<OnboardingStep, string> = {
+  welcome: "Welcome",
+  provider: "Provider",
+  agent: "Agent",
+  session: "Session",
+  done: "Done",
+};
+
 export function OnboardingWizard({
   opened,
   initialStep,
@@ -155,7 +171,7 @@ export function OnboardingWizard({
         agent_id: createdAgent ?? agentName,
       });
       setSessionId(session.id);
-      setStep("done");
+      onDone(session.id);
     } catch {
       setError("Could not create the project or session.");
     }
@@ -177,8 +193,20 @@ export function OnboardingWizard({
     >
       <div className={styles.wizard}>
         <div className={styles.steps}>
-          {["Welcome", "Provider", "Agent", "Session", "Done"].map((label) => (
-            <span key={label}>{label}</span>
+          {STEP_ORDER.map((id, index) => (
+            <span
+              key={id}
+              className={id === step ? styles.stepActive : styles.step}
+              data-testid={`wizard-step-${id}`}
+              aria-current={id === step ? "step" : undefined}
+            >
+              {STEP_LABELS[id]}
+              {index < STEP_ORDER.length - 1 && (
+                <span className={styles.stepSep} aria-hidden="true">
+                  ›
+                </span>
+              )}
+            </span>
           ))}
         </div>
 
@@ -201,6 +229,7 @@ export function OnboardingWizard({
               onChange={setDraft}
               providerId={createdProviderId ?? undefined}
               errors={providerErrors}
+              onSubmit={createProviderStep}
             />
             {createdProvider && (
               <p style={{ color: "var(--ab-text-muted)" }}>

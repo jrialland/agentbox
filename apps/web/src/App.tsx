@@ -16,6 +16,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { SessionPage } from "./pages/SessionPage";
+import { SESSION_ROUTE } from "./routes";
 import { SkillsPage } from "./pages/SkillsPage";
 
 const queryClient = createQueryClient();
@@ -38,7 +39,7 @@ export function App() {
                   <Route path="api-keys" element={<ApiKeysPage />} />
                   <Route path="providers" element={<ProvidersPage />} />
                   <Route path="skills" element={<SkillsPage />} />
-                  <Route path="sessions/:id" element={<SessionPage />} />
+                  <Route path={SESSION_ROUTE} element={<SessionPage />} />
                   <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Route>

@@ -1,73 +1,6 @@
-import { type APIRequestContext, expect, type Page, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 
-const API = "http://localhost:8000";
-
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.getByLabel("Username").fill("admin");
-  await page.getByRole("textbox", { name: "Password" }).fill("admin");
-  await page.getByRole("button", { name: "Log in" }).click();
-  await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
-  const raw = await page.evaluate(() => sessionStorage.getItem("agentbox-auth"));
-  const token = JSON.parse(raw as string).state.token as string;
-  return { Authorization: `Bearer ${token}` };
-}
-
-async function setupSession(
-  page: Page,
-  request: APIRequestContext,
-  kind: string,
-  withMcp = false,
-): Promise<string> {
-  const h = await login(page);
-  const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-  const provider = await request.post(`${API}/providers`, {
-    headers: h,
-    data: {
-      name: `e2e-ux2-${suffix}`,
-      kind,
-      models_url: "http://localhost:9999/models",
-    },
-  });
-  const providerId = (await provider.json()).id;
-  await request.post(`${API}/providers/${providerId}/models/refresh`, {
-    headers: h,
-  });
-  const modelName = `e2e-ux2-model-${suffix}`;
-  await request.post(`${API}/models`, {
-    headers: h,
-    data: { provider_id: providerId, name: modelName, labels: [] },
-  });
-
-  const agentName = `e2e-ux2-agent-${suffix}`;
-  await request.post(`${API}/agents`, {
-    headers: h,
-    data: {
-      name: agentName,
-      description: "d",
-      instructions: "i",
-      model: modelName,
-      tool_bindings: withMcp
-        ? [{ server_url: "http://localhost:9000/mcp", id: "test-app" }]
-        : [],
-      mode_definitions: [
-        { name: "ask", flags: { write: false } },
-        { name: "agent", flags: { write: true } },
-      ],
-      sub_agent_ids: [],
-    },
-  });
-  const project = await request.post(`${API}/projects`, {
-    headers: h,
-    data: { name: `e2e-ux2-proj-${suffix}`, path: "." },
-  });
-  const projectId = (await project.json()).id;
-  const session = await request.post(`${API}/sessions`, {
-    headers: h,
-    data: { project_id: projectId, agent_id: agentName },
-  });
-  return (await session.json()).id;
-}
+import { setupSession } from "./helpers";
 
 async function openSession(page: Page, sessionId: string) {
   await page.goto(`/sessions/${sessionId}`);
@@ -78,7 +11,9 @@ test("renders a live tool card before the final assistant text and splits the ap
   page,
   request,
 }) => {
-  const sessionId = await setupSession(page, request, "test_tool_slow", true);
+  const sessionId = await setupSession(page, request, "test_tool_slow", {
+    withMcp: true,
+  });
   await openSession(page, sessionId);
 
   await page.getByLabel("Message").fill("show the app");
@@ -97,6 +32,16 @@ test("renders a live tool card before the final assistant text and splits the ap
   await expect(
     page.getByRole("separator", { name: "Resize app panel" }),
   ).toBeVisible();
+
+  const composer = page.getByTestId("composer");
+  await expect(composer).toBeVisible();
+  const composerBox = await composer.boundingBox();
+  const viewport = page.viewportSize();
+  expect(composerBox).not.toBeNull();
+  expect(viewport).not.toBeNull();
+  expect(composerBox!.y + composerBox!.height).toBeLessThanOrEqual(
+    viewport!.height + 1,
+  );
 });
 
 test("stops a slow run, keeps partial output, and offers retry", async ({
@@ -157,7 +102,8 @@ test("renders markdown, mermaid fallback, and downloadable attachment history", 
   ).toBeVisible({ timeout: 15000 });
   await expect(page.getByRole("table").last()).toBeVisible();
   await expect(page.locator(".md-code").first()).toContainText("print");
-  await expect(page.locator(".mermaid-block svg").first()).toBeVisible({
+  await expect(page.locator(".mermaid-canvas svg").first()).toBeVisible({
+
     timeout: 20000,
   });
   await expect(page.getByText("Diagram could not be rendered").last()).toBeVisible();
