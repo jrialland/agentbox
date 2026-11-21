@@ -16,7 +16,6 @@ export function HelpProvider({ children }: { children: ReactNode }) {
 }
 
 export function useHelp() {
-  const context = useContext(HelpContext);
-  if (!context) throw new Error("useHelp must be used inside HelpProvider");
-  return context;
+  return useContext(HelpContext) ?? { openHelp: () => {} };
 }
+

@@ -1,12 +1,11 @@
 import { notifications } from "@mantine/notifications";
 import { RiDeleteBin6Line } from "@remixicon/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { ApiKey } from "../api/endpoints";
 import { useApiKeys, useCreateApiKey, useRevokeApiKey } from "../api/queries";
 import { DataTable } from "../design-system/data/DataTable";
 import { FormField } from "../design-system/forms/FormField";
-import { MultiSelect } from "../design-system/forms/MultiSelect";
 import { Select } from "../design-system/forms/Select";
 import { TextInput } from "../design-system/forms/TextInput";
 import { IconButton } from "../design-system/icons/IconButton";
@@ -17,7 +16,9 @@ import { Button } from "../design-system/primitives/Button";
 import { CopyButton } from "../design-system/primitives/CopyButton";
 import { Panel } from "../design-system/primitives/Panel";
 import { StatusChip } from "../design-system/primitives/StatusChip";
+import { HelpTip } from "../help/HelpTip";
 import { useAuthStore } from "../store/auth";
+import { ScopePicker } from "./api-keys/ScopePicker";
 import styles from "./api-keys.module.css";
 
 const EXPIRY_OPTIONS = [
@@ -47,6 +48,11 @@ export function ApiKeysPage() {
   const [scopes, setScopes] = useState<string[]>([]);
   const [expiry, setExpiry] = useState<string | null>("never");
   const [created, setCreated] = useState<string | null>(null);
+  const createdRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (created) createdRef.current?.select();
+  }, [created]);
 
   async function onCreate() {
     try {
@@ -71,9 +77,13 @@ export function ApiKeysPage() {
         <Panel.Header>Create key</Panel.Header>
         <Panel.Body>
           <div className={styles.form}>
-            <FormField label="Scopes" description="Select the permissions this key may use.">
-              <MultiSelect
-                data={[...new Set(user?.permissions ?? [])]}
+            <FormField
+              label="Scopes"
+              description="Select the permissions this key may use."
+              help={<HelpTip id="api.scopes" />}
+            >
+              <ScopePicker
+                available={[...new Set(user?.permissions ?? [])]}
                 value={scopes}
                 onChange={setScopes}
               />
@@ -157,6 +167,7 @@ export function ApiKeysPage() {
         title="Copy your API key"
       >
         <TextInput
+          ref={createdRef}
           data-testid="created-key"
           value={created ?? ""}
           readOnly
@@ -169,3 +180,4 @@ export function ApiKeysPage() {
     </ListPage>
   );
 }
+
