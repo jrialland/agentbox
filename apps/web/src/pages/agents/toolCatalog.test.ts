@@ -9,4 +9,10 @@ describe("tool catalog", () => {
     expect(TOOL_META.web_search.category).toBe("web");
     expect(TOOL_GROUPS.map((group) => group.category)).toContain("terminal");
   });
+
+  it("catalogs grep as a content-search read tool", () => {
+    expect(TOOL_META.grep.category).toBe("filesystem-read");
+    expect(TOOL_META.grep.risk).toBe("read");
+    expect(TOOL_META.grep.label).toMatch(/grep/i);
+  });
 });

@@ -26,6 +26,15 @@ import {
 import styles from "./onboarding.module.css";
 import type { OnboardingStep } from "./onboardingProgress";
 
+export const DEFAULT_ONBOARDING_TOOLS = [
+  "read_text_file",
+  "read_multiple_files",
+  "list_directory",
+  "search_files",
+  "grep",
+  "get_file_info",
+];
+
 export function OnboardingWizard({
   opened,
   initialStep,
@@ -58,13 +67,9 @@ export function OnboardingWizard({
     "You are a helpful coding agent.",
   );
   const [agentModel, setAgentModel] = useState<string | null>(null);
-  const [agentTools, setAgentTools] = useState<string[]>([
-    "read_text_file",
-    "read_multiple_files",
-    "list_directory",
-    "search_files",
-    "get_file_info",
-  ]);
+  const [agentTools, setAgentTools] = useState<string[]>(
+    DEFAULT_ONBOARDING_TOOLS,
+  );
   const [createdAgent, setCreatedAgent] = useState<string | null>(null);
   const [projectName, setProjectName] = useState("My project");
   const [projectPath, setProjectPath] = useState(".");

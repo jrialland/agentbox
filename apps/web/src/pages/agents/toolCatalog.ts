@@ -20,6 +20,7 @@ export const TOOL_META: Record<string, ToolMeta> = {
   list_directory_with_sizes: { name: "list_directory_with_sizes", label: "List directory with sizes", description: "List entries with file sizes.", category: "filesystem-read", risk: "read" },
   directory_tree: { name: "directory_tree", label: "Directory tree", description: "Show a recursive directory tree.", category: "filesystem-read", risk: "read" },
   search_files: { name: "search_files", label: "Search files", description: "Find files by name.", category: "filesystem-read", risk: "read" },
+  grep: { name: "grep", label: "Grep content", description: "Search file contents with regex or literal text.", category: "filesystem-read", risk: "read" },
   get_file_info: { name: "get_file_info", label: "File info", description: "Read file metadata.", category: "filesystem-read", risk: "read" },
   list_allowed_directories: { name: "list_allowed_directories", label: "Allowed roots", description: "Show directories the agent may access.", category: "filesystem-read", risk: "read" },
   write_file: { name: "write_file", label: "Write file", description: "Create or overwrite a file.", category: "filesystem-write", risk: "write" },

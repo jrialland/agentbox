@@ -15,7 +15,7 @@ vi.mock("../api/queries", () => ({
 }));
 
 import { renderWithTheme } from "../test/render";
-import { OnboardingWizard } from "./OnboardingWizard";
+import { DEFAULT_ONBOARDING_TOOLS, OnboardingWizard } from "./OnboardingWizard";
 
 test("moves from welcome to provider setup and can be skipped", async () => {
   const onClose = vi.fn();
@@ -27,4 +27,9 @@ test("moves from welcome to provider setup and can be skipped", async () => {
   expect(screen.getByText("Connect your first provider")).toBeTruthy();
   fireEvent.click(screen.getByRole("button", { name: "Skip setup" }));
   expect(onClose).toHaveBeenCalled();
+});
+
+
+test("onboarding enables grep by default", () => {
+  expect(DEFAULT_ONBOARDING_TOOLS).toContain("grep");
 });
