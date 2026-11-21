@@ -61,6 +61,10 @@ test-py path:
 build-web:
     cd apps/web && bun run build
 
+# Serve the built Storybook at http://localhost:6006.
+preview-storybook:
+    cd apps/web && bun run preview-storybook
+
 # Run browser end-to-end tests (ports 5173, 8000, 9000, 9999 must be free).
 e2e:
     cd apps/web && bun run e2e
