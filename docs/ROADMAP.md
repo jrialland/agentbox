@@ -113,7 +113,7 @@ Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These wo
 | UX-3 | Contextual help & structured editors | PLANNED | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
 | UX-4 | Data integrity, errors & navigation states | PLANNED | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
 
-The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 is complete** — spec `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, plan `superpowers/plans/2026-11-20-ux-1-design-system.md`. Active cycle: **UX-2** chat surface and runtime UX — spec `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`.
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 and UX-2 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md` and `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md` and `superpowers/plans/2026-11-21-ux-2-chat-surface.md`. Next cycle: **UX-3** contextual help and structured editors.
 
 ## Sub-project history
 
