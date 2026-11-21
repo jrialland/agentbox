@@ -54,6 +54,7 @@ class LspManager:
                 project_root,
                 pull=stack.pull,
                 settle=stack.settle,
+                quiescence=stack.quiescence,
                 initialize_timeout=self.initialize_timeout,
                 diagnostics_timeout=self.diagnostics_timeout,
             )

@@ -139,3 +139,50 @@ async def test_reset_stops_servers(tmp_path):
     await manager.reset()
     assert manager.active_for_session("s1") == []
     assert server.dead
+
+
+async def test_manager_passes_quiescence_to_server(tmp_path):
+    manager = LspManager()
+    stack = LspStack(
+        "rustlike",
+        ("**/*.rs",),
+        FAKE.command,
+        ("rust",),
+        (".rs",),
+        pull=False,
+        save=True,
+        settle=15.0,
+        quiescence="server_status",
+    )
+    server = await manager.get_or_start(str(tmp_path), stack)
+    assert server is not None
+    assert server.quiescence == "server_status"
+    assert server._tracker is not None
+    await manager.shutdown()
+
+
+async def test_manager_default_stack_has_no_tracker(tmp_path):
+    manager = LspManager()
+    server = await manager.get_or_start(str(tmp_path), FAKE)
+    assert server is not None
+    assert server.quiescence is None
+    assert server._tracker is None
+    await manager.shutdown()
+
+
+def test_configure_custom_stack_quiescence():
+    manager = LspManager()
+    payload = json.dumps(
+        [
+            {
+                "name": "custom",
+                "markers": ["*.custom"],
+                "command": ["echo"],
+                "languages": ["custom"],
+                "extensions": [".custom"],
+                "quiescence": "server_status",
+            }
+        ]
+    )
+    manager.configure(_settings(lsp_servers_json=payload))
+    assert manager.stacks[0].quiescence == "server_status"

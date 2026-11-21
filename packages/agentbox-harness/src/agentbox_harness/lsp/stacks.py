@@ -12,6 +12,7 @@ class LspStack:
     pull: bool = True
     save: bool = False
     settle: float = 3.0
+    quiescence: str | None = None
 
 
 DEFAULT_LSP_SERVERS = (
@@ -43,6 +44,7 @@ DEFAULT_LSP_SERVERS = (
         pull=False,
         save=True,
         settle=15.0,
+        quiescence="server_status",
     ),
 )
 

@@ -26,3 +26,16 @@ def test_language_for_extension():
     python = DEFAULT_LSP_SERVERS[0]
     assert language_for(python, "main.py") == "python"
     assert language_for(python, "main.ts") is None
+
+
+def test_rust_default_uses_server_status_quiescence():
+    rust = next(stack for stack in DEFAULT_LSP_SERVERS if stack.name == "rust")
+    assert rust.quiescence == "server_status"
+    assert rust.pull is False
+    assert rust.save is True
+    assert rust.settle == 15.0
+
+
+def test_other_default_stacks_have_no_quiescence():
+    others = [stack for stack in DEFAULT_LSP_SERVERS if stack.name != "rust"]
+    assert all(stack.quiescence is None for stack in others)
