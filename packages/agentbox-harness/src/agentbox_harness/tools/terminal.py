@@ -240,22 +240,13 @@ def make_terminal_tools(
     allowed_roots: list[pathlib.Path],
 ):
     root = pathlib.Path(project_root).expanduser().resolve()
-    allowed = list(
-        dict.fromkeys(
-            [root, *[pathlib.Path(path).resolve() for path in allowed_roots]]
-        )
-    )
 
     def _resolve_cwd(cwd: str | None) -> pathlib.Path:
-        if cwd is None or not str(cwd).strip():
-            return root
-        candidate = pathlib.Path(str(cwd)).expanduser()
-        target = (
-            candidate if candidate.is_absolute() else root / candidate
-        ).resolve()
-        if not any(target == path or path in target.parents for path in allowed):
-            raise ValueError(f"cwd escapes allowed roots: {cwd}")
-        return target
+        from agentbox_harness.tools.paths import resolve_project_path
+
+        return resolve_project_path(
+            str(cwd or ""), str(root), [str(path) for path in allowed_roots]
+        )
 
     async def run_command(
         command: str,

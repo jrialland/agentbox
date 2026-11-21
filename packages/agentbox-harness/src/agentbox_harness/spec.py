@@ -33,6 +33,8 @@ class McpToolBinding:
     command: str = ""
     args: list[str] = field(default_factory=list)
     env: dict[str, str] = field(default_factory=dict)
+    env_passthrough: list[str] = field(default_factory=list)
+    cwd: str = ""
 
 
 ToolBinding = NativeToolBinding | McpToolBinding
