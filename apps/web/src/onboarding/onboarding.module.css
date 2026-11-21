@@ -1,0 +1,24 @@
+.wizard {
+  display: grid;
+  gap: var(--ab-space-4);
+}
+
+.steps {
+  color: var(--ab-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-xs);
+  gap: var(--ab-space-2);
+}
+
+.error {
+  color: var(--ab-danger);
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  gap: var(--ab-space-2);
+  justify-content: flex-end;
+}
