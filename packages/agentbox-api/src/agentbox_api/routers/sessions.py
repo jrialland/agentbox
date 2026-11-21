@@ -18,10 +18,11 @@ from agentbox_api.runtime import (
 from agentbox_api.skills import prepare_agent, render_skill
 from agentbox_api.streaming import agui_response
 from agentbox_api.templating import PromptTemplateError
-from agentbox_harness.events import EventBus
+from agentbox_harness.events import EventBus, RunEvent
 from agentbox_harness.harness import Harness
 from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.session import Session, Turn
+from agentbox_harness.tools.mcp_session import McpWarningEvent
 from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.repos.crud import SessionRepository
@@ -491,6 +492,7 @@ async def chat(
         compaction=compaction_config_from_settings(request.app.state.settings),
         sub_session_runner=prepared.sub_session_runner,
     )
+    mcp_warnings = (await harness.prepare_mcp(session)).warnings
     bus = EventBus()
     sub = bus.subscribe()
     logger.info("run start session={} mode={}", sid, body.mode or "agent")
@@ -507,6 +509,15 @@ async def chat(
     collector = RunActivityCollector()
 
     async def raw_events():
+        for index, warning in enumerate(mcp_warnings):
+            yield RunEvent(
+                run_id="mcp",
+                seq=-(index + 1),
+                event=McpWarningEvent(
+                    server=warning.server_id, message=warning.message
+                ),
+            )
+
         async def finish():
             try:
                 outcome = await run.await_outcome()

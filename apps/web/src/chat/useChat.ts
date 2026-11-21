@@ -1,3 +1,4 @@
+import { notifications } from "@mantine/notifications";
 import { EventType } from "@ag-ui/core";
 import { useRef, useState } from "react";
 
@@ -21,6 +22,8 @@ type RawEvent = {
   content?: unknown;
   activityType?: string;
   message?: string;
+  name?: string;
+  value?: unknown;
 };
 
 export function useChat(baseUrl: string, token: string | null, sessionId: string) {
@@ -180,6 +183,17 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
               tab,
             }),
           );
+        }
+        break;
+      }
+      case EventType.CUSTOM: {
+        if (event.name === "mcp.warning") {
+          const payload = (event.value ?? {}) as { server?: string; message?: string };
+          notifications.show({
+            title: `MCP server: ${payload.server ?? "unknown"}`,
+            message: payload.message ?? "Server unavailable",
+            color: "yellow",
+          });
         }
         break;
       }
