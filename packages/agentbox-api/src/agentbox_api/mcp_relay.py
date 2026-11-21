@@ -11,6 +11,7 @@ from typing import Any
 from loguru import logger
 from pydantic_ai.mcp import MCPToolset
 
+from agentbox_harness.logging import log_exception
 from agentbox_harness.spec import AgentSpec, McpToolBinding
 from agentbox_harness.tools.mcp import mcp_toolset_id
 
@@ -35,7 +36,7 @@ async def read_resource_for_app(
         try:
             return await toolset.read_resource_for_app(uri)
         except Exception:
-            logger.exception(
+            log_exception(
                 "mcp resource read failed server={} uri={}", server_id, uri
             )
             raise
@@ -49,7 +50,7 @@ async def call_tool_for_app(
         try:
             return await toolset.call_tool_for_app(name, arguments)
         except Exception:
-            logger.exception(
+            log_exception(
                 "mcp tool call failed server={} tool={}", server_id, name
             )
             raise

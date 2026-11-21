@@ -1,12 +1,12 @@
 import asyncio
 from dataclasses import dataclass
 
-from loguru import logger
 from pydantic_ai import Agent, AgentRunResultEvent, CancellationToken
 from pydantic_ai.exceptions import ModelContextWindowExceededError
 
 from agentbox_harness.errors import RunOutcome, normalize_error
 from agentbox_harness.events import EventBus, RunEvent
+from agentbox_harness.logging import log_exception
 
 
 @dataclass
@@ -95,7 +95,7 @@ class RunManager:
             return await attempt(message_history)
         except ModelContextWindowExceededError as exc:
             if on_context_overflow is None:
-                logger.exception("run failed id={}", run_id)
+                log_exception("run failed id={}", run_id)
                 bus.publish(
                     RunEvent(run_id=run_id, seq=seq, event=normalize_error(exc))
                 )
@@ -103,13 +103,13 @@ class RunManager:
             try:
                 new_history = await on_context_overflow()
             except BaseException:
-                logger.exception("context recovery failed id={}", run_id)
+                log_exception("context recovery failed id={}", run_id)
                 bus.publish(
                     RunEvent(run_id=run_id, seq=seq, event=normalize_error(exc))
                 )
                 raise exc from None
             if new_history is None:
-                logger.exception("run failed id={}", run_id)
+                log_exception("run failed id={}", run_id)
                 bus.publish(
                     RunEvent(run_id=run_id, seq=seq, event=normalize_error(exc))
                 )
@@ -117,7 +117,7 @@ class RunManager:
             try:
                 return await attempt(new_history)
             except BaseException as retry_exc:
-                logger.exception("run failed id={}", run_id)
+                log_exception("run failed id={}", run_id)
                 bus.publish(
                     RunEvent(
                         run_id=run_id,
@@ -127,7 +127,7 @@ class RunManager:
                 )
                 raise
         except BaseException as exc:
-            logger.exception("run failed id={}", run_id)
+            log_exception("run failed id={}", run_id)
             bus.publish(
                 RunEvent(run_id=run_id, seq=seq, event=normalize_error(exc))
             )
