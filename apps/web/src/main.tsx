@@ -8,7 +8,6 @@ import "@fontsource/jetbrains-mono/400.css";
 import "@fontsource/jetbrains-mono/500.css";
 import "./design-system/styles/layers.css";
 import "./design-system/tokens/tokens.css";
-import "./design-system/styles/legacy.css";
 import "./design-system/styles/global.css";
 
 import React from "react";
@@ -21,3 +20,4 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <App />
   </React.StrictMode>,
 );
+

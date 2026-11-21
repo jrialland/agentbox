@@ -179,3 +179,17 @@
 .forkBanner span {
   flex: 1;
 }
+
+.notice {
+  background: var(--ab-surface);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  margin-bottom: var(--ab-space-3);
+  padding: var(--ab-space-3);
+}
+
+.noticeHead {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}

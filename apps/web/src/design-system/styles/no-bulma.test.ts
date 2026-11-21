@@ -1,20 +1,16 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const root = join(process.cwd(), "src");
-const allowed = new Set([
-  "pages/SessionPage.tsx",
-  "chat/Composer.tsx",
-  "chat/MarkdownBlock.tsx",
-  "chat/MermaidBlock.tsx",
-  "chat/ReasoningBlock.tsx",
-  "chat/ToolCallBlock.tsx",
-  "chat/AppPanel.tsx",
-  "chat/PlanPanel.tsx",
-  "chat/SummaryNotice.tsx",
-]);
 const bannedTokens = new Set([
+  "is-align-items-center",
+  "is-block",
+  "has-text-weight-semibold",
+  "has-text-grey",
+  "tag",
+  "is-light",
+  "is-danger",
   "box",
   "title",
   "button",
@@ -48,12 +44,13 @@ function hasBulmaClass(source: string): boolean {
   return false;
 }
 
-describe("no Bulma classes outside chat", () => {
-  it("keeps non-chat components free of Bulma class names", () => {
+describe("no Bulma classes", () => {
+  it("keeps components free of Bulma class names", () => {
     const offenders = files(root)
       .filter((path) => !path.includes(".test."))
-      .filter((path) => !allowed.has(relative(root, path).replaceAll("\\", "/")))
       .filter((path) => hasBulmaClass(readFileSync(path, "utf8")));
     expect(offenders).toEqual([]);
   });
 });
+
+

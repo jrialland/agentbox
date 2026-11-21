@@ -25,7 +25,6 @@
     "@mcp-ui/client": "^7.1.1",
     "@remixicon/react": "^4.9.0",
     "@tanstack/react-query": "^5.108.0",
-    "bulma": "^1.0.4",
     "highlight.js": "^11.12.0",
     "mermaid": "^12.3.0",
     "mitt": "^3.0.1",

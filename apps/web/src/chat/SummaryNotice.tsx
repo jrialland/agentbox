@@ -1,17 +1,14 @@
 import { Button } from "@mantine/core";
 import { useState } from "react";
 
+import styles from "./chat.module.css";
 import { MarkdownBlock } from "./MarkdownBlock";
 
 export function SummaryNotice({ content }: { content: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div
-      className="box"
-      data-testid="summary-notice"
-      style={{ marginBottom: "0.75rem" }}
-    >
-      <div className="is-flex is-justify-content-space-between is-align-items-center">
+    <div className={styles.notice} data-testid="summary-notice">
+      <div className={styles.noticeHead}>
         <strong>Earlier conversation summarized</strong>
         <Button
           size="compact-xs"
@@ -25,3 +22,4 @@ export function SummaryNotice({ content }: { content: string }) {
     </div>
   );
 }
+
