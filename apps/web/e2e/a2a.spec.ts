@@ -32,7 +32,8 @@ test("A2A agent card editor", async ({ page, request }) => {
   await row.getByRole("button", { name: "A2A" }).click();
 
   const dialog = page.getByRole("dialog");
-  await dialog.getByLabel("Agent card (JSON)").fill(
+  await dialog.getByRole("tab", { name: "JSON" }).click();
+  await dialog.getByLabel("Agent card JSON").fill(
     JSON.stringify(
       { name: "E2E A2A", description: "d", version: "1.0.0", skills: [] },
       null,
@@ -43,8 +44,8 @@ test("A2A agent card editor", async ({ page, request }) => {
   await expect(page.getByRole("dialog")).toBeHidden();
 
   await row.getByRole("button", { name: "A2A" }).click();
+  await page.getByRole("dialog").getByRole("tab", { name: "JSON" }).click();
   await expect(
-    page.getByRole("dialog").getByLabel("Agent card (JSON)"),
+    page.getByRole("dialog").getByLabel("Agent card JSON"),
   ).toHaveValue(/E2E A2A/);
 });
-

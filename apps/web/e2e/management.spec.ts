@@ -17,7 +17,7 @@ test("manage provider and agent end-to-end", async ({ page }) => {
   const providerDialog = page.getByRole("dialog");
   await providerDialog.getByLabel("Name").fill(providerName);
   await providerDialog.getByRole("combobox", { name: "Kind" }).click();
-  await page.getByRole("option", { name: "generic" }).click();
+  await page.getByRole("option", { name: "Generic OpenAI-compatible" }).click();
   await providerDialog.getByLabel("Models URL").fill("http://localhost:9999/models");
   await providerDialog.getByRole("button", { name: "Create provider" }).click();
   await expect(page.getByRole("cell", { name: providerName })).toBeVisible();
@@ -47,5 +47,3 @@ test("manage provider and agent end-to-end", async ({ page }) => {
     .click();
   await expect(page.getByRole("cell", { name: agentName })).toHaveCount(0);
 });
-
-

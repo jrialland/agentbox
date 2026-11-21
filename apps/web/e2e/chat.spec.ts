@@ -24,6 +24,11 @@ async function setupChat(page: Page, request: APIRequestContext): Promise<string
   });
   const provId = (await prov.json()).id;
   await request.post(`${API}/providers/${provId}/models/refresh`, { headers: h });
+  const modelName = `e2e-model-${suffix}`;
+  await request.post(`${API}/models`, {
+    headers: h,
+    data: { provider_id: provId, name: modelName, labels: [] },
+  });
 
   await request.post(`${API}/agents`, {
     headers: h,
@@ -31,7 +36,7 @@ async function setupChat(page: Page, request: APIRequestContext): Promise<string
       name: `e2e-agent-${suffix}`,
       description: "d",
       instructions: "i",
-      model: "e2e-model",
+      model: modelName,
       tool_bindings: [],
       mode_definitions: [
         { name: "ask", flags: { write: false } },
@@ -79,4 +84,3 @@ test("chat streams, attaches, and forks", async ({ page, request }) => {
   await page.getByRole("button", { name: "Send" }).click();
   await expect(page.getByText("Hello from the test provider")).toBeVisible({ timeout: 15000 });
 });
-

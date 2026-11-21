@@ -9,16 +9,16 @@ test("API key: scope-limited, then revoked", async ({ page, request }) => {
   await page.getByRole("button", { name: "Log in" }).click();
   await expect(page.getByRole("heading", { name: "Home" })).toBeVisible();
 
+  const skip = page.getByRole("button", { name: "Skip setup" });
+  if (await skip.isVisible()) await skip.click();
+
   await page.getByRole("link", { name: "API keys" }).click();
+  await expect(page.getByRole("heading", { name: "API keys", exact: true })).toBeVisible();
 
   // Create a key scoped to projects:read for 7 days.
-  await page.locator(".mantine-MultiSelect-input").click();
-  await page.getByRole("option", { name: "projects:read" }).click();
-  await expect(
-    page.locator(".mantine-MultiSelect-pill", { hasText: "projects:read" }),
-  ).toBeVisible();
-  await page.keyboard.press("Escape");
-  await page.locator(".mantine-Select-input").click();
+  await page.getByRole("checkbox", { name: "projects:read" }).check();
+  await expect(page.getByText("1 selected")).toBeVisible();
+  await page.getByRole("combobox", { name: "Expires" }).click();
   await page.getByRole("option", { name: "7 days" }).click();
   await page.getByRole("button", { name: "Create key" }).click();
 
@@ -43,4 +43,3 @@ test("API key: scope-limited, then revoked", async ({ page, request }) => {
   await expect(page.getByRole("cell", { name: "revoked" }).first()).toBeVisible();
   expect((await request.get(`${API}/projects`, { headers: keyH })).status()).toBe(401);
 });
-

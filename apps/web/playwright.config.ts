@@ -12,7 +12,24 @@ export default defineConfig({
   workers: 1,
   reporter: [["html", { open: "never" }]],
   snapshotPathTemplate: "{testDir}/__screenshots__/{testFilePath}/{arg}{ext}",
-  use: { baseURL: "http://localhost:5173", trace: "on-first-retry" },
+  use: {
+    baseURL: "http://localhost:5173",
+    trace: "on-first-retry",
+    storageState: {
+      cookies: [],
+      origins: [
+        {
+          origin: "http://localhost:5173",
+          localStorage: [
+            {
+              name: "agentbox-onboarding-v1",
+              value: JSON.stringify({ dismissed: true }),
+            },
+          ],
+        },
+      ],
+    },
+  },
   webServer: [
     {
       command: "bun run e2e/stub-server.ts",
