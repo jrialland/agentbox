@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from agentbox_api.deps import require_permission
 from agentbox_api.security import hash_password
-from agentbox_api.validation import required_name
+from agentbox_api.validation import required_name, required_password
 from agentbox_models.repos.crud import UserRepository
 from agentbox_models.tables.auth import (
     ApiKey,
@@ -37,7 +37,7 @@ class UserCreate(BaseModel):
     @field_validator("password")
     @classmethod
     def _password(cls, value: str) -> str:
-        return required_name(value, "password")
+        return required_password(value)
 
 
 class UserUpdate(BaseModel):

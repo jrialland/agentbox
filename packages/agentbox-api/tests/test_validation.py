@@ -106,3 +106,30 @@ async def test_blank_resource_names_are_rejected(tmp_path: pathlib.Path):
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def test_user_password_preserves_whitespace():
+    engine, client, headers = await _make_app(["users:manage"])
+    try:
+        response = await client.post(
+            "/users",
+            json={"username": "bob", "email": "b@x", "password": " pw "},
+            headers=headers,
+        )
+        assert response.status_code == 200
+
+        response = await client.post("/auth/login", json={"username": "bob", "password": " pw "})
+        assert response.status_code == 200
+
+        response = await client.post("/auth/login", json={"username": "bob", "password": "pw"})
+        assert response.status_code == 401
+
+        response = await client.post(
+            "/users",
+            json={"username": "carol", "email": "c@x", "password": "   "},
+            headers=headers,
+        )
+        assert response.status_code == 422
+    finally:
+        await client.aclose()
+        await engine.dispose()

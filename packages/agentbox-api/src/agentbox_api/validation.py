@@ -9,6 +9,12 @@ def required_name(value: str, field: str = "name") -> str:
     return text
 
 
+def required_password(value: str, field: str = "password") -> str:
+    if not value.strip():
+        raise ValueError(f"{field} is required")
+    return value
+
+
 def checked_directory(value: str, field: str = "path") -> str:
     text = value.strip()
     if not text:
