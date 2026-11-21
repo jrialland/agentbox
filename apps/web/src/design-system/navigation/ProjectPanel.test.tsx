@@ -103,6 +103,23 @@ test("creates a project via the modal", async () => {
   );
 });
 
+test("blocks blank project names", async () => {
+  const created = vi.spyOn(endpoints, "createProject");
+  renderPanel();
+  fireEvent.click(
+    await screen.findByRole("button", { name: /new project/i }),
+  );
+  fireEvent.change(await screen.findByLabelText("Name"), {
+    target: { value: "   " },
+  });
+  fireEvent.change(screen.getByLabelText("Path"), {
+    target: { value: "/n" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: /create/i }));
+  expect(await screen.findByText("Name is required.")).toBeInTheDocument();
+  expect(created).not.toHaveBeenCalled();
+});
+
 test("edits project settings", async () => {
   const updated = vi.spyOn(endpoints, "updateProject").mockResolvedValue({
     id: "p1",

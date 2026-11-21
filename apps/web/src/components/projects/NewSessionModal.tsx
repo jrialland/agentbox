@@ -1,8 +1,11 @@
-import { Button, Modal, Select } from "@mantine/core";
+import { Modal } from "@mantine/core";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAgents, useCreateSession } from "../../api/queries";
+import { FormField } from "../../design-system/forms/FormField";
+import { Select } from "../../design-system/forms/Select";
+import { Button } from "../../design-system/primitives/Button";
 
 export function NewSessionModal({
   opened,
@@ -27,13 +30,23 @@ export function NewSessionModal({
 
   return (
     <Modal opened={opened} onClose={onClose} title="New session">
-      <Select
-        label="Agent"
-        data={(agents ?? []).map((a) => a.name)}
-        value={agentName}
-        onChange={setAgentName}
-      />
-      <Button mt="md" onClick={submit} loading={create.isPending}>
+      <FormField label="Agent" required>
+        <Select
+          aria-label="Agent"
+          data={(agents ?? []).map((a) => a.name)}
+          value={agentName}
+          onChange={setAgentName}
+        />
+      </FormField>
+      {!agentName && (
+        <p role="alert">Choose an agent to create a session.</p>
+      )}
+      <Button
+        mt="md"
+        onClick={submit}
+        loading={create.isPending}
+        disabled={!agentName}
+      >
         Create
       </Button>
     </Modal>
