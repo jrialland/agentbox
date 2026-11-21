@@ -12,6 +12,7 @@ import { Textarea } from "../../design-system/forms/Textarea";
 import { Drawer } from "../../design-system/overlays/Drawer";
 import { Button } from "../../design-system/primitives/Button";
 import { Section } from "../../design-system/primitives/Section";
+import { requiredText } from "../../lib/validation";
 import { buildToolBindings } from "../AgentsPage";
 import { AgentToolsEditor } from "./AgentToolsEditor";
 import { AgentModesEditor } from "./AgentModesEditor";
@@ -48,6 +49,7 @@ export function AgentCreateDrawer({
   ]);
   const [photo, setPhoto] = useState<File | null>(null);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const providerName = (id: string) =>
     providers?.find((provider) => provider.id === id)?.name ?? id;
@@ -63,9 +65,16 @@ export function AgentCreateDrawer({
   ];
 
   async function onCreate() {
+    const next: Record<string, string> = {};
+    const nameError = requiredText(name, "Name");
+    if (nameError) next.name = nameError;
+    if (!modelRef) next.model = "Choose a model.";
+    setErrors(next);
+    if (Object.keys(next).length > 0) return;
+    if (!modelRef) return;
     const modesError = validateModes(modes);
     const mcpError = mcpServers.map(validateMcpUrl).find(Boolean) ?? null;
-    if (!modelRef || modesError || mcpError) return;
+    if (modesError || mcpError) return;
     const isLabel = modelRef.startsWith("label:");
     const modelName = isLabel
       ? undefined
@@ -96,6 +105,7 @@ export function AgentCreateDrawer({
       setDescription("");
       setInstructions("");
       setModelRef(null);
+      setErrors({});
       setTools([]);
       setMcpServers([]);
       setSubAgents([]);
@@ -109,7 +119,7 @@ export function AgentCreateDrawer({
   return (
     <Drawer opened={opened} onClose={onClose} title="New agent" size="lg">
       <Section title="Identity">
-        <FormField label="Name" required>
+        <FormField label="Name" required error={errors.name}>
           <TextInput
             value={name}
             onChange={(e) => setName(e.currentTarget.value)}
@@ -136,7 +146,7 @@ export function AgentCreateDrawer({
             Test template
           </Button>
         </FormField>
-        <FormField label="Model" required>
+        <FormField label="Model" required error={errors.model}>
           <Select
             data={modelOptions}
             value={modelRef}

@@ -41,6 +41,7 @@ import { ProviderForm } from "./providers/ProviderForm";
 import {
   EMPTY_PROVIDER_DRAFT,
   type ProviderDraft,
+  validateProviderDraft,
 } from "./providers/providerPresets";
 
 export function ProvidersPage() {
@@ -184,6 +185,9 @@ function ProviderFormDrawer({
   const create = useCreateProvider();
   const update = useUpdateProvider();
   const [draft, setDraft] = useState<ProviderDraft>(EMPTY_PROVIDER_DRAFT);
+  const [errors, setErrors] = useState<
+    Partial<Record<keyof ProviderDraft, string>>
+  >({});
 
   useEffect(() => {
     if (!opened) return;
@@ -194,9 +198,13 @@ function ProviderFormDrawer({
       modelsUrl: provider?.models_url ?? "",
       apiKey: "",
     });
+    setErrors({});
   }, [opened, provider]);
 
   async function onSave() {
+    const nextErrors = validateProviderDraft(draft);
+    setErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) return;
     try {
       if (provider) {
         await update.mutateAsync({
@@ -240,6 +248,7 @@ function ProviderFormDrawer({
         value={draft}
         onChange={setDraft}
         providerId={provider?.id}
+        errors={errors}
       />
       <div className={styles.formActions}>
         <Button variant="light" onClick={onClose}>

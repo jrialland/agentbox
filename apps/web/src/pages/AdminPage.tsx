@@ -3,6 +3,7 @@ import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 
 import type { Permission, Role, User } from "../api/endpoints";
+import { InlineError } from "../design-system/forms/InlineError";
 import { MultiSelect } from "../design-system/forms/MultiSelect";
 import { PasswordInput } from "../design-system/forms/PasswordInput";
 import { Switch } from "../design-system/forms/Switch";
@@ -30,6 +31,7 @@ import {
   useUserRoles,
   useUsers,
 } from "../api/queries";
+import { requiredText } from "../lib/validation";
 
 export function AdminPage() {
   return (
@@ -64,8 +66,16 @@ function PermissionsTab() {
   const [editing, setEditing] = useState<Permission | null>(null);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [editError, setEditError] = useState<string | null>(null);
 
   async function onCreate() {
+    const nameError = requiredText(name, "Name");
+    if (nameError) {
+      setCreateError(nameError);
+      return;
+    }
+    setCreateError(null);
     try {
       await create.mutateAsync({ name, description });
       setName("");
@@ -79,10 +89,17 @@ function PermissionsTab() {
     setEditing(p);
     setEditName(p.name);
     setEditDescription(p.description ?? "");
+    setEditError(null);
   }
 
   async function onSaveEdit() {
     if (!editing) return;
+    const nameError = requiredText(editName, "Name");
+    if (nameError) {
+      setEditError(nameError);
+      return;
+    }
+    setEditError(null);
     try {
       await update.mutateAsync({
         pid: editing.id,
@@ -109,6 +126,7 @@ function PermissionsTab() {
             value={description}
             onChange={(e) => setDescription(e.currentTarget.value)}
           />
+          {createError && <InlineError>{createError}</InlineError>}
           <Button mt="md" onClick={onCreate} loading={create.isPending}>
             Create permission
           </Button>
@@ -150,6 +168,7 @@ function PermissionsTab() {
           value={editDescription}
           onChange={(e) => setEditDescription(e.currentTarget.value)}
         />
+        {editError && <InlineError>{editError}</InlineError>}
         <Button mt="md" onClick={onSaveEdit}>
           Save
         </Button>
@@ -167,8 +186,15 @@ function RolesTab() {
   const [description, setDescription] = useState("");
   const [permRole, setPermRole] = useState<Role | null>(null);
   const [editRole, setEditRole] = useState<Role | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   async function onCreate() {
+    const nameError = requiredText(name, "Name");
+    if (nameError) {
+      setCreateError(nameError);
+      return;
+    }
+    setCreateError(null);
     try {
       await create.mutateAsync({ name, description });
       setName("");
@@ -193,6 +219,7 @@ function RolesTab() {
             value={description}
             onChange={(e) => setDescription(e.currentTarget.value)}
           />
+          {createError && <InlineError>{createError}</InlineError>}
           <Button mt="md" onClick={onCreate} loading={create.isPending}>
             Create role
           </Button>
@@ -242,7 +269,14 @@ function RoleEditModal({ role, onClose }: { role: Role; onClose: () => void }) {
   const update = useUpdateRole();
   const [name, setName] = useState(role.name);
   const [description, setDescription] = useState(role.description ?? "");
+  const [error, setError] = useState<string | null>(null);
   async function onSave() {
+    const nameError = requiredText(name, "Name");
+    if (nameError) {
+      setError(nameError);
+      return;
+    }
+    setError(null);
     await update.mutateAsync({ rid: role.id, body: { name, description } });
     onClose();
   }
@@ -258,6 +292,7 @@ function RoleEditModal({ role, onClose }: { role: Role; onClose: () => void }) {
         value={description}
         onChange={(e) => setDescription(e.currentTarget.value)}
       />
+      {error && <InlineError>{error}</InlineError>}
       <Button mt="md" onClick={onSave}>
         Save
       </Button>
@@ -307,8 +342,18 @@ function UsersTab() {
   const [password, setPassword] = useState("");
   const [editUser, setEditUser] = useState<User | null>(null);
   const [rolesUser, setRolesUser] = useState<User | null>(null);
+  const [createError, setCreateError] = useState<string | null>(null);
 
   async function onCreate() {
+    const next =
+      requiredText(username, "Username") ??
+      requiredText(email, "Email") ??
+      requiredText(password, "Password");
+    if (next) {
+      setCreateError(next);
+      return;
+    }
+    setCreateError(null);
     try {
       await create.mutateAsync({ username, email, password });
       setUsername("");
@@ -339,6 +384,7 @@ function UsersTab() {
             value={password}
             onChange={(e) => setPassword(e.currentTarget.value)}
           />
+          {createError && <InlineError>{createError}</InlineError>}
           <Button mt="md" onClick={onCreate} loading={create.isPending}>
             Create user
           </Button>
@@ -393,7 +439,14 @@ function UserEditModal({ user, onClose }: { user: User; onClose: () => void }) {
   const [email, setEmail] = useState(user.email);
   const [isActive, setIsActive] = useState(user.is_active);
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
   async function onSave() {
+    const emailError = requiredText(email, "Email");
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
+    setError(null);
     await update.mutateAsync({
       uid: user.id,
       body: { email, is_active: isActive, ...(password ? { password } : {}) },
@@ -417,6 +470,7 @@ function UserEditModal({ user, onClose }: { user: User; onClose: () => void }) {
         value={password}
         onChange={(e) => setPassword(e.currentTarget.value)}
       />
+      {error && <InlineError>{error}</InlineError>}
       <Button mt="md" onClick={onSave}>
         Save
       </Button>

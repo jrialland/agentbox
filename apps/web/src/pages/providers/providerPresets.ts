@@ -1,3 +1,5 @@
+import { isHttpUrl, requiredText } from "../../lib/validation";
+
 export type ProviderDraft = {
   name: string;
   kind: string;
@@ -49,6 +51,19 @@ export const PROVIDER_PRESETS: Record<string, Preset> = {
     modelsUrl: "http://localhost:11434/v1/models",
   },
 };
+
+export function validateProviderDraft(
+  draft: ProviderDraft,
+): Partial<Record<keyof ProviderDraft, string>> {
+  const errors: Partial<Record<keyof ProviderDraft, string>> = {};
+  const name = requiredText(draft.name, "Name");
+  if (name) errors.name = name;
+  const base = isHttpUrl(draft.baseUrl, "Base URL");
+  if (base) errors.baseUrl = base;
+  const models = isHttpUrl(draft.modelsUrl, "Models URL");
+  if (models) errors.modelsUrl = models;
+  return errors;
+}
 
 export function applyProviderPreset(
   current: ProviderDraft,

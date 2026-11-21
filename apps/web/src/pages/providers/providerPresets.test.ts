@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { EMPTY_PROVIDER_DRAFT, applyProviderPreset } from "./providerPresets";
+import {
+  EMPTY_PROVIDER_DRAFT,
+  applyProviderPreset,
+  validateProviderDraft,
+} from "./providerPresets";
 
 describe("applyProviderPreset", () => {
   it("fills untouched URLs", () => {
@@ -30,5 +34,27 @@ describe("applyProviderPreset", () => {
     );
     const next = applyProviderPreset(current, "moonshot");
     expect(next.baseUrl).toBe("https://api.moonshot.cn/v1");
+  });
+});
+
+describe("validateProviderDraft", () => {
+  it("rejects a blank name and invalid URLs", () => {
+    const errors = validateProviderDraft({
+      ...EMPTY_PROVIDER_DRAFT,
+      name: "  ",
+      modelsUrl: "ftp://example.test/models",
+    });
+    expect(errors.name).toContain("required");
+    expect(errors.modelsUrl).toContain("http");
+  });
+
+  it("accepts a named generic provider", () => {
+    expect(
+      validateProviderDraft({
+        ...EMPTY_PROVIDER_DRAFT,
+        name: "Local",
+        modelsUrl: "http://localhost:9999/models",
+      }),
+    ).toEqual({});
   });
 });

@@ -21,10 +21,14 @@ export function ProviderForm({
   value,
   onChange,
   providerId,
+  errors,
 }: {
   value: ProviderDraft;
   onChange: (value: ProviderDraft) => void;
   providerId?: string;
+  errors?: Partial<
+    Record<"name" | "kind" | "baseUrl" | "modelsUrl" | "apiKey", string>
+  >;
 }) {
   const test = useTestProvider();
   const [result, setResult] = useState<ProviderTestResult | null>(null);
@@ -60,7 +64,7 @@ export function ProviderForm({
 
   return (
     <>
-      <FormField label="Name" required>
+      <FormField label="Name" required error={errors?.name}>
         <TextInput
           value={value.name}
           onChange={(event) => update({ name: event.currentTarget.value })}
@@ -88,6 +92,7 @@ export function ProviderForm({
       <FormField
         label="Base URL"
         description="Provider API base, including /v1 when required."
+        error={errors?.baseUrl}
         help={<HelpTip id="provider.urls" />}
       >
         <TextInput
@@ -107,6 +112,7 @@ export function ProviderForm({
       <FormField
         label="Models URL"
         description="Endpoint that returns the model list."
+        error={errors?.modelsUrl}
         help={<HelpTip id="provider.models" />}
       >
         <TextInput

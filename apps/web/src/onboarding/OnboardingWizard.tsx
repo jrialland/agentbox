@@ -21,6 +21,7 @@ import { ProviderForm } from "../pages/providers/ProviderForm";
 import {
   EMPTY_PROVIDER_DRAFT,
   type ProviderDraft,
+  validateProviderDraft,
 } from "../pages/providers/providerPresets";
 import styles from "./onboarding.module.css";
 import type { OnboardingStep } from "./onboardingProgress";
@@ -47,6 +48,9 @@ export function OnboardingWizard({
 
   const [step, setStep] = useState<OnboardingStep>(initialStep);
   const [draft, setDraft] = useState<ProviderDraft>(EMPTY_PROVIDER_DRAFT);
+  const [providerErrors, setProviderErrors] = useState<
+    Partial<Record<keyof ProviderDraft, string>>
+  >({});
   const [createdProviderId, setCreatedProviderId] = useState<string | null>(null);
   const [agentName, setAgentName] = useState("");
   const [agentDescription, setAgentDescription] = useState("");
@@ -81,6 +85,12 @@ export function OnboardingWizard({
 
   async function createProviderStep() {
     setError(null);
+    const nextErrors = validateProviderDraft(draft);
+    setProviderErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      setError("Fix the highlighted provider fields.");
+      return;
+    }
     try {
       const provider = await createProvider.mutateAsync({
         name: draft.name,
@@ -185,6 +195,7 @@ export function OnboardingWizard({
               value={draft}
               onChange={setDraft}
               providerId={createdProviderId ?? undefined}
+              errors={providerErrors}
             />
             {createdProvider && (
               <p style={{ color: "var(--ab-text-muted)" }}>
