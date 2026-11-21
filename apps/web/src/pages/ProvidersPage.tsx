@@ -26,6 +26,7 @@ import { NumberInput } from "../design-system/forms/NumberInput";
 import { Select } from "../design-system/forms/Select";
 import { TextInput } from "../design-system/forms/TextInput";
 import { IconButton } from "../design-system/icons/IconButton";
+import { ConfirmDialog } from "../design-system/overlays/ConfirmDialog";
 import { Drawer } from "../design-system/overlays/Drawer";
 import { Modal } from "../design-system/overlays/Modal";
 import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
@@ -103,6 +104,9 @@ function ProvidersTab({
   const { data: providers } = useProviders();
   const del = useDeleteProvider();
   const refresh = useRefreshModels();
+  const [providerToDelete, setProviderToDelete] = useState<Provider | null>(
+    null,
+  );
 
   async function onRefresh(id: string) {
     try {
@@ -126,50 +130,66 @@ function ProvidersTab({
   }
 
   return (
-    <DataTable<Provider>
-      rowKey={(provider) => provider.id}
-      rows={providers ?? []}
-      columns={[
-        { key: "name", header: "Name", render: (provider) => provider.name },
-        {
-          key: "kind",
-          header: "Kind",
-          render: (provider) => <Badge tone="info">{provider.kind}</Badge>,
-        },
-        {
-          key: "status",
-          header: "Status",
-          render: () => <StatusChip tone="success">ready</StatusChip>,
-        },
-        {
-          key: "actions",
-          header: "Actions",
-          render: (provider) => (
-            <div className={styles.actions}>
-              <IconButton
-                label="Refresh models"
-                icon={RiRefreshLine}
-                size={16}
-                onClick={() => onRefresh(provider.id)}
-              />
-              <IconButton
-                label="Edit"
-                icon={RiSettings3Line}
-                size={16}
-                onClick={() => onEdit(provider)}
-              />
-              <IconButton
-                label="Delete"
-                icon={RiDeleteBin6Line}
-                size={16}
-                color="red"
-                onClick={() => del.mutate(provider.id)}
-              />
-            </div>
-          ),
-        },
-      ]}
-    />
+    <>
+      <DataTable<Provider>
+        rowKey={(provider) => provider.id}
+        rows={providers ?? []}
+        columns={[
+          { key: "name", header: "Name", render: (provider) => provider.name },
+          {
+            key: "kind",
+            header: "Kind",
+            render: (provider) => <Badge tone="info">{provider.kind}</Badge>,
+          },
+          {
+            key: "status",
+            header: "Status",
+            render: () => <StatusChip tone="success">ready</StatusChip>,
+          },
+          {
+            key: "actions",
+            header: "Actions",
+            render: (provider) => (
+              <div className={styles.actions}>
+                <IconButton
+                  label="Refresh models"
+                  icon={RiRefreshLine}
+                  size={16}
+                  onClick={() => onRefresh(provider.id)}
+                />
+                <IconButton
+                  label="Edit"
+                  icon={RiSettings3Line}
+                  size={16}
+                  onClick={() => onEdit(provider)}
+                />
+                <IconButton
+                  label="Delete"
+                  icon={RiDeleteBin6Line}
+                  size={16}
+                  color="red"
+                  onClick={() => setProviderToDelete(provider)}
+                />
+              </div>
+            ),
+          },
+        ]}
+      />
+      <ConfirmDialog
+        opened={providerToDelete !== null}
+        title="Delete provider?"
+        description={`Delete "${providerToDelete?.name ?? ""}" permanently? This cannot be undone.`}
+        requireText={providerToDelete?.name}
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!providerToDelete) return;
+          await del.mutateAsync(providerToDelete.id);
+          setProviderToDelete(null);
+        }}
+        onClose={() => setProviderToDelete(null)}
+      />
+    </>
   );
 }
 

@@ -16,6 +16,7 @@ import {
 import { AgentAvatar } from "../../components/agents/AgentAvatar";
 import { DataTable } from "../../design-system/data/DataTable";
 import { IconButton } from "../../design-system/icons/IconButton";
+import { ConfirmDialog } from "../../design-system/overlays/ConfirmDialog";
 import { Badge } from "../../design-system/primitives/Badge";
 import { Button } from "../../design-system/primitives/Button";
 import { GuidedEmptyState } from "../../design-system/patterns/GuidedEmptyState";
@@ -34,6 +35,7 @@ export function AgentList({
   const reset = useResetAvatar();
   const [versions, setVersions] = useState<Record<string, number>>({});
   const [cardAgent, setCardAgent] = useState<string | null>(null);
+  const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
 
   async function uploadPhoto(name: string, file: File | undefined) {
     if (!file) return;
@@ -133,7 +135,7 @@ export function AgentList({
                   icon={RiDeleteBin6Line}
                   size={16}
                   color="red"
-                  onClick={() => del.mutate(agent.name)}
+                  onClick={() => setAgentToDelete(agent)}
                 />
               </div>
             ),
@@ -143,6 +145,20 @@ export function AgentList({
       {cardAgent && (
         <AgentCardModal name={cardAgent} onClose={() => setCardAgent(null)} />
       )}
+      <ConfirmDialog
+        opened={agentToDelete !== null}
+        title="Delete agent?"
+        description={`Delete "${agentToDelete?.name ?? ""}" permanently? This cannot be undone.`}
+        requireText={agentToDelete?.name}
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!agentToDelete) return;
+          await del.mutateAsync(agentToDelete.name);
+          setAgentToDelete(null);
+        }}
+        onClose={() => setAgentToDelete(null)}
+      />
     </>
   );
 }

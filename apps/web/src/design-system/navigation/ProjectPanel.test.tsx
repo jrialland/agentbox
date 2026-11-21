@@ -17,11 +17,15 @@ vi.mock("@mantine/modals", () => ({
 const deleteSessionMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue(undefined),
 );
+const deleteProjectMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue(undefined),
+);
 vi.mock("../../api/queries", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../api/queries")>();
   return {
     ...actual,
     useDeleteSession: () => ({ mutateAsync: deleteSessionMock }),
+    useDeleteProject: () => ({ mutateAsync: deleteProjectMock }),
   };
 });
 
@@ -150,4 +154,16 @@ test("deletes a session", async () => {
   renderPanel();
   fireEvent.click(await screen.findByLabelText("Delete session s1"));
   await waitFor(() => expect(deleteSessionMock).toHaveBeenCalledWith("s1"));
+});
+
+test("requires the project name before deleting", async () => {
+  renderPanel();
+  fireEvent.click(await screen.findByLabelText("Delete Proj A"));
+  const confirm = await screen.findByRole("button", { name: "Delete" });
+  expect(confirm).toBeDisabled();
+  fireEvent.change(screen.getByLabelText(/type Proj A/i), {
+    target: { value: "Proj A" },
+  });
+  fireEvent.click(confirm);
+  await waitFor(() => expect(deleteProjectMock).toHaveBeenCalledWith("p1"));
 });

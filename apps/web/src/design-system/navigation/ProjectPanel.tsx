@@ -9,15 +9,17 @@ import { modals } from "@mantine/modals";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { NewProjectModal } from "../../components/projects/NewProjectModal";
-import { NewSessionModal } from "../../components/projects/NewSessionModal";
+import type { Project } from "../../api/endpoints";
 import {
   useDeleteProject,
   useDeleteSession,
   useProjects,
   useSessions,
 } from "../../api/queries";
+import { NewProjectModal } from "../../components/projects/NewProjectModal";
+import { NewSessionModal } from "../../components/projects/NewSessionModal";
 import { IconButton } from "../icons/IconButton";
+import { ConfirmDialog } from "../overlays/ConfirmDialog";
 import { EmptyState } from "../primitives/EmptyState";
 import { Panel } from "../primitives/Panel";
 import styles from "./project-panel.module.css";
@@ -32,6 +34,7 @@ export function ProjectPanel() {
   const [projectOpen, projectModal] = useDisclosure(false);
   const [editProject, setEditProject] = useState<string | null>(null);
   const [sessionProject, setSessionProject] = useState<string | null>(null);
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   function onDeleteSession(id: string) {
     modals.openConfirmModal({
@@ -98,7 +101,7 @@ export function ProjectPanel() {
                         icon={RiDeleteBin6Line}
                         size={16}
                         color="red"
-                        onClick={() => deleteProject.mutate(project.id)}
+                        onClick={() => setProjectToDelete(project)}
                       />
                     </div>
                   </div>
@@ -138,6 +141,21 @@ export function ProjectPanel() {
         opened={sessionProject !== null}
         onClose={() => setSessionProject(null)}
         projectId={sessionProject ?? ""}
+      />
+      <ConfirmDialog
+        opened={projectToDelete !== null}
+        title="Delete project?"
+        description={`Delete "${projectToDelete?.name ?? ""}" permanently? This cannot be undone.`}
+        requireText={projectToDelete?.name}
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!projectToDelete) return;
+          await deleteProject.mutateAsync(projectToDelete.id);
+          setProjectToDelete(null);
+          if (location.pathname !== "/") navigate("/");
+        }}
+        onClose={() => setProjectToDelete(null)}
       />
     </Panel>
   );

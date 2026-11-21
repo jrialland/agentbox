@@ -9,6 +9,7 @@ import { PasswordInput } from "../design-system/forms/PasswordInput";
 import { Switch } from "../design-system/forms/Switch";
 import { Textarea } from "../design-system/forms/Textarea";
 import { TextInput } from "../design-system/forms/TextInput";
+import { ConfirmDialog } from "../design-system/overlays/ConfirmDialog";
 import { Modal } from "../design-system/overlays/Modal";
 import { AdminTablePage } from "../design-system/patterns/AdminTablePage";
 import { Button } from "../design-system/primitives/Button";
@@ -68,6 +69,8 @@ function PermissionsTab() {
   const [editDescription, setEditDescription] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
+  const [permissionToDelete, setPermissionToDelete] =
+    useState<Permission | null>(null);
 
   async function onCreate() {
     const nameError = requiredText(name, "Name");
@@ -149,7 +152,7 @@ function PermissionsTab() {
                 <Button size="xs" onClick={() => openEdit(p)}>
                   Edit
                 </Button>{" "}
-                <Button size="xs" color="red" onClick={() => del.mutateAsync(p.id)}>
+                <Button size="xs" color="red" onClick={() => setPermissionToDelete(p)}>
                   Delete
                 </Button>
               </Table.Td>
@@ -173,6 +176,20 @@ function PermissionsTab() {
           Save
         </Button>
       </Modal>
+      <ConfirmDialog
+        opened={permissionToDelete !== null}
+        title="Delete permission?"
+        description={`Delete "${permissionToDelete?.name ?? ""}" permanently? This cannot be undone.`}
+        requireText={permissionToDelete?.name}
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!permissionToDelete) return;
+          await del.mutateAsync(permissionToDelete.id);
+          setPermissionToDelete(null);
+        }}
+        onClose={() => setPermissionToDelete(null)}
+      />
     </div>
   );
 }
@@ -187,6 +204,7 @@ function RolesTab() {
   const [permRole, setPermRole] = useState<Role | null>(null);
   const [editRole, setEditRole] = useState<Role | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [roleToDelete, setRoleToDelete] = useState<Role | null>(null);
 
   async function onCreate() {
     const nameError = requiredText(name, "Name");
@@ -245,7 +263,7 @@ function RolesTab() {
                 <Button size="xs" onClick={() => setPermRole(r)}>
                   Permissions
                 </Button>{" "}
-                <Button size="xs" color="red" onClick={() => del.mutateAsync(r.id)}>
+                <Button size="xs" color="red" onClick={() => setRoleToDelete(r)}>
                   Delete
                 </Button>
               </Table.Td>
@@ -261,6 +279,20 @@ function RolesTab() {
           onClose={() => setPermRole(null)}
         />
       )}
+      <ConfirmDialog
+        opened={roleToDelete !== null}
+        title="Delete role?"
+        description={`Delete "${roleToDelete?.name ?? ""}" permanently? This cannot be undone.`}
+        requireText={roleToDelete?.name}
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!roleToDelete) return;
+          await del.mutateAsync(roleToDelete.id);
+          setRoleToDelete(null);
+        }}
+        onClose={() => setRoleToDelete(null)}
+      />
     </div>
   );
 }
@@ -343,6 +375,7 @@ function UsersTab() {
   const [editUser, setEditUser] = useState<User | null>(null);
   const [rolesUser, setRolesUser] = useState<User | null>(null);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   async function onCreate() {
     const next =
@@ -412,7 +445,7 @@ function UsersTab() {
                 <Button size="xs" onClick={() => setRolesUser(u)}>
                   Roles
                 </Button>{" "}
-                <Button size="xs" color="red" onClick={() => del.mutateAsync(u.id)}>
+                <Button size="xs" color="red" onClick={() => setUserToDelete(u)}>
                   Delete
                 </Button>
               </Table.Td>
@@ -430,6 +463,20 @@ function UsersTab() {
           onClose={() => setRolesUser(null)}
         />
       )}
+      <ConfirmDialog
+        opened={userToDelete !== null}
+        title="Delete user?"
+        description={`Delete "${userToDelete?.username ?? ""}" permanently? This cannot be undone.`}
+        requireText={userToDelete?.username}
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!userToDelete) return;
+          await del.mutateAsync(userToDelete.id);
+          setUserToDelete(null);
+        }}
+        onClose={() => setUserToDelete(null)}
+      />
     </div>
   );
 }
