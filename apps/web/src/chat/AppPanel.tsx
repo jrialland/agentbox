@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { SANDBOX_URL } from "../config";
 import type { AppTab } from "./apps";
+import styles from "./chat-split.module.css";
 import { callAppTool, readAppResource } from "./relay";
 
 function toRecord(value: unknown): Record<string, unknown> | undefined {
@@ -19,7 +20,7 @@ function toRecord(value: unknown): Record<string, unknown> | undefined {
 function AppView({ sessionId, tab }: { sessionId: string; tab: AppTab }) {
   const sandbox = useMemo(() => ({ url: new URL(SANDBOX_URL) }), []);
   return (
-    <div className="app-view">
+    <div className={styles.appView}>
       <AppRenderer
         toolName="app"
         toolResourceUri={tab.resourceUri}
@@ -73,7 +74,7 @@ export function AppPanel({
   }, [tabs, active]);
 
   return (
-    <div className="app-panel" data-testid="app-panel">
+    <div className={styles.panel} data-testid="app-panel">
       <Tabs value={active} onChange={setActive}>
         <Tabs.List>
           {tabs.map((tab, i) => (
@@ -98,7 +99,7 @@ export function AppPanel({
           ))}
         </Tabs.List>
         {tabs.map((tab) => (
-          <Tabs.Panel key={tab.id} value={tab.id} className="app-panel-body">
+          <Tabs.Panel key={tab.id} value={tab.id} className={styles.panelBody}>
             <AppView sessionId={sessionId} tab={tab} />
           </Tabs.Panel>
         ))}
@@ -106,3 +107,4 @@ export function AppPanel({
     </div>
   );
 }
+

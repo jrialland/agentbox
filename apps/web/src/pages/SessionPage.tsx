@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { useMessages, useSession, useSessionLsp, useSessionPlan } from "../api/queries";
-import "../chat/apps.css";
 import { AppPanel } from "../chat/AppPanel";
+import { ChatSplit } from "../chat/ChatSplit";
 import { Composer } from "../chat/Composer";
 import { ErrorCard } from "../chat/ErrorCard";
 import { ForkBanner } from "../chat/ForkBanner";
@@ -164,7 +164,10 @@ export function SessionPage() {
   return (
     <PageContainer fullBleed>
       <div className={styles.session}>
-        <div className={styles.main}>
+        <ChatSplit
+          appOpen={chat.appTabs.length > 0}
+          chat={
+            <div className={styles.main}>
           <div className={styles.header} data-testid="session-agent">
             <AgentAvatar name={agentName} />
             <span>{agentName}</span>
@@ -231,12 +234,10 @@ export function SessionPage() {
             onStop={() => void chat.cancel()}
             onSelectSkill={(name) => setSkill(name)}
           />
-        </div>
-        {chat.appTabs.length > 0 && (
-          <div className={styles.split}>
-            <AppPanel sessionId={id} tabs={chat.appTabs} onClose={chat.closeApp} />
-          </div>
-        )}
+            </div>
+          }
+          app={<AppPanel sessionId={id} tabs={chat.appTabs} onClose={chat.closeApp} />}
+        />
       </div>
       <Modal
         opened={aboutOpen}
@@ -267,3 +268,4 @@ export function SessionPage() {
     </PageContainer>
   );
 }
+

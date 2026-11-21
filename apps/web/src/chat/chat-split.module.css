@@ -1,0 +1,82 @@
+.split {
+  display: grid;
+  height: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.chat,
+.app {
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+}
+
+.chat {
+  padding-right: var(--ab-space-2);
+}
+
+.app {
+  padding-left: var(--ab-space-2);
+}
+
+.divider {
+  background: var(--ab-border);
+  cursor: col-resize;
+  position: relative;
+  width: 10px;
+}
+
+.divider::after {
+  background: var(--ab-text-muted);
+  content: "";
+  height: 40px;
+  left: 4px;
+  position: absolute;
+  top: calc(50% - 20px);
+  width: 2px;
+}
+
+.divider:hover::after,
+.divider:focus-visible::after {
+  background: var(--ab-phosphor);
+}
+
+.divider:focus-visible {
+  outline: var(--ab-focus-width) solid var(--ab-phosphor);
+}
+
+.openSheet {
+  bottom: var(--ab-space-5);
+  position: fixed;
+  right: var(--ab-space-5);
+  z-index: var(--ab-z-panel);
+}
+
+.sheetClose {
+  background: var(--ab-surface-raised);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  color: var(--ab-text);
+  margin-bottom: var(--ab-space-3);
+  padding: var(--ab-space-2) var(--ab-space-3);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.panelBody {
+  flex: 1 1 auto;
+  min-height: 400px;
+  overflow: auto;
+  padding-top: var(--ab-space-2);
+}
+
+.appView {
+  min-height: 480px;
+  width: 100%;
+}
