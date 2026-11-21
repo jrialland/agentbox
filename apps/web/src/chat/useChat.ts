@@ -1,8 +1,7 @@
 import { EventType } from "@ag-ui/core";
-import type { AbstractAgent } from "@ag-ui/client";
 import { useRef, useState } from "react";
 
-import { createChatAgent, type SendOptions } from "./agent";
+import { streamChat, type SendOptions } from "./agent";
 import { appTabFromSnapshot, type AppTab } from "./apps";
 import {
   applyAgUiEvent,
@@ -30,96 +29,140 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
   const [running, setRunning] = useState(false);
   const [runStatus, setRunStatus] = useState<RunStatus>("idle");
   const [error, setError] = useState<string | null>(null);
-  const agentRef = useRef<AbstractAgent | null>(null);
   const cancelRequested = useRef(false);
+  const textIdRef = useRef<string | null>(null);
+  const reasoningIdRef = useRef<string | null>(null);
+  const toolIdRef = useRef<string | null>(null);
+
+  function appendText(event: RawEvent) {
+    const id = event.messageId || textIdRef.current || crypto.randomUUID();
+    textIdRef.current = id;
+    setSegments((prev) => {
+      let next = prev.some((segment) => segment.id === id)
+        ? prev
+        : applyAgUiEvent(prev, { type: "TEXT_MESSAGE_START", messageId: id });
+      if (event.delta) {
+        next = applyAgUiEvent(next, {
+          type: "TEXT_MESSAGE_CONTENT",
+          messageId: id,
+          delta: event.delta,
+        });
+      }
+      return next;
+    });
+  }
+
+  function appendReasoning(event: RawEvent) {
+    const id = event.messageId || reasoningIdRef.current || crypto.randomUUID();
+    reasoningIdRef.current = id;
+    setSegments((prev) => {
+      let next = prev.some((segment) => segment.id === id)
+        ? prev
+        : applyAgUiEvent(prev, { type: "REASONING_MESSAGE_START", messageId: id });
+      if (event.delta) {
+        next = applyAgUiEvent(next, {
+          type: "REASONING_MESSAGE_CONTENT",
+          messageId: id,
+          delta: event.delta,
+        });
+      }
+      return next;
+    });
+  }
+
+  function appendTool(event: RawEvent) {
+    const id = event.toolCallId || toolIdRef.current || crypto.randomUUID();
+    toolIdRef.current = id;
+    setSegments((prev) => {
+      const existing = prev.find((segment) => segment.id === id);
+      let next = existing
+        ? prev
+        : applyAgUiEvent(prev, {
+            type: "TOOL_CALL_START",
+            toolCallId: id,
+            toolCallName: event.toolCallName ?? "tool",
+          });
+      if (event.delta) {
+        next = applyAgUiEvent(next, {
+          type: "TOOL_CALL_ARGS",
+          toolCallId: id,
+          delta: event.delta,
+        });
+      }
+      return next;
+    });
+  }
 
   function dispatch(event: RawEvent) {
     switch (event.type) {
       case EventType.TEXT_MESSAGE_START:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "TEXT_MESSAGE_START",
-            messageId: event.messageId ?? "",
-          }),
-        );
+        appendText({ ...event, delta: "" });
         break;
       case EventType.TEXT_MESSAGE_CONTENT:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "TEXT_MESSAGE_CONTENT",
-            messageId: event.messageId ?? "",
-            delta: event.delta ?? "",
-          }),
-        );
+      case EventType.TEXT_MESSAGE_CHUNK:
+        appendText(event);
         break;
-      case EventType.TEXT_MESSAGE_END:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "TEXT_MESSAGE_END",
-            messageId: event.messageId ?? "",
-          }),
-        );
+      case EventType.TEXT_MESSAGE_END: {
+        const id = event.messageId || textIdRef.current;
+        if (id) {
+          setSegments((prev) =>
+            applyAgUiEvent(prev, { type: "TEXT_MESSAGE_END", messageId: id }),
+          );
+        }
+        if (!event.messageId || event.messageId === textIdRef.current) {
+          textIdRef.current = null;
+        }
         break;
+      }
       case EventType.REASONING_MESSAGE_START:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "REASONING_MESSAGE_START",
-            messageId: event.messageId ?? "",
-          }),
-        );
+        appendReasoning({ ...event, delta: "" });
         break;
       case EventType.REASONING_MESSAGE_CONTENT:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "REASONING_MESSAGE_CONTENT",
-            messageId: event.messageId ?? "",
-            delta: event.delta ?? "",
-          }),
-        );
+      case EventType.REASONING_MESSAGE_CHUNK:
+        appendReasoning(event);
         break;
-      case EventType.REASONING_MESSAGE_END:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "REASONING_MESSAGE_END",
-            messageId: event.messageId ?? "",
-          }),
-        );
+      case EventType.REASONING_MESSAGE_END: {
+        const id = event.messageId || reasoningIdRef.current;
+        if (id) {
+          setSegments((prev) =>
+            applyAgUiEvent(prev, {
+              type: "REASONING_MESSAGE_END",
+              messageId: id,
+            }),
+          );
+        }
+        if (!event.messageId || event.messageId === reasoningIdRef.current) {
+          reasoningIdRef.current = null;
+        }
         break;
+      }
       case EventType.TOOL_CALL_START:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "TOOL_CALL_START",
-            toolCallId: event.toolCallId ?? "",
-            toolCallName: event.toolCallName ?? "tool",
-          }),
-        );
+        appendTool({ ...event, delta: "" });
         break;
       case EventType.TOOL_CALL_ARGS:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "TOOL_CALL_ARGS",
-            toolCallId: event.toolCallId ?? "",
-            delta: event.delta ?? "",
-          }),
-        );
+      case EventType.TOOL_CALL_CHUNK:
+        appendTool(event);
         break;
-      case EventType.TOOL_CALL_END:
-        setSegments((prev) =>
-          applyAgUiEvent(prev, {
-            type: "TOOL_CALL_END",
-            toolCallId: event.toolCallId ?? "",
-          }),
-        );
+      case EventType.TOOL_CALL_END: {
+        const id = event.toolCallId || toolIdRef.current;
+        if (id) {
+          setSegments((prev) =>
+            applyAgUiEvent(prev, { type: "TOOL_CALL_END", toolCallId: id }),
+          );
+        }
         break;
-      case EventType.TOOL_CALL_RESULT:
+      }
+      case EventType.TOOL_CALL_RESULT: {
+        const id = event.toolCallId || toolIdRef.current || "";
         setSegments((prev) =>
           applyAgUiEvent(prev, {
             type: "TOOL_CALL_RESULT",
-            toolCallId: event.toolCallId ?? "",
+            toolCallId: id,
             content: event.content,
           }),
         );
         break;
+      }
       case EventType.ACTIVITY_SNAPSHOT: {
         const tab = appTabFromSnapshot({
           messageId: event.messageId ?? "",
@@ -163,36 +206,32 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
     setSegments(emptySegments());
     setError(null);
     cancelRequested.current = false;
+    textIdRef.current = null;
+    reasoningIdRef.current = null;
+    toolIdRef.current = null;
     setRunning(true);
     setRunStatus("running");
-    const agent = createChatAgent({ baseUrl, token, sessionId, send: opts });
-    agentRef.current = agent;
-    agent.subscribe({
-      onEvent: ({ event }) => dispatch(event as RawEvent),
-      onRunFailed: ({ error: runError }) => {
-        setError(runError?.message ?? "Agent run failed");
-        setSegments((prev) => finalizeSegments(prev, "error"));
-        setRunning(false);
-        setRunStatus("idle");
-      },
-      onRunErrorEvent: ({ event }) => {
-        setError(event?.message ?? "run error");
-        setSegments((prev) => finalizeSegments(prev, "error"));
-        setRunning(false);
-        setRunStatus("idle");
-      },
-    });
-    agent.addMessage({ id: crypto.randomUUID(), role: "user", content });
     try {
-      await agent.runAgent();
+      for await (const event of streamChat({
+        baseUrl,
+        token,
+        sessionId,
+        send: opts,
+        content,
+      })) {
+        dispatch(event as RawEvent);
+      }
+      setSegments((prev) =>
+        finalizeSegments(prev, cancelRequested.current ? "cancelled" : "success"),
+      );
     } catch (e) {
-      setError(String(e));
+      setError((current) => current ?? String(e));
       setSegments((prev) => finalizeSegments(prev, "error"));
+    } finally {
       setRunning(false);
       setRunStatus("idle");
     }
   }
-
   async function cancel() {
     cancelRequested.current = true;
     setRunStatus("cancelling");
@@ -205,6 +244,9 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
   function reset() {
     setSegments(emptySegments());
     setError(null);
+    textIdRef.current = null;
+    reasoningIdRef.current = null;
+    toolIdRef.current = null;
   }
 
   function closeApp(id: string) {
@@ -223,3 +265,8 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
     closeApp,
   };
 }
+
+
+
+
+

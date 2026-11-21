@@ -188,13 +188,21 @@ export function SessionPage() {
                   agentName={agentName}
                   sessionId={id}
                   onRetry={retry}
+                  onEdit={(message) => {
+                    setPreviousInput(input);
+                    setInput(message.content);
+                    setForkMode(true);
+                    setForkFromTurnId(message.parent_id ?? null);
+                  }}
                 />
               ),
             )}
             {chat.segments.length > 0 && (
-              <div className={styles.liveTurn}>
+              <div className={styles.liveTurn} data-testid="live-turn">
                 {chat.segments.map((segment) => (
-                  <LiveSegment key={segment.id} segment={segment} />
+                  <div key={segment.id} data-segment={segment.kind}>
+                    <LiveSegment segment={segment} />
+                  </div>
                 ))}
               </div>
             )}
@@ -268,4 +276,6 @@ export function SessionPage() {
     </PageContainer>
   );
 }
+
+
 

@@ -21,11 +21,13 @@ export function MessageTurn({
   agentName,
   sessionId,
   onRetry,
+  onEdit,
 }: {
   message: ChatMessage;
   agentName: string;
   sessionId: string;
   onRetry?: (messageId: string) => void;
+  onEdit?: (message: ChatMessage) => void;
 }) {
   const isUser = message.role === "user";
   const status = message.activity?.status;
@@ -39,6 +41,15 @@ export function MessageTurn({
         <span className={styles.role}>{isUser ? "You" : agentName}</span>
         {status === "cancelled" && <StatusChip tone="warning">cancelled</StatusChip>}
         {status === "error" && <StatusChip tone="danger">error</StatusChip>}
+        {isUser && onEdit && (
+          <Button
+            size="compact-xs"
+            variant="subtle"
+            onClick={() => onEdit(message)}
+          >
+            Edit
+          </Button>
+        )}
       </header>
       {isUser ? (
         <p className={styles.userText}>{message.content}</p>
@@ -73,3 +84,4 @@ export function MessageTurn({
     </article>
   );
 }
+

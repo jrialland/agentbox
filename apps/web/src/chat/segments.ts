@@ -82,9 +82,11 @@ export function applyAgUiEvent(
           : segment,
       );
     case "TEXT_MESSAGE_END":
-      return updateById(segments, event.messageId, (segment) =>
-        segment.kind === "text" ? { ...segment, status: "done" } : segment,
-      );
+      return segments.flatMap((segment) => {
+        if (segment.id !== event.messageId) return [segment];
+        if (segment.kind !== "text") return [segment];
+        return segment.text ? [{ ...segment, status: "done" }] : [];
+      });
     case "REASONING_MESSAGE_START":
       return [
         ...segments,
@@ -103,11 +105,13 @@ export function applyAgUiEvent(
           : segment,
       );
     case "REASONING_MESSAGE_END":
-      return updateById(segments, event.messageId, (segment) =>
-        segment.kind === "reasoning"
-          ? { ...segment, status: "done", endedAt: Date.now() }
-          : segment,
-      );
+      return segments.flatMap((segment) => {
+        if (segment.id !== event.messageId) return [segment];
+        if (segment.kind !== "reasoning") return [segment];
+        return segment.text
+          ? [{ ...segment, status: "done", endedAt: Date.now() }]
+          : [];
+      });
     case "TOOL_CALL_START":
       return [
         ...segments,
@@ -182,3 +186,4 @@ export function stringifyResult(content: unknown): string {
   if (typeof content === "string") return content;
   return JSON.stringify(content, null, 2);
 }
+

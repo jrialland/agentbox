@@ -1,5 +1,3 @@
-import { HttpAgent } from "@ag-ui/client";
-
 export interface SendOptions {
   mode: string;
   fork?: boolean;
@@ -9,29 +7,66 @@ export interface SendOptions {
   retryTurnId?: string | null;
 }
 
-export function createChatAgent(opts: {
+export type AgUiStreamEvent = {
+  type: string;
+  [key: string]: unknown;
+};
+
+export async function* streamChat(opts: {
   baseUrl: string;
   token: string | null;
   sessionId: string;
   send: SendOptions;
-}) {
-  return new HttpAgent({
-    url: `${opts.baseUrl}/sessions/${opts.sessionId}/messages`,
-    headers: opts.token ? { Authorization: `Bearer ${opts.token}` } : {},
-    fetch: ((url: RequestInfo | URL, init?: RequestInit) => {
-      const body = JSON.parse((init?.body as string) ?? "{}");
-      const messages = (body.messages ?? []) as { role: string; content: unknown }[];
-      const lastUser = [...messages].reverse().find((m) => m.role === "user");
-      const payload = {
-        content: typeof lastUser?.content === "string" ? lastUser.content : "",
+  content: string;
+}): AsyncGenerator<AgUiStreamEvent> {
+  const response = await fetch(
+    `${opts.baseUrl}/sessions/${opts.sessionId}/messages`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+        ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
+      },
+      body: JSON.stringify({
+        content: opts.content,
         mode: opts.send.mode,
         fork: opts.send.fork ?? false,
         fork_from_turn_id: opts.send.forkFromTurnId ?? null,
         attachment_ids: opts.send.attachmentIds ?? [],
         skill: opts.send.skill ?? null,
         retry_turn_id: opts.send.retryTurnId ?? null,
-      };
-      return fetch(url, { ...init, body: JSON.stringify(payload) });
-    }) as typeof fetch,
-  });
+      }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(`Chat request failed (${response.status})`);
+  }
+  const reader = response.body?.getReader();
+  if (!reader) return;
+  const decoder = new TextDecoder();
+  let buffer = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+      let boundary = buffer.indexOf("\n\n");
+      while (boundary >= 0) {
+        const block = buffer.slice(0, boundary);
+        buffer = buffer.slice(boundary + 2);
+        const data = block
+          .split("\n")
+          .filter((line) => line.startsWith("data:"))
+          .map((line) => line.slice(5).trimStart())
+          .join("\n");
+        if (data) yield JSON.parse(data) as AgUiStreamEvent;
+        boundary = buffer.indexOf("\n\n");
+      }
+    }
+  } finally {
+    reader.releaseLock();
+  }
 }
+
+
