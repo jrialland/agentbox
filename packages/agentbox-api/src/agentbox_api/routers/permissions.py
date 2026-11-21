@@ -3,10 +3,11 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
+from agentbox_api.validation import required_name
 from agentbox_models.tables.auth import Permission, RolePermissionLink
 
 router = APIRouter(prefix="/permissions", tags=["permissions"])
@@ -24,10 +25,20 @@ class PermissionCreate(BaseModel):
     name: str
     description: str | None = None
 
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        return required_name(value)
+
 
 class PermissionUpdate(BaseModel):
     name: str | None = None
     description: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str | None) -> str | None:
+        return required_name(value) if value is not None else None
 
 
 def _validate_name(name: str) -> None:

@@ -14,11 +14,12 @@ from fastapi import (
 )
 from google.protobuf import json_format
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import select
 
 from agentbox_api import avatars
 from agentbox_api.deps import require_permission
+from agentbox_api.validation import required_name
 from agentbox_harness.spec import (
     AgentSpec,
     McpToolBinding,
@@ -41,6 +42,11 @@ class AgentCreate(BaseModel):
     tool_bindings: list[dict] = []
     mode_definitions: list[dict] = []
     sub_agent_ids: list[str] = []
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        return required_name(value)
 
 
 def _to_spec(body: AgentCreate) -> AgentSpec:

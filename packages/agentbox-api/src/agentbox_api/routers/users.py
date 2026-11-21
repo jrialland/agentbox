@@ -2,11 +2,12 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
 from agentbox_api.security import hash_password
+from agentbox_api.validation import required_name
 from agentbox_models.repos.crud import UserRepository
 from agentbox_models.tables.auth import (
     ApiKey,
@@ -22,6 +23,21 @@ class UserCreate(BaseModel):
     username: str
     email: str
     password: str
+
+    @field_validator("username")
+    @classmethod
+    def _username(cls, value: str) -> str:
+        return required_name(value, "username")
+
+    @field_validator("email")
+    @classmethod
+    def _email(cls, value: str) -> str:
+        return required_name(value, "email")
+
+    @field_validator("password")
+    @classmethod
+    def _password(cls, value: str) -> str:
+        return required_name(value, "password")
 
 
 class UserUpdate(BaseModel):

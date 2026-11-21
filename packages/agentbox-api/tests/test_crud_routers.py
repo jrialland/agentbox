@@ -70,8 +70,10 @@ async def test_providers_requires_permission():
         await engine.dispose()
 
 
-async def test_projects_create_and_list():
+async def test_projects_create_and_list(tmp_path):
     engine, client, _factory = await _make_app(["projects:create", "projects:read"])
+    extra = tmp_path / "extra"
+    extra.mkdir()
     try:
         token = await _login(client)
         h = {"Authorization": f"Bearer {token}"}
@@ -79,8 +81,8 @@ async def test_projects_create_and_list():
             "/projects",
             json={
                 "name": "myproj",
-                "path": "/tmp/p",
-                "extra_roots": ["/tmp/extra"],
+                "path": str(tmp_path),
+                "extra_roots": [str(extra)],
             },
             headers=h,
         )
@@ -88,7 +90,7 @@ async def test_projects_create_and_list():
         created = r.json()
         assert created["id"]
         assert created["owner_id"] == "u1"
-        assert created["extra_roots"] == ["/tmp/extra"]
+        assert created["extra_roots"] == [str(extra)]
         r = await client.get("/projects", headers=h)
         assert any(p["id"] == created["id"] for p in r.json())
     finally:
@@ -96,23 +98,27 @@ async def test_projects_create_and_list():
         await engine.dispose()
 
 
-async def test_project_update_extra_roots():
+async def test_project_update_extra_roots(tmp_path):
     engine, client, _factory = await _make_app(["projects:create", "projects:read"])
+    extra_a = tmp_path / "a"
+    extra_b = tmp_path / "b"
+    extra_a.mkdir()
+    extra_b.mkdir()
     try:
         token = await _login(client)
         h = {"Authorization": f"Bearer {token}"}
         r = await client.post(
-            "/projects", json={"name": "p", "path": "/tmp/p"}, headers=h
+            "/projects", json={"name": "p", "path": str(tmp_path)}, headers=h
         )
         pid = r.json()["id"]
         r = await client.put(
             f"/projects/{pid}",
-            json={"name": "renamed", "extra_roots": ["/tmp/a", "/tmp/b"]},
+            json={"name": "renamed", "extra_roots": [str(extra_a), str(extra_b)]},
             headers=h,
         )
         assert r.status_code == 200
         assert r.json()["name"] == "renamed"
-        assert r.json()["extra_roots"] == ["/tmp/a", "/tmp/b"]
+        assert r.json()["extra_roots"] == [str(extra_a), str(extra_b)]
         assert (await client.put("/projects/missing", json={}, headers=h)).status_code == 404
     finally:
         await client.aclose()

@@ -6,11 +6,12 @@ from urllib.parse import urlparse
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
 from agentbox_api.routers.models import ModelRead, model_read
+from agentbox_api.validation import optional_http_url, required_name
 from agentbox_models.repos.crud import ProviderRepository
 from agentbox_models.tables.core import Agent, Model, ModelLabelLink, Provider
 from agentbox_providers.models import list_models
@@ -24,6 +25,21 @@ class ProviderCreate(BaseModel):
     base_url: str | None = None
     api_key: str | None = None
     models_url: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        return required_name(value)
+
+    @field_validator("base_url")
+    @classmethod
+    def _base_url(cls, value: str | None) -> str | None:
+        return optional_http_url(value, "base_url")
+
+    @field_validator("models_url")
+    @classmethod
+    def _models_url(cls, value: str | None) -> str | None:
+        return optional_http_url(value, "models_url")
 
 
 class ProviderRead(BaseModel):
@@ -41,6 +57,21 @@ class ProviderUpdate(BaseModel):
     base_url: str | None = None
     api_key: str | None = None
     models_url: str | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str | None) -> str | None:
+        return required_name(value) if value is not None else None
+
+    @field_validator("base_url")
+    @classmethod
+    def _base_url(cls, value: str | None) -> str | None:
+        return optional_http_url(value, "base_url")
+
+    @field_validator("models_url")
+    @classmethod
+    def _models_url(cls, value: str | None) -> str | None:
+        return optional_http_url(value, "models_url")
 
 
 class ProviderTestRequest(BaseModel):

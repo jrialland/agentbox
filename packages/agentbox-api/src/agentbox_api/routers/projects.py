@@ -2,9 +2,10 @@ import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from agentbox_api.deps import require_permission
+from agentbox_api.validation import checked_directory, checked_extra_roots, required_name
 from agentbox_models.repos.crud import ProjectRepository
 from agentbox_models.tables.core import Project
 
@@ -16,10 +17,35 @@ class ProjectCreate(BaseModel):
     path: str
     extra_roots: list[str] = []
 
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str) -> str:
+        return required_name(value)
+
+    @field_validator("path")
+    @classmethod
+    def _path(cls, value: str) -> str:
+        return checked_directory(value)
+
+    @field_validator("extra_roots")
+    @classmethod
+    def _roots(cls, value: list[str]) -> list[str]:
+        return checked_extra_roots(value)
+
 
 class ProjectUpdate(BaseModel):
     name: str | None = None
     extra_roots: list[str] | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, value: str | None) -> str | None:
+        return required_name(value) if value is not None else None
+
+    @field_validator("extra_roots")
+    @classmethod
+    def _roots(cls, value: list[str] | None) -> list[str] | None:
+        return checked_extra_roots(value) if value is not None else None
 
 
 @router.post("", response_model=Project)
