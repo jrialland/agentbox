@@ -1,0 +1,123 @@
+.composer {
+  background: var(--ab-surface);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-2);
+  position: sticky;
+  bottom: var(--ab-space-3);
+}
+
+.dragging {
+  border-color: var(--ab-cyan);
+  box-shadow: 0 0 0 var(--ab-focus-width)
+    color-mix(in srgb, var(--ab-cyan) 25%, transparent);
+}
+
+.input {
+  background: transparent;
+  border: 0;
+  color: var(--ab-text);
+  font-family: var(--ab-font-body);
+  font-size: var(--ab-text-md);
+  line-height: 1.55;
+  min-height: 56px;
+  padding: var(--ab-space-2);
+}
+
+.input:focus {
+  outline: none;
+}
+
+.menu {
+  background: var(--ab-surface-raised);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  display: flex;
+  flex-direction: column;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: var(--ab-space-1);
+}
+
+.menuItem {
+  background: none;
+  border: 0;
+  border-radius: var(--ab-radius-sm);
+  color: var(--ab-text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--ab-space-2);
+  text-align: left;
+}
+
+.menuItem:hover {
+  background: var(--ab-surface);
+}
+
+.menuTitle {
+  color: var(--ab-phosphor);
+  font-family: var(--ab-font-mono);
+  font-size: var(--ab-text-sm);
+}
+
+.menuHint {
+  color: var(--ab-text-muted);
+  font-size: var(--ab-text-xs);
+}
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ab-space-2);
+  padding: 0 var(--ab-space-1);
+}
+
+.attachment {
+  align-items: center;
+  background: var(--ab-surface-raised);
+  border: var(--ab-border-width) solid var(--ab-border);
+  border-radius: var(--ab-radius-sm);
+  color: var(--ab-text);
+  display: inline-flex;
+  font-size: var(--ab-text-xs);
+  gap: var(--ab-space-1);
+  padding: var(--ab-space-1) var(--ab-space-2);
+}
+
+.attachment button {
+  background: none;
+  border: 0;
+  color: var(--ab-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  padding: 0;
+}
+
+.attachment button:hover {
+  color: var(--ab-danger);
+}
+
+.error {
+  color: var(--ab-danger);
+  font-size: var(--ab-text-xs);
+  margin: 0;
+  padding: 0 var(--ab-space-2);
+}
+
+.toolbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.tools,
+.sendArea {
+  align-items: center;
+  display: flex;
+  gap: var(--ab-space-2);
+}

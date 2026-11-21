@@ -146,6 +146,7 @@ export function SessionPage() {
           setMode={setMode}
           running={chat.running}
           onSend={handleSend}
+          onStop={chat.cancel}
           onSelectSkill={(name) => setSkill(name)}
         />
       </div>

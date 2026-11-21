@@ -1,8 +1,20 @@
-import { Button, Select, Textarea } from "@mantine/core";
+import {
+  RiAttachment2,
+  RiCloseLine,
+  RiMicLine,
+  RiMicOffLine,
+  RiSendPlane2Line,
+  RiStopLine,
+} from "@remixicon/react";
+import { SegmentedControl, Tooltip } from "@mantine/core";
 import { useRef, useState } from "react";
 
 import { uploadAttachment } from "../api/endpoints";
 import { useSessionFiles, useSkills } from "../api/queries";
+import { Textarea } from "../design-system/forms/Textarea";
+import { Icon } from "../design-system/icons/Icon";
+import { IconButton } from "../design-system/icons/IconButton";
+import styles from "./composer.module.css";
 import { speechAvailable, startSpeech } from "./speech";
 
 type Attachment = { id: string; filename: string };
@@ -15,6 +27,7 @@ export function Composer({
   setMode,
   running,
   onSend,
+  onStop,
   onSelectSkill,
 }: {
   sessionId: string;
@@ -24,10 +37,13 @@ export function Composer({
   setMode: (m: string | null) => void;
   running: boolean;
   onSend: (attachmentIds: string[]) => void;
+  onStop?: () => void;
   onSelectSkill: (name: string) => void;
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [listening, setListening] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const stopSpeechRef = useRef<(() => void) | null>(null);
   const { data: skills } = useSkills();
@@ -52,12 +68,13 @@ export function Composer({
 
   async function onFiles(files: FileList | null) {
     if (!files) return;
+    setUploadError(null);
     for (const file of Array.from(files)) {
       try {
         const a = await uploadAttachment(sessionId, file);
         setAttachments((prev) => [...prev, { id: a.id, filename: a.filename }]);
       } catch {
-        // upload failure is surfaced by the send path
+        setUploadError(`Could not upload ${file.name}`);
       }
     }
     if (fileRef.current) fileRef.current.value = "";
@@ -75,6 +92,7 @@ export function Composer({
   }
 
   function submit() {
+    if (running || !value.trim()) return;
     onSend(attachments.map((a) => a.id));
     setAttachments([]);
     if (listening) {
@@ -83,72 +101,147 @@ export function Composer({
     }
   }
 
+  function stop() {
+    onStop?.();
+  }
+
   return (
-    <div className="box">
+    <div
+      className={`${styles.composer} ${dragging ? styles.dragging : ""}`}
+      onDragOver={(event) => {
+        event.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragging(false);
+        void onFiles(event.dataTransfer.files);
+      }}
+    >
       <Textarea
-        label="Message"
+        aria-label="Message"
+        rows={2}
         value={value}
-        onChange={(e) => setValue(e.currentTarget.value)}
-        rows={3}
+        onChange={(event) => setValue(event.currentTarget.value)}
+        onKeyDown={(event) => {
+          if (event.key === "Enter" && !event.shiftKey) {
+            event.preventDefault();
+            submit();
+          }
+        }}
+        placeholder="Message the agent. Use / for skills and @ for files."
+        classNames={{ input: styles.input }}
       />
       {slash !== null && matches.length > 0 && (
-        <div className="box" data-testid="skill-menu">
+        <div className={styles.menu} data-testid="skill-menu">
           {matches.map((s) => (
             <button
               key={s.name}
               type="button"
-              className="is-block"
+              className={styles.menuItem}
               onClick={() => {
                 setValue(`/${s.name} `);
                 onSelectSkill(s.name);
               }}
             >
-              /{s.name} — {s.description}
+              <span className={styles.menuTitle}>/{s.name}</span>
+              <span className={styles.menuHint}>{s.description}</span>
             </button>
           ))}
         </div>
       )}
       {atActive && fileMatches.length > 0 && (
-        <div className="box" data-testid="file-menu">
+        <div className={styles.menu} data-testid="file-menu">
           {fileMatches.map((p) => (
             <button
               key={p}
               type="button"
-              className="is-block"
+              className={styles.menuItem}
+              aria-label={`@${p}`}
               onClick={() => pickFile(p)}
             >
-              @{p}
+              <span className={styles.menuTitle}>@{p}</span>
             </button>
           ))}
         </div>
       )}
-      <div className="mt-2">
-        {attachments.map((a) => (
-          <span key={a.id} className="tag is-light mr-2">
-            {a.filename}
-          </span>
-        ))}
-      </div>
-      <div className="is-flex is-justify-content-space-between mt-2">
-        <div className="is-flex">
-          <Select data={["ask", "agent"]} value={mode} onChange={setMode} w={120} />
-          <Button
-            ml="xs"
-            variant="light"
-            aria-label="Add attachments"
+      {attachments.length > 0 && (
+        <div className={styles.attachments}>
+          {attachments.map((a) => (
+            <span key={a.id} className={styles.attachment}>
+              <Icon as={RiAttachment2} size={16} />
+              {a.filename}
+              <button
+                type="button"
+                aria-label={`Remove ${a.filename}`}
+                onClick={() =>
+                  setAttachments((prev) => prev.filter((item) => item.id !== a.id))
+                }
+              >
+                <Icon as={RiCloseLine} size={16} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {uploadError && (
+        <p className={styles.error} role="alert">
+          {uploadError}
+        </p>
+      )}
+      <div className={styles.toolbar}>
+        <div className={styles.tools}>
+          <SegmentedControl
+            size="xs"
+            data={[
+              { label: "Ask", value: "ask" },
+              { label: "Agent", value: "agent" },
+            ]}
+            value={mode ?? "agent"}
+            onChange={(next) => setMode(next)}
+          />
+          <IconButton
+            label="Add attachments"
+            icon={RiAttachment2}
+            size={18}
             onClick={() => fileRef.current?.click()}
-          >
-            Attach
-          </Button>
+          />
           {speechAvailable() && (
-            <Button ml="xs" variant="light" aria-label="Speech to text" onClick={toggleMic}>
-              Dictate
-            </Button>
+            <IconButton
+              label={listening ? "Stop dictation" : "Speech to text"}
+              icon={listening ? RiMicOffLine : RiMicLine}
+              size={18}
+              onClick={toggleMic}
+            />
           )}
         </div>
-        <Button onClick={submit} loading={running}>
-          Send
-        </Button>
+        <div className={styles.sendArea}>
+          {running ? (
+            <Tooltip label="Stop" withArrow>
+              <IconButton
+                label="Stop"
+                icon={RiStopLine}
+                size={20}
+                variant="filled"
+                color="danger"
+                onClick={stop}
+              />
+            </Tooltip>
+          ) : (
+            <Tooltip label="Send" withArrow>
+              <IconButton
+                label="Send"
+                icon={RiSendPlane2Line}
+                size={20}
+                variant="filled"
+                color="phosphor"
+                disabled={!value.trim()}
+                onClick={submit}
+              />
+            </Tooltip>
+          )}
+        </div>
       </div>
       <input
         ref={fileRef}
@@ -156,7 +249,7 @@ export function Composer({
         multiple
         hidden
         aria-label="Attach files"
-        onChange={(e) => onFiles(e.currentTarget.files)}
+        onChange={(event) => onFiles(event.currentTarget.files)}
       />
     </div>
   );
