@@ -2,6 +2,7 @@ import pytest
 from pydantic_ai.models.anthropic import AnthropicModel
 from pydantic_ai.models.ollama import OllamaModel
 from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
+from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.models.test import TestModel
 
 from agentbox_models.tables.core import Provider
@@ -75,6 +76,20 @@ def test_resolve_known_model_profile_is_used_without_override():
     assert m.profile["context_window"] == 128_000
 
 
+def test_resolve_deterministic_chat_providers():
+    markdown = resolve_model(Provider(id="p", name="md", kind="test_markdown"), "m")
+    assert isinstance(markdown, TestModel)
+    assert markdown.custom_output_text is not None
+
+    slow = resolve_model(Provider(id="p", name="slow", kind="test_slow"), "m")
+    assert isinstance(slow, FunctionModel)
+    error = resolve_model(Provider(id="p", name="err", kind="test_error"), "m")
+    assert isinstance(error, FunctionModel)
+    flaky = resolve_model(Provider(id="p", name="flaky", kind="test_flaky"), "m")
+    assert isinstance(flaky, FunctionModel)
+
+
 def test_resolve_unknown_kind_raises():
     with pytest.raises(ValueError):
         resolve_model(Provider(id="p", name="x", kind="bogus"), "m")
+

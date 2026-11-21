@@ -43,6 +43,7 @@ class RunManager:
         prompt_override=None,
         on_context_overflow=None,
     ) -> Run:
+        cancellation_token = cancellation_token or CancellationToken()
         task = asyncio.create_task(
             self._drive(
                 agent,

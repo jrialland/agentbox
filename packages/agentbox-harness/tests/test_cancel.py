@@ -24,3 +24,14 @@ async def test_cancel_raises_run_cancelled():
 
     with pytest.raises(RunCancelled):
         await run.await_result()
+
+
+async def test_run_cancel_creates_a_token_when_none_is_given():
+    agent = Agent("test", instructions="echo")
+    mgr = RunManager()
+    run = mgr.start(agent, "hello", run_id="r2", bus=EventBus(), model_override=TestModel())
+
+    assert run.cancellation_token is not None
+    run.cancel()
+    with pytest.raises(RunCancelled):
+        await run.await_result()

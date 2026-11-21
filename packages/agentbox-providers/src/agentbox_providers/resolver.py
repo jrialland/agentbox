@@ -1,3 +1,5 @@
+import asyncio
+
 from loguru import logger
 from pydantic_ai.models import Model
 from pydantic_ai.models.anthropic import AnthropicModel
@@ -11,6 +13,8 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from agentbox_models.tables.core import Provider
 from agentbox_providers.api_keys import resolve_api_key
 
+_flaky_attempts: dict[str, int] = {}
+
 
 def resolve_model(
     provider: Provider, model_name: str, context_window: int | None = None
@@ -19,7 +23,12 @@ def resolve_model(
     profile: ModelProfile | None = (
         {"context_window": context_window} if context_window else None
     )
-    logger.debug("resolving model provider={} kind={} model={}", provider.name, kind, model_name)
+    logger.debug(
+        "resolving model provider={} kind={} model={}",
+        provider.name,
+        kind,
+        model_name,
+    )
     if kind == "openai_legacy":
         return OpenAIChatModel(
             model_name,
@@ -68,4 +77,78 @@ def resolve_model(
             custom_output_text="Hello from the test provider",
             profile=profile,
         )
+    if kind == "test_markdown":
+        from pydantic_ai.models.test import TestModel
+
+        return TestModel(
+            call_tools=[],
+            custom_output_text=(
+                "# Chat UX\n\n"
+                "| Feature | State |\n| --- | --- |\n| Markdown | ok |\n\n"
+                '```python\nprint("hi")\n```\n\n'
+                "```mermaid\ngraph TD; A-->B\n```\n\n"
+                "```mermaid\nthis is not a diagram\n```"
+            ),
+            profile=profile,
+        )
+    if kind == "test_tool_slow":
+        from pydantic_ai.models.function import DeltaToolCall, FunctionModel
+
+        async def tool_slow(messages, info):
+            has_tool_result = any(
+                getattr(part, "part_kind", "") == "tool-return"
+                for message in messages
+                for part in message.parts
+            )
+            if not has_tool_result:
+                yield {
+                    0: DeltaToolCall(
+                        name="show_app", json_args="{}", tool_call_id="app-call"
+                    )
+                }
+                return
+            for chunk in ("Tool ", "ran. ", "Final ", "answer"):
+                await asyncio.sleep(0.8)
+                yield chunk
+
+        return FunctionModel(
+            stream_function=tool_slow, model_name=model_name, profile=profile
+        )
+    if kind == "test_slow":
+        from pydantic_ai.models.function import FunctionModel
+
+        async def slow_stream(messages, info):
+            for chunk in ("Partial ", "answer ", "still ", "running"):
+                await asyncio.sleep(0.8)
+                yield chunk
+
+        return FunctionModel(
+            stream_function=slow_stream, model_name=model_name, profile=profile
+        )
+    if kind == "test_error":
+        from pydantic_ai.models.function import FunctionModel
+
+        async def error_stream(messages, info):
+            yield "Partial "
+            await asyncio.sleep(0.1)
+            raise RuntimeError("provider exploded")
+
+        return FunctionModel(
+            stream_function=error_stream, model_name=model_name, profile=profile
+        )
+    if kind == "test_flaky":
+        from pydantic_ai.models.function import FunctionModel
+
+        async def flaky_stream(messages, info):
+            attempts = _flaky_attempts.get(model_name, 0) + 1
+            _flaky_attempts[model_name] = attempts
+            if attempts == 1:
+                raise RuntimeError("provider exploded once")
+            yield "Recovered answer"
+
+        return FunctionModel(
+            stream_function=flaky_stream, model_name=model_name, profile=profile
+        )
     raise ValueError(f"Unknown provider kind: {kind}")
+
+
