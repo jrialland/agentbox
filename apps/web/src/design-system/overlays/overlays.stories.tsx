@@ -10,6 +10,7 @@ function OverlaysDemo() {
   const [open, setOpen] = useState(true);
   const [drawer, setDrawer] = useState(false);
   const [confirm, setConfirm] = useState(false);
+  const [typedConfirm, setTypedConfirm] = useState(false);
 
   return (
     <div style={{ display: "flex", gap: 12 }}>
@@ -19,6 +20,9 @@ function OverlaysDemo() {
       </Button>
       <Button color="danger" onClick={() => setConfirm(true)}>
         Confirm delete
+      </Button>
+      <Button color="danger" onClick={() => setTypedConfirm(true)}>
+        Confirm with typing
       </Button>
       <Modal opened={open} onClose={() => setOpen(false)} title="Modal demo">
         <p>Modal content</p>
@@ -34,6 +38,16 @@ function OverlaysDemo() {
         danger
         onConfirm={() => setConfirm(false)}
         onClose={() => setConfirm(false)}
+      />
+      <ConfirmDialog
+        opened={typedConfirm}
+        title="Delete project?"
+        description="This permanently deletes the project and its sessions."
+        confirmLabel="Delete"
+        danger
+        requireText="Demo"
+        onConfirm={() => setTypedConfirm(false)}
+        onClose={() => setTypedConfirm(false)}
       />
     </div>
   );
