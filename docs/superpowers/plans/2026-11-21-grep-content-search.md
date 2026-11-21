@@ -1,5 +1,7 @@
 # D21 Grep Content Search Implementation Plan
 
+**Status:** COMPLETE
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a bounded, pure-Python `grep` filesystem tool for regex/literal content search with safe defaults and reusable line/column results.
@@ -42,6 +44,7 @@
 ```python
 # packages/agentbox-harness/tests/test_grep_tool.py
 import pathlib
+from dataclasses import replace
 
 import pytest
 
@@ -49,20 +52,8 @@ from agentbox_harness.tools.grep import GrepOptions, run_grep
 
 
 def options(root: pathlib.Path, pattern: str, **kwargs) -> GrepOptions:
-    return GrepOptions(
-        pattern=pattern,
-        root=root,
-        project_root=root,
-        fixed_strings=False,
-        ignore_case=False,
-        include=(),
-        exclude=(),
-        context_lines=0,
-        max_results=200,
-        max_file_bytes=2 * 1024 * 1024,
-        max_line_chars=300,
-        max_walk_entries=100_000,
-        **kwargs,
+    return replace(
+        GrepOptions(pattern=pattern, root=root, project_root=root), **kwargs
     )
 
 

@@ -1,7 +1,7 @@
 # D21 - Grep Content Search Tool
 
 - **Date:** 2026-11-21
-- **Status:** Draft (design approved; pending spec review)
+- **Status:** Approved
 - **Sub-project:** D21 - a filesystem content-search tool for Agentbox agents.
 - **Source:** D21 in [`docs/ROADMAP.md`](../../ROADMAP.md), plus the OpenCode/Agentbox tool comparison that identified content search as a gap.
 - **Roadmap:** `D21` in [`docs/ROADMAP.md`](../../ROADMAP.md).

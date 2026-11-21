@@ -113,7 +113,7 @@ Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These wo
 | UX-3 | Contextual help & structured editors | DONE | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
 | UX-4 | Data integrity, errors & navigation states | DONE | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
 
-The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-4 and D20 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`, and `superpowers/specs/2026-11-21-agents-md-project-instructions-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, `superpowers/plans/2026-11-21-ux-4-data-integrity.md`, and `superpowers/plans/2026-11-21-agents-md-project-instructions.md`. The next cycle is not yet scheduled.
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-4, D20, and D21 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`, `superpowers/specs/2026-11-21-agents-md-project-instructions-design.md`, and `superpowers/specs/2026-11-21-grep-content-search-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, `superpowers/plans/2026-11-21-ux-4-data-integrity.md`, `superpowers/plans/2026-11-21-agents-md-project-instructions.md`, and `superpowers/plans/2026-11-21-grep-content-search.md`. The next cycle is not yet scheduled.
 
 ## Sub-project history
 
@@ -153,6 +153,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 32 | UX-3 contextual help + structured editors | `specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md` | `plans/2026-11-21-ux-3-contextual-help-structured-editors.md` |
 | 33 | UX-4 data integrity, errors + navigation states | `specs/2026-11-21-ux-4-data-integrity-design.md` | `plans/2026-11-21-ux-4-data-integrity.md` |
 | 34 | D20 AGENTS.md project instructions | `specs/2026-11-21-agents-md-project-instructions-design.md` | `plans/2026-11-21-agents-md-project-instructions.md` |
+| 35 | D21 grep content search | `specs/2026-11-21-grep-content-search-design.md` | `plans/2026-11-21-grep-content-search.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -164,11 +165,9 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D5 | **Complex agent workflows** | Move beyond the current ReAct loop: a graphical graph builder with nodes such as post-turn code checks, "ralph mode" re-run completion, and a decision model choosing the next step. |
 | D6 | **Duo mode** | Two-agent pairing: the primary receives the user message; the secondary answers the primary's questions. Turns continue automatically until a stop condition is met. |
 | D9 | **Automatic session shrinking** | Drop past tool results that are no longer needed; strip multimodal content after a few turns; keep the context lean. |
-| D12 | **Agent plugins** | Support the standardized `.agents/plugins/` folder format that mixes skills, MCP configuration, and hooks. |
-| D13 | **Toolset packaging hygiene** | Declare each toolset as a separate artifact/package where possible; keep native toolsets embedded in Agentbox and, where possible, also expose them as standalone FastMCP stdio tools. |
+| D12 | **Agent plugins** | Support the standardized `.agents/plugins/` folder format that mixes skills, MCP configuration, and hooks. Specs at https://agent-plugins.org/ |
 | D15 | **Virtual environment / sandboxing** | Opt-in per agent: run tools in a Bashkit environment on a temporary disk, isolating filesystem effects from the real project. |
 | D16 | **Telegram / WhatsApp interface** | Let a user create a channel binding (e.g. a Telegram bot) to manage an agent session from a phone: inbound messages start/continue sessions, replies stream back. |
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
 | D19 | **Rust LSP latency** | Replace rust-analyzer's 15 s push-mode settle window with `experimental/serverStatus` quiescence tracking, so clean Rust writes return immediately while keeping `didSave`-triggered diagnostics. |
-| D21 | **Grep content search tool** | Add a filesystem toolset grep tool for searching file contents, distinct from the existing filename/glob search. Intended scope: regex and literal modes, include/exclude globs, context lines, result limits, binary-file skipping, and project-root/allowed-root containment. |
