@@ -2,7 +2,6 @@ import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 
 import { useCreateAgent, useLabels, useModels, useProviders, useUploadAvatar } from "../../api/queries";
-import { Checkbox } from "../../design-system/forms/Checkbox";
 import { FileDropzone } from "../../design-system/forms/FileDropzone";
 import { FormActions } from "../../design-system/forms/FormActions";
 import { FormField } from "../../design-system/forms/FormField";
@@ -15,6 +14,9 @@ import { Button } from "../../design-system/primitives/Button";
 import { Section } from "../../design-system/primitives/Section";
 import { buildToolBindings } from "../AgentsPage";
 import { AgentToolsEditor } from "./AgentToolsEditor";
+import { AgentModesEditor } from "./AgentModesEditor";
+import { AgentMcpEditor } from "./AgentMcpEditor";
+import { validateMcpUrl, validateModes } from "./agentFormValidation";
 import styles from "./agents.module.css";
 import { TemplatePreviewModal } from "./TemplatePreviewModal";
 
@@ -39,7 +41,6 @@ export function AgentCreateDrawer({
   const [modelRef, setModelRef] = useState<string | null>(null);
   const [tools, setTools] = useState<string[]>([]);
   const [mcpServers, setMcpServers] = useState<string[]>([]);
-  const [mcpInput, setMcpInput] = useState("");
   const [subAgents, setSubAgents] = useState<string[]>([]);
   const [modes, setModes] = useState<{ name: string; write: boolean }[]>([
     { name: "ask", write: false },
@@ -62,7 +63,9 @@ export function AgentCreateDrawer({
   ];
 
   async function onCreate() {
-    if (!modelRef) return;
+    const modesError = validateModes(modes);
+    const mcpError = mcpServers.map(validateMcpUrl).find(Boolean) ?? null;
+    if (!modelRef || modesError || mcpError) return;
     const isLabel = modelRef.startsWith("label:");
     const modelName = isLabel
       ? undefined
@@ -145,88 +148,10 @@ export function AgentCreateDrawer({
 
       <Section title="Capabilities">
         <AgentToolsEditor value={tools} onChange={setTools} />
-        <FormField label="MCP servers" description="Add one MCP server URL at a time.">
-          <div className={styles.inlineForm}>
-            <TextInput
-              placeholder="https://server/mcp"
-              value={mcpInput}
-              onChange={(e) => setMcpInput(e.currentTarget.value)}
-            />
-            <Button
-              variant="light"
-              onClick={() => {
-                if (mcpInput) {
-                  setMcpServers((prev) => [...prev, mcpInput]);
-                  setMcpInput("");
-                }
-              }}
-            >
-              Add
-            </Button>
-          </div>
-          <ul className={styles.inlineList}>
-            {mcpServers.map((url, index) => (
-              <li key={index}>
-                <code>{url}</code>
-                <Button
-                  variant="subtle"
-                  color="red"
-                  size="compact-xs"
-                  onClick={() =>
-                    setMcpServers((prev) =>
-                      prev.filter((_, i) => i !== index),
-                    )
-                  }
-                >
-                  Remove
-                </Button>
-              </li>
-            ))}
-          </ul>
-        </FormField>
-      </Section>
+        <AgentMcpEditor value={mcpServers} onChange={setMcpServers} />      </Section>
 
       <Section title="Behavior">
-        <FormField label="Modes" description="Each mode defines whether write tools are enabled.">
-          <div className={styles.modes}>
-            {modes.map((mode, index) => (
-              <div key={index} className={styles.modeRow}>
-                <TextInput
-                  value={mode.name}
-                  aria-label={`Mode ${index + 1} name`}
-                  onChange={(e) => {
-                    const value = e.currentTarget.value;
-                    setModes((prev) =>
-                      prev.map((item, i) =>
-                        i === index ? { ...item, name: value } : item,
-                      ),
-                    );
-                  }}
-                />
-                <Checkbox
-                  label="Write enabled"
-                  checked={mode.write}
-                  onChange={(e) => {
-                    const checked = e.currentTarget.checked;
-                    setModes((prev) =>
-                      prev.map((item, i) =>
-                        i === index ? { ...item, write: checked } : item,
-                      ),
-                    );
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-        </FormField>
-        <FormField label="Sub-agents">
-          <MultiSelect
-            data={subAgentOptions}
-            value={subAgents}
-            onChange={setSubAgents}
-          />
-        </FormField>
-      </Section>
+        <AgentModesEditor value={modes} onChange={setModes} />      </Section>
 
       <Section title="Presentation">
         <FormField label="Photo" description="PNG, JPEG, or WebP.">
@@ -256,4 +181,5 @@ export function AgentCreateDrawer({
     </Drawer>
   );
 }
+
 
