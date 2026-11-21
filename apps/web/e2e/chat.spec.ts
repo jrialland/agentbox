@@ -70,7 +70,9 @@ test("chat streams, attaches, and forks", async ({ page, request }) => {
 
   await page.getByLabel("Message").fill("hi");
   await page.getByRole("button", { name: "Send" }).click();
-  await expect(page.getByText("Hello from the test provider")).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByText("Hello from the test provider").first(),
+  ).toBeVisible({ timeout: 15000 });
 
   await page.getByLabel("Attach files").setInputFiles({
     name: "note.txt",
@@ -82,5 +84,7 @@ test("chat streams, attaches, and forks", async ({ page, request }) => {
   await page.getByRole("button", { name: "Edit" }).first().click();
   await page.getByLabel("Message").fill("edited question");
   await page.getByRole("button", { name: "Send" }).click();
-  await expect(page.getByText("Hello from the test provider")).toBeVisible({ timeout: 15000 });
+  await expect(
+    page.getByText("Hello from the test provider").first(),
+  ).toBeVisible({ timeout: 15000 });
 });

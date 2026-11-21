@@ -45,5 +45,12 @@ test("manage provider and agent end-to-end", async ({ page }) => {
     .getByRole("row", { name: new RegExp(agentName) })
     .getByRole("button", { name: "Delete" })
     .click();
+  const deleteDialog = page.getByRole("dialog");
+  await deleteDialog
+    .getByLabel(`Type ${agentName} to confirm`)
+    .fill(agentName);
+  await deleteDialog
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(page.getByRole("cell", { name: agentName })).toHaveCount(0);
 });

@@ -45,6 +45,10 @@ test("manage providers/models and delete a session", async ({ page, request }) =
   const modelRow = page.getByRole("row", { name: new RegExp(extraModel) });
   await expect(modelRow).toBeVisible();
   await modelRow.getByRole("button", { name: "Delete" }).click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await expect(page.getByRole("cell", { name: extraModel })).toHaveCount(0);
 
   // Labels: create a model, tag it, filter, then create a label-bound agent.
@@ -67,7 +71,9 @@ test("manage providers/models and delete a session", async ({ page, request }) =
   await expect(labelledRow).toBeVisible();
 
   await page.getByRole("link", { name: "Agents" }).click();
-  await expect(page.getByRole("heading", { name: "Agents" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Agents", exact: true }),
+  ).toBeVisible();
   await page.getByRole("button", { name: "New agent" }).click();
   const agentDialog = page.getByRole("dialog");
   await agentDialog.getByLabel(/^Name/).fill(labelAgent);

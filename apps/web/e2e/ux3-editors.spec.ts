@@ -75,7 +75,11 @@ test("A2A structured edits, JSON errors, presets, and scope warning", async ({
     "https://api.deepseek.com/v1",
   );
   await providerForm.getByRole("button", { name: "Help: Provider kind" }).click();
-  await expect(page.getByText(/OpenAI-compatible APIs/i)).toBeVisible();
+  await expect(
+    page
+      .getByRole("dialog", { name: "Help: Provider kind" })
+      .getByText(/OpenAI-compatible APIs/i),
+  ).toBeVisible();
 
   await page.goto("/api-keys");
   await page.getByRole("button", { name: "Use recommended" }).click();

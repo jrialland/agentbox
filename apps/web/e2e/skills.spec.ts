@@ -37,7 +37,7 @@ test("skills page + slash activation", async ({ page, request }) => {
   const sessionId = (await sess.json()).id;
 
   await page.getByRole("link", { name: "Skills" }).click();
-  await page.getByLabel("Name").fill(skillName);
+  await page.locator("#skill-name").fill(skillName);
   await page.getByLabel("Description").fill("d");
   await page.getByLabel("Body (Markdown)").fill("# Demo\nbody");
   await page.getByRole("button", { name: "Create skill" }).click();

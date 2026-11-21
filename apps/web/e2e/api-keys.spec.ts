@@ -40,6 +40,10 @@ test("API key: scope-limited, then revoked", async ({ page, request }) => {
 
   // Revoke via the UI, then the key is rejected.
   await page.getByRole("button", { name: "Revoke" }).first().click();
+  await page
+    .getByRole("dialog")
+    .getByRole("button", { name: "Revoke key", exact: true })
+    .click();
   await expect(page.getByRole("cell", { name: "revoked" }).first()).toBeVisible();
   expect((await request.get(`${API}/projects`, { headers: keyH })).status()).toBe(401);
 });
