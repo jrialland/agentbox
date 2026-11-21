@@ -3,11 +3,13 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 from pydantic import BaseModel, field_validator
+from sqlmodel import select
 
 from agentbox_api.deps import require_permission
+from agentbox_api.runtime import delete_session_data
 from agentbox_api.validation import checked_directory, checked_extra_roots, required_name
 from agentbox_models.repos.crud import ProjectRepository
-from agentbox_models.tables.core import Project
+from agentbox_models.tables.core import Project, SessionRow
 
 router = APIRouter(prefix="/projects", tags=["projects"])
 
@@ -104,6 +106,19 @@ async def update_project(
 async def delete_project(
     pid: str, request: Request, _=Depends(require_permission("projects:delete"))
 ):
-    await ProjectRepository(request.app.state.session_factory).delete(pid)
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        session_ids = list(
+            (
+                await s.execute(
+                    select(SessionRow.id).where(SessionRow.project_id == pid)
+                )
+            )
+            .scalars()
+            .all()
+        )
+    for sid in session_ids:
+        await delete_session_data(factory, sid)
+    await ProjectRepository(factory).delete(pid)
     logger.info("project deleted project={}", pid)
     return {"ok": True}

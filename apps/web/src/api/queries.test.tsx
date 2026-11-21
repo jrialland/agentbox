@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { vi } from "vitest";
 
 import * as endpoints from "./endpoints";
-import { useProjects, useTestProvider } from "./queries";
+import { useDeleteProject, useProjects, useTestProvider } from "./queries";
 
 test("useProjects returns fetched data", async () => {
   vi.spyOn(endpoints, "fetchProjects").mockResolvedValue([
@@ -41,4 +41,22 @@ test("useTestProvider returns the test result", async () => {
     });
     expect(value.model_count).toBe(2);
   });
+});
+
+test("useDeleteProject invalidates projects and session queries", async () => {
+  vi.spyOn(endpoints, "deleteProject").mockResolvedValue(undefined);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const invalidate = vi.spyOn(client, "invalidateQueries");
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+
+  const { result } = renderHook(() => useDeleteProject(), { wrapper });
+  await act(async () => {
+    await result.current.mutateAsync("p1");
+  });
+
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["projects"] });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["sessions"] });
+  expect(invalidate).toHaveBeenCalledWith({ queryKey: ["session"] });
 });

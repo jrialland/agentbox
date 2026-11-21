@@ -108,3 +108,28 @@ async def test_delete_user_cleans_links_and_keys():
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def test_update_user_rejects_blank_password_and_preserves_value():
+    engine, client, factory = await _setup()
+    try:
+        h = await _auth(client)
+        r = await client.post(
+            "/users",
+            json={"username": "bob", "email": "b@x", "password": "pw"},
+            headers=h,
+        )
+        uid = r.json()["id"]
+
+        r = await client.put(f"/users/{uid}", json={"password": "   "}, headers=h)
+        assert r.status_code == 422
+
+        r = await client.put(f"/users/{uid}", json={"password": " new "}, headers=h)
+        assert r.status_code == 200
+        async with factory() as s:
+            user = await s.get(User, uid)
+        assert verify_password(" new ", user.password_hash)
+        assert not verify_password("new", user.password_hash)
+    finally:
+        await client.aclose()
+        await engine.dispose()

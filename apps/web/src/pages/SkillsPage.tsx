@@ -9,6 +9,7 @@ import { FormField } from "../design-system/forms/FormField";
 import { TextInput } from "../design-system/forms/TextInput";
 import { Textarea } from "../design-system/forms/Textarea";
 import { IconButton } from "../design-system/icons/IconButton";
+import { ConfirmDialog } from "../design-system/overlays/ConfirmDialog";
 import { ErrorState } from "../design-system/patterns/ErrorState";
 import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
 import { ListPage } from "../design-system/patterns/ListPage";
@@ -26,6 +27,7 @@ export function SkillsPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [body, setBody] = useState("");
+  const [skillToDelete, setSkillToDelete] = useState<string | null>(null);
 
   function reset() {
     setEditing(null);
@@ -158,7 +160,7 @@ export function SkillsPage() {
                     icon={RiDeleteBin6Line}
                     size={16}
                     color="red"
-                    onClick={() => del.mutateAsync(skill.name)}
+                    onClick={() => setSkillToDelete(skill.name)}
                   />
                 </div>
               ) : null,
@@ -166,6 +168,19 @@ export function SkillsPage() {
         ]}
       />
       )}
+      <ConfirmDialog
+        opened={skillToDelete !== null}
+        title="Delete skill?"
+        description={`Delete "${skillToDelete ?? ""}" permanently? This cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!skillToDelete) return;
+          await del.mutateAsync(skillToDelete);
+          setSkillToDelete(null);
+        }}
+        onClose={() => setSkillToDelete(null)}
+      />
     </ListPage>
   );
 }

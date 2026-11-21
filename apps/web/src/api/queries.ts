@@ -152,7 +152,11 @@ export function useDeleteProject() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: deleteProject,
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["projects"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["projects"] });
+      qc.invalidateQueries({ queryKey: ["sessions"] });
+      qc.invalidateQueries({ queryKey: ["session"] });
+    },
   });
 }
 

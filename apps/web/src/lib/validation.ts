@@ -19,3 +19,10 @@ export function isAbsolutePath(value: string): boolean {
   const text = value.trim();
   return text.startsWith("/") || /^[A-Za-z]:[\\/]/.test(text) || text.startsWith("\\\\");
 }
+
+export function firstFieldError(
+  fields: Record<string, string> | undefined,
+  name: string,
+): string | undefined {
+  return fields?.[name];
+}

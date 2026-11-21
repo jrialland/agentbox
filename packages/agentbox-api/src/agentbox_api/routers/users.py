@@ -45,6 +45,11 @@ class UserUpdate(BaseModel):
     is_active: bool | None = None
     password: str | None = None
 
+    @field_validator("password")
+    @classmethod
+    def _password(cls, value: str | None) -> str | None:
+        return required_password(value) if value is not None else None
+
 
 class RoleIds(BaseModel):
     role_ids: list[str] = []

@@ -88,3 +88,96 @@ async def test_first_message_sets_title_once(tmp_path: pathlib.Path, monkeypatch
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def _send_message(client, headers, content: str):
+    async with client.stream(
+        "POST", "/sessions/s1/messages", json={"content": content}, headers=headers
+    ) as response:
+        assert response.status_code == 200
+        _ = [chunk async for chunk in response.aiter_text()]
+
+
+async def _make_chat_app(tmp_path: pathlib.Path, monkeypatch):
+    from pydantic_ai.models.test import TestModel
+
+    monkeypatch.setattr(
+        "agentbox_api.runtime.resolve_model",
+        lambda provider, name, context_window=None: TestModel(call_tools=[]),
+    )
+    engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
+    await init_db(engine)
+    await _seed(factory, tmp_path)
+    app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+    return engine, factory, client
+
+
+async def test_second_message_does_not_replace_the_title(
+    tmp_path: pathlib.Path, monkeypatch
+):
+    engine, factory, client = await _make_chat_app(tmp_path, monkeypatch)
+    try:
+        headers = await _login(client)
+        await _send_message(client, headers, "Plan the release")
+        await _send_message(client, headers, "This follow-up should not rename")
+        async with factory() as session:
+            row = await session.get(SessionRow, "s1")
+            assert row is not None
+            assert row.title == "Plan the release"
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_manual_rename_survives_a_chat_message(
+    tmp_path: pathlib.Path, monkeypatch
+):
+    engine, factory, client = await _make_chat_app(tmp_path, monkeypatch)
+    try:
+        headers = await _login(client)
+        response = await client.patch(
+            "/sessions/s1", json={"title": "Manual title"}, headers=headers
+        )
+        assert response.status_code == 200
+        await _send_message(client, headers, "A prompt that must not overwrite")
+        async with factory() as session:
+            row = await session.get(SessionRow, "s1")
+            assert row is not None
+            assert row.title == "Manual title"
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_rename_requires_sessions_create_permission(tmp_path: pathlib.Path):
+    engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
+    await init_db(engine)
+    await _seed(factory, tmp_path)
+    async with factory() as session:
+        session.add(
+            User(
+                id="u2",
+                username="bob",
+                email="b@x",
+                password_hash=hash_password("pw2"),
+            )
+        )
+        session.add(Role(id="r2", name="reader"))
+        session.add(RolePermissionLink(role_id="r2", permission_id="perm2"))
+        session.add(UserRoleLink(user_id="u2", role_id="r2"))
+        await session.commit()
+    app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)
+    client = httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test")
+    try:
+        token = (
+            await client.post("/auth/login", json={"username": "bob", "password": "pw2"})
+        ).json()["access_token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        response = await client.patch(
+            "/sessions/s1", json={"title": "Nope"}, headers=headers
+        )
+        assert response.status_code == 403
+    finally:
+        await client.aclose()
+        await engine.dispose()

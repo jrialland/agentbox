@@ -1,8 +1,16 @@
-import { isAbsolutePath, requiredText } from "./validation";
+import { firstFieldError, isAbsolutePath, requiredText } from "./validation";
 
 test("requiredText trims and rejects blanks", () => {
   expect(requiredText("  hello ", "Name")).toBeNull();
   expect(requiredText("   ", "Name")).toBe("Name is required.");
+});
+
+test("firstFieldError maps a named server field", () => {
+  expect(
+    firstFieldError({ name: "name is required", path: "path is invalid" }, "name"),
+  ).toBe("name is required");
+  expect(firstFieldError({ name: "name is required" }, "path")).toBeUndefined();
+  expect(firstFieldError(undefined, "name")).toBeUndefined();
 });
 
 test("isAbsolutePath accepts POSIX, drive, and UNC paths", () => {

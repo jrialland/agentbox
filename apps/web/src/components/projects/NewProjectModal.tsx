@@ -2,11 +2,12 @@ import { Button, Modal } from "@mantine/core";
 import { useEffect, useState } from "react";
 
 import type { Project } from "../../api/endpoints";
+import { ApiError } from "../../api/errors";
 import { useCreateProject, useUpdateProject } from "../../api/queries";
 import { FormField } from "../../design-system/forms/FormField";
 import { Textarea } from "../../design-system/forms/Textarea";
 import { TextInput } from "../../design-system/forms/TextInput";
-import { isAbsolutePath, requiredText } from "../../lib/validation";
+import { firstFieldError, isAbsolutePath, requiredText } from "../../lib/validation";
 
 function splitRoots(value: string): string[] {
   return value
@@ -28,6 +29,7 @@ export function NewProjectModal({
   const [path, setPath] = useState("");
   const [roots, setRoots] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const create = useCreateProject();
   const update = useUpdateProject();
   const editing = !!project;
@@ -39,6 +41,7 @@ export function NewProjectModal({
     setPath(project?.path ?? "");
     setRoots((project?.extra_roots ?? []).join("\n"));
     setErrors({});
+    setFormError(null);
   }, [opened, project]);
 
   function validate() {
@@ -57,15 +60,36 @@ export function NewProjectModal({
 
   async function submit() {
     if (!validate()) return;
+    setFormError(null);
     const trimmedName = name.trim();
     const extra_roots = splitRoots(roots);
-    if (project) {
-      await update.mutateAsync({
-        pid: project.id,
-        body: { name: trimmedName, extra_roots },
-      });
-    } else {
-      await create.mutateAsync({ name: trimmedName, path, extra_roots });
+    try {
+      if (project) {
+        await update.mutateAsync({
+          pid: project.id,
+          body: { name: trimmedName, extra_roots },
+        });
+      } else {
+        await create.mutateAsync({ name: trimmedName, path, extra_roots });
+      }
+    } catch (caught) {
+      if (caught instanceof ApiError) {
+        const mapped: Record<string, string> = {};
+        const nameError = firstFieldError(caught.fields, "name");
+        if (nameError) mapped.name = nameError;
+        const pathError = firstFieldError(caught.fields, "path");
+        if (pathError) mapped.path = pathError;
+        const rootsError = firstFieldError(caught.fields, "extra_roots");
+        if (rootsError) mapped.roots = rootsError;
+        if (Object.keys(mapped).length > 0) {
+          setErrors(mapped);
+        } else {
+          setFormError(caught.detail);
+        }
+      } else {
+        setFormError(caught instanceof Error ? caught.message : "Request failed.");
+      }
+      return;
     }
     setName("");
     setPath("");
@@ -107,6 +131,7 @@ export function NewProjectModal({
           onChange={(e) => setRoots(e.currentTarget.value)}
         />
       </FormField>
+      {formError && <p role="alert">{formError}</p>}
       <Button mt="md" onClick={submit} loading={pending}>
         {editing ? "Save" : "Create"}
       </Button>
