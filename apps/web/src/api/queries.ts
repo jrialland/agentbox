@@ -49,6 +49,7 @@ import {
   setModelLabels,
   setRolePermissions,
   setUserRoles,
+  testProvider,
   updatePermission,
   updateProject,
   updateProvider,
@@ -147,6 +148,10 @@ export function useCreateProvider() {
     mutationFn: createProvider,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["providers"] }),
   });
+}
+
+export function useTestProvider() {
+  return useMutation({ mutationFn: testProvider });
 }
 
 export function useDeleteProvider() {
@@ -497,3 +502,4 @@ export function useSessionFiles(sid: string, q: string) {
     staleTime: 10_000,
   });
 }
+

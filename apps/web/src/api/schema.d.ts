@@ -147,6 +147,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/providers/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Test Provider */
+        post: operations["test_provider_providers_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/providers/{pid}": {
         parameters: {
             query?: never;
@@ -1172,6 +1189,41 @@ export interface components {
              */
             is_builtin: boolean;
         };
+        /** ProviderTestError */
+        ProviderTestError: {
+            /** Code */
+            code: string;
+            /** Message */
+            message: string;
+        };
+        /** ProviderTestRequest */
+        ProviderTestRequest: {
+            /** Kind */
+            kind: string;
+            /** Base Url */
+            base_url?: string | null;
+            /** Models Url */
+            models_url?: string | null;
+            /** Api Key */
+            api_key?: string | null;
+            /** Provider Id */
+            provider_id?: string | null;
+        };
+        /** ProviderTestResult */
+        ProviderTestResult: {
+            /** Ok */
+            ok: boolean;
+            /** Latency Ms */
+            latency_ms: number;
+            /** Model Count */
+            model_count?: number | null;
+            /**
+             * Sample Models
+             * @default []
+             */
+            sample_models: string[];
+            error?: components["schemas"]["ProviderTestError"] | null;
+        };
         /** ProviderUpdate */
         ProviderUpdate: {
             /** Name */
@@ -1776,6 +1828,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProviderRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_provider_providers_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProviderTestRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProviderTestResult"];
                 };
             };
             /** @description Validation Error */

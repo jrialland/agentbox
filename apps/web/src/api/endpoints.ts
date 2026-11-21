@@ -9,6 +9,15 @@ export type Agent = components["schemas"]["AgentSpec"];
 export type Provider = components["schemas"]["ProviderRead"];
 export type Model = components["schemas"]["ModelRead"];
 export type Label = components["schemas"]["LabelRead"];
+export type ProviderTestResult = components["schemas"]["ProviderTestResult"];
+
+export type ProviderTestInput = {
+  kind: string;
+  base_url?: string | null;
+  models_url?: string | null;
+  api_key?: string | null;
+  provider_id?: string | null;
+};
 
 export async function fetchProjects(): Promise<Project[]> {
   const { data } = await api.GET("/projects");
@@ -101,6 +110,14 @@ export async function createProvider(body: {
   const { data, error } = await api.POST("/providers", { body });
   if (error) throw new Error("Failed to create provider");
   return data as Provider;
+}
+
+export async function testProvider(
+  body: ProviderTestInput,
+): Promise<ProviderTestResult> {
+  const { data, error } = await api.POST("/providers/test", { body });
+  if (error) throw new Error("Failed to test provider");
+  return data as ProviderTestResult;
 }
 
 export async function deleteProvider(id: string): Promise<void> {
@@ -498,3 +515,4 @@ export async function fetchSessionFiles(
   });
   return (data as { files?: string[] })?.files ?? [];
 }
+

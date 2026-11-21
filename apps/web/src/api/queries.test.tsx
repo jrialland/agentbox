@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { vi } from "vitest";
 
 import * as endpoints from "./endpoints";
-import { useProjects } from "./queries";
+import { useProjects, useTestProvider } from "./queries";
 
 test("useProjects returns fetched data", async () => {
   vi.spyOn(endpoints, "fetchProjects").mockResolvedValue([
@@ -18,4 +18,27 @@ test("useProjects returns fetched data", async () => {
 
   const { result } = renderHook(() => useProjects(), { wrapper });
   await waitFor(() => expect(result.current.data?.length).toBe(1));
+});
+
+
+test("useTestProvider returns the test result", async () => {
+  vi.spyOn(endpoints, "testProvider").mockResolvedValue({
+    ok: true,
+    latency_ms: 12,
+    model_count: 2,
+    sample_models: ["a", "b"],
+    error: null,
+  } as never);
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: { children: ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const { result } = renderHook(() => useTestProvider(), { wrapper });
+  await act(async () => {
+    const value = await result.current.mutateAsync({
+      kind: "generic",
+      models_url: "https://example.test/models",
+    });
+    expect(value.model_count).toBe(2);
+  });
 });
