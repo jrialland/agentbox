@@ -196,3 +196,67 @@ def test_clear_state_releases_session():
     state.nested_bytes = 123
     project_instructions.clear_instruction_state("s4")
     assert project_instructions.get_instruction_state("s4").nested_bytes == 0
+
+
+from agentbox_harness.tools.registry import ToolHookContext
+
+
+async def test_discovers_nested_nearest_last(tmp_path: pathlib.Path):
+    project = tmp_path / "project"
+    (project / "pkg" / "web").mkdir(parents=True)
+    (project / "AGENTS.md").write_text("root", encoding="utf-8")
+    (project / "pkg" / "AGENTS.md").write_text("pkg", encoding="utf-8")
+    (project / "pkg" / "web" / "AGENTS.md").write_text("web", encoding="utf-8")
+
+    found = project_instructions.discover_nested_agents(
+        str(project), "pkg/web/app.ts"
+    )
+    assert [path.name for path in found] == ["AGENTS.md", "AGENTS.md"]
+    assert [path.parent.name for path in found] == ["pkg", "web"]
+
+
+async def test_nested_hook_emits_nearest_last_and_dedupes(tmp_path: pathlib.Path):
+    project = tmp_path / "project"
+    (project / "pkg").mkdir(parents=True)
+    (project / "pkg" / "AGENTS.md").write_text("pkg rules", encoding="utf-8")
+    hook = project_instructions.make_project_instructions_hook(str(project), "s1")
+    ctx = ToolHookContext(
+        tool_name="read_text_file",
+        args={"path": "pkg/file.txt"},
+        root=project,
+        result="file content",
+    )
+    first = await hook(ctx)
+    assert first is not None and "pkg rules" in first
+    second = await hook(ctx)
+    assert second is None
+
+
+async def test_nested_hook_reemits_changed_file(tmp_path: pathlib.Path):
+    project = tmp_path / "project"
+    (project / "pkg").mkdir(parents=True)
+    agents = project / "pkg" / "AGENTS.md"
+    agents.write_text("old", encoding="utf-8")
+    hook = project_instructions.make_project_instructions_hook(str(project), "s1")
+    ctx = ToolHookContext(
+        "read_text_file", {"path": "pkg/file.txt"}, project, "content"
+    )
+    assert "old" in (await hook(ctx) or "")
+    agents.write_text("new", encoding="utf-8")
+    updated = await hook(ctx)
+    assert updated is not None and "new" in updated
+
+
+async def test_nested_hook_removal_notice(tmp_path: pathlib.Path):
+    project = tmp_path / "project"
+    (project / "pkg").mkdir(parents=True)
+    agents = project / "pkg" / "AGENTS.md"
+    agents.write_text("pkg rules", encoding="utf-8")
+    hook = project_instructions.make_project_instructions_hook(str(project), "s1")
+    ctx = ToolHookContext(
+        "read_text_file", {"path": "pkg/file.txt"}, project, "content"
+    )
+    assert await hook(ctx) is not None
+    agents.unlink()
+    removed = await hook(ctx)
+    assert removed is not None and "no longer applies" in removed

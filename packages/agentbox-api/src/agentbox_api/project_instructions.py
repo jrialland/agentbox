@@ -4,6 +4,7 @@ import hashlib
 import pathlib
 from dataclasses import dataclass, field
 
+from agentbox_harness.tools.registry import ToolHookContext
 from loguru import logger
 
 MAX_INSTRUCTION_BYTES = 32 * 1024
@@ -213,3 +214,114 @@ def build_system_instruction_block(project_root: str, session_id: str | None) ->
         "Project instructions follow. Explicit user messages override them.\n\n"
         + "\n\n".join(blocks)
     )
+
+NESTED_TOOLS = {
+    "read_text_file",
+    "read_file",
+    "read_multiple_files",
+    "list_directory",
+    "list_directory_with_sizes",
+    "search_files",
+    "write_file",
+    "append_file",
+    "edit_file",
+    "create_directory",
+    "move_file",
+    "copy_file",
+    "delete_path",
+}
+
+
+def _target_paths(tool_name: str, args: dict) -> list[str]:
+    if "paths" in args and isinstance(args["paths"], list):
+        return [str(value) for value in args["paths"]]
+    if tool_name in {"move_file", "copy_file"}:
+        return [
+            str(value)
+            for value in (args.get("source"), args.get("destination"))
+            if value
+        ]
+    path = args.get("path")
+    return [str(path)] if path else []
+
+
+def discover_nested_agents(project_root: str, target: str) -> list[pathlib.Path]:
+    root = pathlib.Path(project_root).expanduser().resolve()
+    candidate = pathlib.Path(target).expanduser()
+    resolved = (candidate if candidate.is_absolute() else root / candidate).resolve()
+    if not _inside(resolved, root):
+        return []
+    current = resolved if resolved.is_dir() else resolved.parent
+    found: list[pathlib.Path] = []
+    while current != root and root in current.parents:
+        agents = current / AGENTS_FILENAME
+        if agents.is_file():
+            found.append(agents)
+        current = current.parent
+    return list(reversed(found))
+
+
+def make_project_instructions_hook(project_root: str, session_id: str):
+    async def hook(ctx: ToolHookContext) -> str | None:
+        if ctx.tool_name not in NESTED_TOOLS or not isinstance(ctx.result, str):
+            return None
+        state = get_instruction_state(session_id)
+        root = pathlib.Path(project_root).expanduser().resolve()
+        targets = _target_paths(ctx.tool_name, ctx.args)
+        blocks: list[str] = []
+        seen: set[pathlib.Path] = set()
+        ancestor_dirs: set[pathlib.Path] = set()
+
+        for target in targets:
+            candidate = pathlib.Path(target).expanduser()
+            resolved = (
+                candidate if candidate.is_absolute() else root / candidate
+            ).resolve()
+            if not _inside(resolved, root):
+                continue
+            current = resolved if resolved.is_dir() else resolved.parent
+            while current != root and root in current.parents:
+                ancestor_dirs.add(current)
+                current = current.parent
+            for path in discover_nested_agents(project_root, target):
+                if path in seen:
+                    continue
+                seen.add(path)
+                loaded = load_nested_instructions(project_root, path)
+                if loaded is None:
+                    continue
+                digest = _digest(loaded.content)
+                if state.delivered.get(path) == digest:
+                    continue
+                remaining = max(
+                    MAX_INSTRUCTION_BYTES - state.root_bytes - state.nested_bytes,
+                    0,
+                )
+                content, truncated = _truncate_utf8(loaded.content, remaining)
+                if not content.strip():
+                    blocks.append(
+                        f'<project_instructions source="{loaded.source}" '
+                        'scope="nested">Nested instructions omitted: shared '
+                        "32 KiB budget exhausted.</project_instructions>"
+                    )
+                    continue
+                state.delivered[path] = digest
+                state.nested_bytes += len(content.encode("utf-8"))
+                blocks.append(_block(loaded, content, truncated or loaded.truncated))
+
+        for path in list(state.delivered):
+            if path.parent in ancestor_dirs and not path.is_file():
+                blocks.append(
+                    f'<project_instructions source="{path.relative_to(root).as_posix()}" '
+                    'scope="nested">This nested AGENTS.md no longer applies.'
+                    "</project_instructions>"
+                )
+                state.nested_bytes = max(
+                    0,
+                    state.nested_bytes
+                    - len(_content_cache.get(path, "").encode("utf-8")),
+                )
+                state.delivered.pop(path, None)
+        return "\n\n".join(blocks) or None
+
+    return hook
