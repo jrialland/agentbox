@@ -7,11 +7,11 @@ from agentbox_harness.spec import (
     McpToolBinding,
     ModelBinding,
 )
-from agentbox_harness.tools.mcp_session import SessionToolsets
+from agentbox_harness.tools.mcp_session import McpSessionManager, SessionToolsets
 from agentbox_harness.tools.registry import ToolRegistry
 
 
-class FakeManager:
+class FakeManager(McpSessionManager):
     def __init__(self):
         self.calls = []
         self.result = SessionToolsets()

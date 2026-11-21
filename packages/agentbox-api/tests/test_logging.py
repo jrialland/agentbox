@@ -220,8 +220,12 @@ async def test_relay_unknown_server_logs_error():
         tool_bindings=[],
         model_binding=ModelBinding(model="test", provider="test"),
     )
+    from agentbox_harness.tools.mcp_session import McpSessionManager
+
     with Capture() as cap, contextlib.suppress(KeyError):
-        await mcp_relay.read_resource_for_app(spec, "missing", "ui://x/a.html")
+        await mcp_relay.read_resource_for_app(
+            McpSessionManager(), "s1", "/tmp", spec, "missing", "ui://x/a.html"
+        )
     assert "mcp server not found" in cap.text()
 
 
