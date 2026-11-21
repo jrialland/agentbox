@@ -374,7 +374,8 @@ export interface paths {
         delete: operations["delete_session_sessions__sid__delete"];
         options?: never;
         head?: never;
-        patch?: never;
+        /** Rename Session */
+        patch: operations["rename_session_sessions__sid__patch"];
         trace?: never;
     };
     "/sessions/{sid}/messages": {
@@ -1299,6 +1300,8 @@ export interface components {
             agent_id: string;
             /** Agent Name */
             agent_name: string;
+            /** Title */
+            title?: string | null;
             /** Head Turn Id */
             head_turn_id?: string | null;
             /** Created At */
@@ -1312,6 +1315,8 @@ export interface components {
             project_id: string;
             /** Agent Id */
             agent_id: string;
+            /** Title */
+            title?: string | null;
             /** Head Turn Id */
             head_turn_id?: string | null;
             /** Parent Session Id */
@@ -1332,6 +1337,11 @@ export interface components {
              * Format: date-time
              */
             created_at?: string;
+        };
+        /** SessionTitleUpdate */
+        SessionTitleUpdate: {
+            /** Title */
+            title: string;
         };
         /** SkillWrite */
         SkillWrite: {
@@ -2494,6 +2504,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_session_sessions__sid__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionTitleUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionRow"];
                 };
             };
             /** @description Validation Error */

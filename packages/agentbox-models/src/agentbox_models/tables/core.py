@@ -77,6 +77,7 @@ class SessionRow(SQLModel, table=True):
     id: str = Field(primary_key=True)
     project_id: str = Field(foreign_key="project.id")
     agent_id: str = Field(foreign_key="agent.id")
+    title: str | None = None
     head_turn_id: str | None = None
     parent_session_id: str | None = Field(
         default=None, foreign_key="sessionrow.id", index=True

@@ -5,7 +5,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
 from loguru import logger
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from sqlmodel import select
 
 from agentbox_api.activity import RunActivityCollector
@@ -53,6 +53,25 @@ class MessageRequest(BaseModel):
     attachment_ids: list[str] = []
 
 
+class SessionTitleUpdate(BaseModel):
+    title: str
+
+    @field_validator("title")
+    @classmethod
+    def _title(cls, value: str) -> str:
+        text = " ".join(value.split())
+        if not text:
+            raise ValueError("title is required")
+        if len(text) > 120:
+            raise ValueError("title must be 120 characters or fewer")
+        return text
+
+
+def derive_session_title(content: str) -> str:
+    text = " ".join(content.split())
+    return text if len(text) <= 60 else text[:57] + "..."
+
+
 @router.post("", response_model=SessionRow)
 async def create_session(
     body: SessionCreate, request: Request, _=Depends(require_permission("sessions:create"))
@@ -91,6 +110,7 @@ class SessionDetail(BaseModel):
     project_id: str
     agent_id: str
     agent_name: str
+    title: str | None = None
     head_turn_id: str | None = None
     created_at: str
 
@@ -113,9 +133,28 @@ async def get_session(
         project_id=row.project_id,
         agent_id=row.agent_id,
         agent_name=agent.name if agent is not None else "",
+        title=row.title,
         head_turn_id=row.head_turn_id,
         created_at=row.created_at.isoformat() if row.created_at else "",
     )
+
+
+@router.patch("/{sid}", response_model=SessionRow)
+async def rename_session(
+    sid: str,
+    body: SessionTitleUpdate,
+    request: Request,
+    _=Depends(require_permission("sessions:create")),
+):
+    async with request.app.state.session_factory() as s:
+        row = await s.get(SessionRow, sid)
+        if row is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        row.title = body.title
+        s.add(row)
+        await s.commit()
+        await s.refresh(row)
+    return row
 
 
 @router.delete("/{sid}")
@@ -398,6 +437,16 @@ async def chat(
     prompt_override = (
         [*prefix, body.content, *binary] if (prefix or binary) else None
     )
+
+    if not srow.title:
+        initial_title = derive_session_title(body.content)
+        async with factory() as s:
+            title_row = await s.get(SessionRow, sid)
+            if title_row is not None and not title_row.title:
+                title_row.title = initial_title
+                s.add(title_row)
+                await s.commit()
+                srow.title = initial_title
 
     harness = Harness(
         registry=prepared.registry,

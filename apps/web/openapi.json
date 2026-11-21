@@ -1393,6 +1393,56 @@
           }
         }
       },
+      "patch": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Rename Session",
+        "operationId": "rename_session_sessions__sid__patch",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SessionTitleUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRow"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "delete": {
         "tags": [
           "sessions"
@@ -4258,6 +4308,17 @@
             "type": "string",
             "title": "Agent Name"
           },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
           "head_turn_id": {
             "anyOf": [
               {
@@ -4297,6 +4358,17 @@
           "agent_id": {
             "type": "string",
             "title": "Agent Id"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
           },
           "head_turn_id": {
             "anyOf": [
@@ -4371,6 +4443,19 @@
           "agent_id"
         ],
         "title": "SessionRow"
+      },
+      "SessionTitleUpdate": {
+        "properties": {
+          "title": {
+            "type": "string",
+            "title": "Title"
+          }
+        },
+        "type": "object",
+        "required": [
+          "title"
+        ],
+        "title": "SessionTitleUpdate"
       },
       "SkillWrite": {
         "properties": {
