@@ -141,8 +141,10 @@ async def resolve_agent_runtime(factory, agent_name: str) -> AgentRuntime:
 
 async def delete_session_data(factory, session_id: str) -> None:
     """Delete a session's turns, attachments, and row."""
+    from agentbox_api.project_instructions import clear_instruction_state
     from agentbox_api.subsessions import cancel_sub_sessions
 
+    clear_instruction_state(session_id)
     await get_job_manager().kill_session(session_id)
     await cancel_sub_sessions(factory, session_id)
     async with factory() as s:

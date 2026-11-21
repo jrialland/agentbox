@@ -258,3 +258,81 @@ async def test_nested_hook_removal_notice(tmp_path: pathlib.Path):
     agents.unlink()
     removed = await hook(ctx)
     assert removed is not None and "no longer applies" in removed
+
+
+async def test_prepare_agent_injects_root_and_global(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+):
+    from agentbox_api.skills import prepare_agent
+    from agentbox_models.db import create_engine_and_sessionmaker, init_db
+    from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
+
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "AGENTS.md").write_text("root rules", encoding="utf-8")
+    monkeypatch.setattr(
+        project_instructions,
+        "global_instructions_path",
+        lambda: tmp_path / "AGENTS.md",
+    )
+    (tmp_path / "AGENTS.md").write_text("global rules", encoding="utf-8")
+
+    engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
+    await init_db(engine)
+    async with factory() as s:
+        s.add(Provider(id="prov", name="test", kind="test"))
+        s.add(Model(id="m", provider_id="prov", name="test-model"))
+        s.add(Agent(id="ag", name="bot", description="", instructions="base", model_id="m"))
+        s.add(Project(id="prj", name="p", path=str(project), owner_id="u1"))
+        s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
+        await s.commit()
+
+    prepared = await prepare_agent(
+        factory, "bot", str(project), str(tmp_path / "skills"), session_id="s1"
+    )
+    assert "global rules" in prepared.spec.instructions
+    assert "root rules" in prepared.spec.instructions
+    assert prepared.spec.instructions.index("global rules") < prepared.spec.instructions.index(
+        "root rules"
+    )
+    project_instructions.clear_instruction_state("s1")
+    await engine.dispose()
+
+
+async def test_prepare_agent_registers_nested_hook(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+):
+    from agentbox_api.skills import prepare_agent
+    from agentbox_harness.spec import Mode
+    from agentbox_models.db import create_engine_and_sessionmaker, init_db
+    from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
+
+    monkeypatch.setattr(
+        project_instructions,
+        "global_instructions_path",
+        lambda: tmp_path / "missing-global.md",
+    )
+    project = tmp_path / "project"
+    (project / "pkg").mkdir(parents=True)
+    (project / "pkg" / "AGENTS.md").write_text("pkg rules", encoding="utf-8")
+    (project / "pkg" / "file.txt").write_text("content", encoding="utf-8")
+
+    engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
+    await init_db(engine)
+    async with factory() as s:
+        s.add(Provider(id="prov", name="test", kind="test"))
+        s.add(Model(id="m", provider_id="prov", name="test-model"))
+        s.add(Agent(id="ag", name="bot", description="", instructions="base", model_id="m"))
+        s.add(Project(id="prj", name="p", path=str(project), owner_id="u1"))
+        s.add(SessionRow(id="s2", project_id="prj", agent_id="ag"))
+        await s.commit()
+
+    prepared = await prepare_agent(
+        factory, "bot", str(project), str(tmp_path / "skills"), session_id="s2"
+    )
+    tools = prepared.registry.select_tools(Mode(name="agent", flags={"write": True}))
+    read_tool = next(tool for tool in tools if tool.__name__ == "read_text_file")
+    output = await read_tool("pkg/file.txt")
+    assert "pkg rules" in output
+    project_instructions.clear_instruction_state("s2")
+    await engine.dispose()

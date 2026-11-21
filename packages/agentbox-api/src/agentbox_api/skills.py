@@ -10,6 +10,10 @@ from loguru import logger
 from skills_ref import read_properties, to_prompt
 
 from agentbox_api.plan_tools import PLAN_TOOL_NAMES, make_plan_tools
+from agentbox_api.project_instructions import (
+    build_system_instruction_block,
+    make_project_instructions_hook,
+)
 from agentbox_api.runtime import AgentRuntime, build_registry, resolve_agent_runtime
 from agentbox_api.templating import build_context, render_prompt
 from agentbox_harness.compaction import CompactionConfig
@@ -199,6 +203,11 @@ async def prepare_agent(
     rendered = render_prompt(runtime.spec.instructions, context, agent=agent_name)
     spec = runtime.spec.model_copy(update={"instructions": rendered})
     spec = augment_spec(spec, skills)
+    instruction_block = build_system_instruction_block(project_root, session_id)
+    if instruction_block:
+        spec = spec.model_copy(
+            update={"instructions": spec.instructions + "\n\n" + instruction_block}
+        )
     if session_id:
         existing = {
             binding.name
@@ -221,6 +230,8 @@ async def prepare_agent(
     hooks = []
     if session_id and manager.enabled:
         hooks.append(make_lsp_hook(manager, session_id, project_root))
+    if session_id:
+        hooks.append(make_project_instructions_hook(project_root, session_id))
     registry = build_registry(
         project_root,
         extra_read_roots=[s.location.parent for s in skills],
