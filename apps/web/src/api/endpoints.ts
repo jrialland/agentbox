@@ -1,6 +1,7 @@
 import { API_URL } from "../config";
 import { useAuthStore } from "../store/auth";
 import { api } from "./client";
+import { toApiError } from "./errors";
 import type { components } from "./schema";
 
 export type Project = components["schemas"]["Project"];
@@ -20,7 +21,8 @@ export type ProviderTestInput = {
 };
 
 export async function fetchProjects(): Promise<Project[]> {
-  const { data } = await api.GET("/projects");
+  const { data, error, response } = await api.GET("/projects");
+  if (error || !response.ok) throw toApiError(error, "Failed to load projects", response.status);
   return data ?? [];
 }
 
@@ -29,8 +31,8 @@ export async function createProject(body: {
   path: string;
   extra_roots: string[];
 }): Promise<Project> {
-  const { data, error } = await api.POST("/projects", { body });
-  if (error) throw new Error("Failed to create project");
+  const { data, error, response } = await api.POST("/projects", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create project", response.status);
   return data as Project;
 }
 
@@ -38,20 +40,24 @@ export async function updateProject(
   pid: string,
   body: { name?: string; extra_roots?: string[] },
 ): Promise<Project> {
-  const { data, error } = await api.PUT("/projects/{pid}", {
+  const { data, error, response } = await api.PUT("/projects/{pid}", {
     params: { path: { pid } },
     body,
   });
-  if (error) throw new Error("Failed to update project");
+  if (error || !response.ok) throw toApiError(error, "Failed to update project", response.status);
   return data as Project;
 }
 
 export async function deleteProject(id: string): Promise<void> {
-  await api.DELETE("/projects/{pid}", { params: { path: { pid: id } } });
+  const { error, response } = await api.DELETE("/projects/{pid}", {
+    params: { path: { pid: id } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete project", response.status);
 }
 
 export async function fetchSessions(): Promise<Session[]> {
-  const { data } = await api.GET("/sessions");
+  const { data, error, response } = await api.GET("/sessions");
+  if (error || !response.ok) throw toApiError(error, "Failed to load sessions", response.status);
   return data ?? [];
 }
 
@@ -59,22 +65,24 @@ export async function createSession(body: {
   project_id: string;
   agent_id: string;
 }): Promise<Session> {
-  const { data, error } = await api.POST("/sessions", { body });
-  if (error) throw new Error("Failed to create session");
+  const { data, error, response } = await api.POST("/sessions", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create session", response.status);
   return data as Session;
 }
 
 export async function fetchAgents(): Promise<Agent[]> {
-  const { data } = await api.GET("/agents");
+  const { data, error, response } = await api.GET("/agents");
+  if (error || !response.ok) throw toApiError(error, "Failed to load agents", response.status);
   return data ?? [];
 }
 
 export type Message = components["schemas"]["MessageRead"];
 
 export async function fetchMessages(sid: string): Promise<Message[]> {
-  const { data } = await api.GET("/sessions/{sid}/messages", {
+  const { data, error, response } = await api.GET("/sessions/{sid}/messages", {
     params: { path: { sid } },
   });
+  if (error || !response.ok) throw toApiError(error, "Failed to load messages", response.status);
   return data ?? [];
 }
 
@@ -91,12 +99,19 @@ export async function uploadAttachment(
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
   });
-  if (!r.ok) throw new Error("upload failed");
+  if (!r.ok) {
+    throw toApiError(
+      await r.json().catch(() => null),
+      "upload failed",
+      r.status,
+    );
+  }
   return r.json();
 }
 
 export async function fetchProviders(): Promise<Provider[]> {
-  const { data } = await api.GET("/providers");
+  const { data, error, response } = await api.GET("/providers");
+  if (error || !response.ok) throw toApiError(error, "Failed to load providers", response.status);
   return data ?? [];
 }
 
@@ -107,37 +122,43 @@ export async function createProvider(body: {
   api_key?: string;
   models_url?: string;
 }): Promise<Provider> {
-  const { data, error } = await api.POST("/providers", { body });
-  if (error) throw new Error("Failed to create provider");
+  const { data, error, response } = await api.POST("/providers", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create provider", response.status);
   return data as Provider;
 }
 
 export async function testProvider(
   body: ProviderTestInput,
 ): Promise<ProviderTestResult> {
-  const { data, error } = await api.POST("/providers/test", { body });
-  if (error) throw new Error("Failed to test provider");
+  const { data, error, response } = await api.POST("/providers/test", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to test provider", response.status);
   return data as ProviderTestResult;
 }
 
 export async function deleteProvider(id: string): Promise<void> {
-  await api.DELETE("/providers/{pid}", { params: { path: { pid: id } } });
+  const { error, response } = await api.DELETE("/providers/{pid}", {
+    params: { path: { pid: id } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete provider", response.status);
 }
 
 export async function refreshModels(id: string): Promise<Model[]> {
-  const { data } = await api.POST("/providers/{pid}/models/refresh", {
+  const { data, error, response } = await api.POST("/providers/{pid}/models/refresh", {
     params: { path: { pid: id } },
   });
+  if (error || !response.ok) throw toApiError(error, "Failed to refresh models", response.status);
   return data ?? [];
 }
 
 export async function fetchModels(): Promise<Model[]> {
-  const { data } = await api.GET("/models");
+  const { data, error, response } = await api.GET("/models");
+  if (error || !response.ok) throw toApiError(error, "Failed to load models", response.status);
   return data ?? [];
 }
 
 export async function fetchLabels(): Promise<Label[]> {
-  const { data } = await api.GET("/labels");
+  const { data, error, response } = await api.GET("/labels");
+  if (error || !response.ok) throw toApiError(error, "Failed to load labels", response.status);
   return data ?? [];
 }
 
@@ -145,11 +166,11 @@ export async function setModelLabels(
   mid: string,
   labels: { label: string; priority: number }[],
 ): Promise<Model> {
-  const { data, error } = await api.PUT("/models/{mid}/labels", {
+  const { data, error, response } = await api.PUT("/models/{mid}/labels", {
     params: { path: { mid } },
     body: { labels },
   });
-  if (error) throw new Error("Failed to set labels");
+  if (error || !response.ok) throw toApiError(error, "Failed to set labels", response.status);
   return data as Model;
 }
 
@@ -165,8 +186,8 @@ export async function previewPrompt(body: {
   template: string;
   context: Record<string, string>;
 }): Promise<PromptPreview> {
-  const { data, error } = await api.POST("/prompts/preview", { body });
-  if (error) throw new Error("Failed to preview prompt");
+  const { data, error, response } = await api.POST("/prompts/preview", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to preview prompt", response.status);
   return data as PromptPreview;
 }
 
@@ -180,22 +201,25 @@ export async function createAgent(body: {
   mode_definitions: Record<string, unknown>[];
   sub_agent_ids: string[];
 }): Promise<Agent> {
-  const { data, error } = await api.POST("/agents", { body });
-  if (error) throw new Error("Failed to create agent");
+  const { data, error, response } = await api.POST("/agents", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create agent", response.status);
   return data as Agent;
 }
 
 export async function deleteAgent(name: string): Promise<void> {
-  await api.DELETE("/agents/{name}", { params: { path: { name } } });
+  const { error, response } = await api.DELETE("/agents/{name}", {
+    params: { path: { name } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete agent", response.status);
 }
 
 export type SessionDetail = components["schemas"]["SessionDetail"];
 
 export async function fetchSession(sid: string): Promise<SessionDetail> {
-  const { data, error } = await api.GET("/sessions/{sid}", {
+  const { data, error, response } = await api.GET("/sessions/{sid}", {
     params: { path: { sid } },
   });
-  if (error) throw new Error("Failed to fetch session");
+  if (error || !response.ok) throw toApiError(error, "Failed to fetch session", response.status);
   return data as SessionDetail;
 }
 
@@ -211,10 +235,10 @@ export type SessionLsp = {
 };
 
 export async function fetchSessionLsp(sid: string): Promise<SessionLsp> {
-  const { data, error } = await api.GET("/sessions/{sid}/lsp", {
+  const { data, error, response } = await api.GET("/sessions/{sid}/lsp", {
     params: { path: { sid } },
   });
-  if (error) throw new Error("Failed to load session LSP");
+  if (error || !response.ok) throw toApiError(error, "Failed to load session LSP", response.status);
   return data as SessionLsp;
 }
 
@@ -228,10 +252,10 @@ export type PlanItem = {
 export type SessionPlan = { items: PlanItem[] };
 
 export async function fetchSessionPlan(sid: string): Promise<SessionPlan> {
-  const { data, error } = await api.GET("/sessions/{sid}/plan", {
+  const { data, error, response } = await api.GET("/sessions/{sid}/plan", {
     params: { path: { sid } },
   });
-  if (error) throw new Error("Failed to load session plan");
+  if (error || !response.ok) throw toApiError(error, "Failed to load session plan", response.status);
   return data as SessionPlan;
 }
 
@@ -244,7 +268,13 @@ export async function uploadAgentAvatar(name: string, file: File): Promise<void>
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     body: form,
   });
-  if (!r.ok) throw new Error("avatar upload failed");
+  if (!r.ok) {
+    throw toApiError(
+      await r.json().catch(() => null),
+      "avatar upload failed",
+      r.status,
+    );
+  }
 }
 
 export async function resetAgentAvatar(name: string): Promise<void> {
@@ -253,7 +283,13 @@ export async function resetAgentAvatar(name: string): Promise<void> {
     method: "DELETE",
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
-  if (!r.ok) throw new Error("avatar reset failed");
+  if (!r.ok) {
+    throw toApiError(
+      await r.json().catch(() => null),
+      "avatar reset failed",
+      r.status,
+    );
+  }
 }
 
 export type Permission = components["schemas"]["PermissionRead"];
@@ -261,7 +297,8 @@ export type Role = components["schemas"]["RoleRead"];
 export type User = components["schemas"]["UserRead"];
 
 export async function fetchPermissions(): Promise<Permission[]> {
-  const { data } = await api.GET("/permissions");
+  const { data, error, response } = await api.GET("/permissions");
+  if (error || !response.ok) throw toApiError(error, "Failed to load permissions", response.status);
   return data ?? [];
 }
 
@@ -269,8 +306,8 @@ export async function createPermission(body: {
   name: string;
   description?: string;
 }): Promise<Permission> {
-  const { data, error } = await api.POST("/permissions", { body });
-  if (error) throw new Error("Failed to create permission");
+  const { data, error, response } = await api.POST("/permissions", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create permission", response.status);
   return data as Permission;
 }
 
@@ -278,20 +315,24 @@ export async function updatePermission(
   pid: string,
   body: { name?: string; description?: string },
 ): Promise<Permission> {
-  const { data, error } = await api.PUT("/permissions/{pid}", {
+  const { data, error, response } = await api.PUT("/permissions/{pid}", {
     params: { path: { pid } },
     body,
   });
-  if (error) throw new Error("Failed to update permission");
+  if (error || !response.ok) throw toApiError(error, "Failed to update permission", response.status);
   return data as Permission;
 }
 
 export async function deletePermission(pid: string): Promise<void> {
-  await api.DELETE("/permissions/{pid}", { params: { path: { pid } } });
+  const { error, response } = await api.DELETE("/permissions/{pid}", {
+    params: { path: { pid } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete permission", response.status);
 }
 
 export async function fetchRoles(): Promise<Role[]> {
-  const { data } = await api.GET("/roles");
+  const { data, error, response } = await api.GET("/roles");
+  if (error || !response.ok) throw toApiError(error, "Failed to load roles", response.status);
   return data ?? [];
 }
 
@@ -299,31 +340,35 @@ export async function createRole(body: {
   name: string;
   description?: string;
 }): Promise<Role> {
-  const { data, error } = await api.POST("/roles", { body });
-  if (error) throw new Error("Failed to create role");
+  const { data, error, response } = await api.POST("/roles", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create role", response.status);
   return data as Role;
 }
 
 export async function deleteRole(rid: string): Promise<void> {
-  await api.DELETE("/roles/{rid}", { params: { path: { rid } } });
+  const { error, response } = await api.DELETE("/roles/{rid}", {
+    params: { path: { rid } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete role", response.status);
 }
 
 export async function updateRole(
   rid: string,
   body: { name?: string; description?: string },
 ): Promise<Role> {
-  const { data, error } = await api.PUT("/roles/{rid}", {
+  const { data, error, response } = await api.PUT("/roles/{rid}", {
     params: { path: { rid } },
     body,
   });
-  if (error) throw new Error("Failed to update role");
+  if (error || !response.ok) throw toApiError(error, "Failed to update role", response.status);
   return data as Role;
 }
 
 export async function fetchRolePermissions(rid: string): Promise<Permission[]> {
-  const { data } = await api.GET("/roles/{rid}/permissions", {
+  const { data, error, response } = await api.GET("/roles/{rid}/permissions", {
     params: { path: { rid } },
   });
+  if (error || !response.ok) throw toApiError(error, "Failed to load role permissions", response.status);
   return data ?? [];
 }
 
@@ -331,16 +376,17 @@ export async function setRolePermissions(
   rid: string,
   permissionIds: string[],
 ): Promise<Permission[]> {
-  const { data, error } = await api.PUT("/roles/{rid}/permissions", {
+  const { data, error, response } = await api.PUT("/roles/{rid}/permissions", {
     params: { path: { rid } },
     body: { permission_ids: permissionIds },
   });
-  if (error) throw new Error("Failed to set role permissions");
+  if (error || !response.ok) throw toApiError(error, "Failed to set role permissions", response.status);
   return data ?? [];
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  const { data } = await api.GET("/users");
+  const { data, error, response } = await api.GET("/users");
+  if (error || !response.ok) throw toApiError(error, "Failed to load users", response.status);
   return data ?? [];
 }
 
@@ -349,8 +395,8 @@ export async function createUser(body: {
   email: string;
   password: string;
 }): Promise<User> {
-  const { data, error } = await api.POST("/users", { body });
-  if (error) throw new Error("Failed to create user");
+  const { data, error, response } = await api.POST("/users", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create user", response.status);
   return data as User;
 }
 
@@ -358,31 +404,35 @@ export async function updateUser(
   uid: string,
   body: { email?: string; is_active?: boolean; password?: string },
 ): Promise<User> {
-  const { data, error } = await api.PUT("/users/{uid}", {
+  const { data, error, response } = await api.PUT("/users/{uid}", {
     params: { path: { uid } },
     body,
   });
-  if (error) throw new Error("Failed to update user");
+  if (error || !response.ok) throw toApiError(error, "Failed to update user", response.status);
   return data as User;
 }
 
 export async function deleteUser(uid: string): Promise<void> {
-  await api.DELETE("/users/{uid}", { params: { path: { uid } } });
+  const { error, response } = await api.DELETE("/users/{uid}", {
+    params: { path: { uid } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete user", response.status);
 }
 
 export async function fetchUserRoles(uid: string): Promise<Role[]> {
-  const { data } = await api.GET("/users/{uid}/roles", {
+  const { data, error, response } = await api.GET("/users/{uid}/roles", {
     params: { path: { uid } },
   });
+  if (error || !response.ok) throw toApiError(error, "Failed to load user roles", response.status);
   return data ?? [];
 }
 
 export async function setUserRoles(uid: string, roleIds: string[]): Promise<Role[]> {
-  const { data, error } = await api.PUT("/users/{uid}/roles", {
+  const { data, error, response } = await api.PUT("/users/{uid}/roles", {
     params: { path: { uid } },
     body: { role_ids: roleIds },
   });
-  if (error) throw new Error("Failed to set user roles");
+  if (error || !response.ok) throw toApiError(error, "Failed to set user roles", response.status);
   return data ?? [];
 }
 
@@ -390,7 +440,8 @@ export type ApiKey = components["schemas"]["ApiKeyRead"];
 export type ApiKeyCreated = components["schemas"]["ApiKeyCreated"];
 
 export async function fetchApiKeys(): Promise<ApiKey[]> {
-  const { data } = await api.GET("/api-keys");
+  const { data, error, response } = await api.GET("/api-keys");
+  if (error || !response.ok) throw toApiError(error, "Failed to load API keys", response.status);
   return data ?? [];
 }
 
@@ -398,13 +449,16 @@ export async function createApiKey(body: {
   scopes: string[];
   expires_at?: string | null;
 }): Promise<ApiKeyCreated> {
-  const { data, error } = await api.POST("/api-keys", { body });
-  if (error) throw new Error("Failed to create API key");
+  const { data, error, response } = await api.POST("/api-keys", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create API key", response.status);
   return data as ApiKeyCreated;
 }
 
 export async function revokeApiKey(id: string): Promise<void> {
-  await api.DELETE("/api-keys/{kid}", { params: { path: { kid: id } } });
+  const { error, response } = await api.DELETE("/api-keys/{kid}", {
+    params: { path: { kid: id } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to revoke API key", response.status);
 }
 
 export async function updateProvider(
@@ -417,11 +471,11 @@ export async function updateProvider(
     models_url?: string;
   },
 ): Promise<Provider> {
-  const { data, error } = await api.PUT("/providers/{pid}", {
+  const { data, error, response } = await api.PUT("/providers/{pid}", {
     params: { path: { pid } },
     body,
   });
-  if (error) throw new Error("Failed to update provider");
+  if (error || !response.ok) throw toApiError(error, "Failed to update provider", response.status);
   return data as Provider;
 }
 
@@ -431,26 +485,33 @@ export async function createModel(body: {
   context_window?: number;
   labels: { label: string; priority: number }[];
 }): Promise<Model> {
-  const { data, error } = await api.POST("/models", { body });
-  if (error) throw new Error("Failed to create model");
+  const { data, error, response } = await api.POST("/models", { body });
+  if (error || !response.ok) throw toApiError(error, "Failed to create model", response.status);
   return data as Model;
 }
 
 export async function deleteModel(mid: string): Promise<void> {
-  await api.DELETE("/models/{mid}", { params: { path: { mid } } });
+  const { error, response } = await api.DELETE("/models/{mid}", {
+    params: { path: { mid } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete model", response.status);
 }
 
 export async function deleteSession(sid: string): Promise<void> {
-  await api.DELETE("/sessions/{sid}", { params: { path: { sid } } });
+  const { error, response } = await api.DELETE("/sessions/{sid}", {
+    params: { path: { sid } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete session", response.status);
 }
 
 export type AgentCard = Record<string, unknown>;
 
 export async function fetchAgentCard(name: string): Promise<AgentCard | null> {
-  const { data, response } = await api.GET("/agents/{name}/card", {
+  const { data, error, response } = await api.GET("/agents/{name}/card", {
     params: { path: { name } },
   });
   if (response.status === 404) return null;
+  if (error || !response.ok) throw toApiError(error, "Failed to load agent card", response.status);
   return (data as AgentCard) ?? null;
 }
 
@@ -458,25 +519,29 @@ export async function setAgentCard(
   name: string,
   card: AgentCard,
 ): Promise<AgentCard> {
-  const { data, error } = await api.PUT("/agents/{name}/card", {
+  const { data, error, response } = await api.PUT("/agents/{name}/card", {
     params: { path: { name } },
     body: card as never,
   });
-  if (error) throw new Error("Failed to save agent card");
+  if (error || !response.ok) throw toApiError(error, "Failed to save agent card", response.status);
   return data as AgentCard;
 }
 
 export async function deleteAgentCard(name: string): Promise<void> {
-  await api.DELETE("/agents/{name}/card", { params: { path: { name } } });
+  const { error, response } = await api.DELETE("/agents/{name}/card", {
+    params: { path: { name } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete agent card", response.status);
 }
 
 export type SkillInfo = { name: string; description: string; scope: string };
 export type SkillDetail = SkillInfo & { body: string };
 
 export async function fetchSkills(projectId?: string): Promise<SkillInfo[]> {
-  const { data } = await api.GET("/skills", {
+  const { data, error, response } = await api.GET("/skills", {
     params: { query: projectId ? { project_id: projectId } : {} },
   });
+  if (error || !response.ok) throw toApiError(error, "Failed to load skills", response.status);
   return (data as SkillInfo[]) ?? [];
 }
 
@@ -484,10 +549,10 @@ export async function fetchSkill(
   name: string,
   projectId?: string,
 ): Promise<SkillDetail> {
-  const { data, error } = await api.GET("/skills/{name}", {
+  const { data, error, response } = await api.GET("/skills/{name}", {
     params: { path: { name }, query: projectId ? { project_id: projectId } : {} },
   });
-  if (error) throw new Error("Failed to fetch skill");
+  if (error || !response.ok) throw toApiError(error, "Failed to fetch skill", response.status);
   return data as SkillDetail;
 }
 
@@ -495,24 +560,27 @@ export async function saveSkill(
   name: string,
   body: { description: string; body: string },
 ): Promise<void> {
-  const { error } = await api.PUT("/skills/{name}", {
+  const { error, response } = await api.PUT("/skills/{name}", {
     params: { path: { name } },
     body,
   });
-  if (error) throw new Error("Failed to save skill");
+  if (error || !response.ok) throw toApiError(error, "Failed to save skill", response.status);
 }
 
 export async function deleteSkill(name: string): Promise<void> {
-  await api.DELETE("/skills/{name}", { params: { path: { name } } });
+  const { error, response } = await api.DELETE("/skills/{name}", {
+    params: { path: { name } },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to delete skill", response.status);
 }
 
 export async function fetchSessionFiles(
   sid: string,
   q: string,
 ): Promise<string[]> {
-  const { data } = await api.GET("/sessions/{sid}/files", {
+  const { data, error, response } = await api.GET("/sessions/{sid}/files", {
     params: { path: { sid }, query: { q } },
   });
+  if (error || !response.ok) throw toApiError(error, "Failed to load session files", response.status);
   return (data as { files?: string[] })?.files ?? [];
 }
-

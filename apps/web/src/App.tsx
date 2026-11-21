@@ -1,8 +1,9 @@
 import { ModalsProvider } from "@mantine/modals";
 import { Notifications } from "@mantine/notifications";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
+import { createQueryClient } from "./api/queryClient";
 import { RequireAuth } from "./components/auth/RequireAuth";
 import { ThemeProvider } from "./design-system/theme/ThemeProvider";
 import { HelpProvider } from "./help/HelpProvider";
@@ -16,7 +17,7 @@ import { ProvidersPage } from "./pages/ProvidersPage";
 import { SessionPage } from "./pages/SessionPage";
 import { SkillsPage } from "./pages/SkillsPage";
 
-const queryClient = new QueryClient();
+const queryClient = createQueryClient();
 
 export function App() {
   return (
