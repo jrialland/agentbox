@@ -1,5 +1,9 @@
+import asyncio
+import time
 import uuid
+from urllib.parse import urlparse
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 from pydantic import BaseModel
@@ -39,6 +43,27 @@ class ProviderUpdate(BaseModel):
     models_url: str | None = None
 
 
+class ProviderTestRequest(BaseModel):
+    kind: str
+    base_url: str | None = None
+    models_url: str | None = None
+    api_key: str | None = None
+    provider_id: str | None = None
+
+
+class ProviderTestError(BaseModel):
+    code: str
+    message: str
+
+
+class ProviderTestResult(BaseModel):
+    ok: bool
+    latency_ms: int
+    model_count: int | None = None
+    sample_models: list[str] = []
+    error: ProviderTestError | None = None
+
+
 @router.post("", response_model=ProviderRead)
 async def create_provider(
     body: ProviderCreate, request: Request, _=Depends(require_permission("providers:create"))
@@ -53,6 +78,106 @@ async def create_provider(
 @router.get("", response_model=list[ProviderRead])
 async def list_providers(request: Request, _=Depends(require_permission("providers:read"))):
     return await ProviderRepository(request.app.state.session_factory).list()
+
+
+def _checked_url(value: str | None, field: str) -> str | None:
+    if value is None or value == "":
+        return None
+    parsed = urlparse(value)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        raise HTTPException(status_code=422, detail=f"{field} must be an http/https URL")
+    return value
+
+
+def _failure(code: str, message: str, latency_ms: int) -> ProviderTestResult:
+    return ProviderTestResult(
+        ok=False,
+        latency_ms=latency_ms,
+        error=ProviderTestError(code=code, message=message),
+    )
+
+
+@router.post("/test", response_model=ProviderTestResult)
+async def test_provider(
+    body: ProviderTestRequest,
+    request: Request,
+    _=Depends(require_permission("providers:create")),
+):
+    stored = None
+    if body.provider_id:
+        stored = await ProviderRepository(request.app.state.session_factory).get(
+            body.provider_id
+        )
+        if stored is None:
+            raise HTTPException(status_code=404, detail="Not found")
+    base_url = _checked_url(body.base_url, "base_url")
+    models_url = _checked_url(body.models_url, "models_url")
+    provider = Provider(
+        id=body.provider_id or "test",
+        name=stored.name if stored else "test",
+        kind=body.kind,
+        base_url=base_url or (stored.base_url if stored else None),
+        models_url=models_url or (stored.models_url if stored else None),
+        api_key=body.api_key or (stored.api_key if stored else None),
+    )
+    if not provider.models_url:
+        return _failure(
+            "no_models_url",
+            "Enter the endpoint that returns the provider model list.",
+            0,
+        )
+    started = time.perf_counter()
+    try:
+        names = await asyncio.wait_for(list_models(provider), timeout=10)
+    except TimeoutError:
+        return _failure(
+            "timeout",
+            "The provider did not answer within 10 seconds. Check the URL and network.",
+            int((time.perf_counter() - started) * 1000),
+        )
+    except ValueError:
+        return _failure(
+            "no_models_url",
+            "Enter the endpoint that returns the provider model list.",
+            int((time.perf_counter() - started) * 1000),
+        )
+    except httpx.HTTPStatusError as exc:
+        status = exc.response.status_code
+        if status in (401, 403):
+            code = "unauthorized"
+            message = "Authentication failed. Check the API key."
+        elif status == 404:
+            code = "not_found"
+            message = "The models URL was not found. Check the path."
+        else:
+            code = "connection_failed"
+            message = f"The provider returned HTTP {status}."
+        return _failure(code, message, int((time.perf_counter() - started) * 1000))
+    except httpx.RequestError:
+        return _failure(
+            "connection_failed",
+            "Could not reach the provider. Check the URL and network.",
+            int((time.perf_counter() - started) * 1000),
+        )
+    except Exception:
+        return _failure(
+            "unknown",
+            "The connection test failed unexpectedly.",
+            int((time.perf_counter() - started) * 1000),
+        )
+    latency = int((time.perf_counter() - started) * 1000)
+    logger.info(
+        "provider test ok provider={} kind={} count={}",
+        body.provider_id,
+        body.kind,
+        len(names),
+    )
+    return ProviderTestResult(
+        ok=True,
+        latency_ms=latency,
+        model_count=len(names),
+        sample_models=names[:5],
+    )
 
 
 @router.put("/{pid}", response_model=ProviderRead)
@@ -142,3 +267,5 @@ async def delete_provider(
         await s.delete(provider)
         await s.commit()
     return {"ok": True}
+
+
