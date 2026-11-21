@@ -100,10 +100,11 @@ export function useSetModelLabels() {
   });
 }
 
-export function useMessages(sessionId: string) {
+export function useMessages(sessionId: string, enabled = true) {
   return useQuery({
     queryKey: ["messages", sessionId],
     queryFn: () => fetchMessages(sessionId),
+    enabled: enabled && !!sessionId,
   });
 }
 
@@ -194,19 +195,19 @@ export function useSession(sessionId: string) {
   });
 }
 
-export function useSessionLsp(sessionId: string) {
+export function useSessionLsp(sessionId: string, enabled = true) {
   return useQuery({
     queryKey: ["session-lsp", sessionId],
     queryFn: () => fetchSessionLsp(sessionId),
-    enabled: !!sessionId,
+    enabled: enabled && !!sessionId,
   });
 }
 
-export function useSessionPlan(sessionId: string, running = false) {
+export function useSessionPlan(sessionId: string, running = false, enabled = true) {
   return useQuery({
     queryKey: ["session-plan", sessionId],
     queryFn: () => fetchSessionPlan(sessionId),
-    enabled: !!sessionId,
+    enabled: enabled && !!sessionId,
     refetchInterval: running ? 2000 : false,
   });
 }

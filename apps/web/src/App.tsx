@@ -13,6 +13,7 @@ import { AgentsPage } from "./pages/AgentsPage";
 import { ApiKeysPage } from "./pages/ApiKeysPage";
 import { HomePage } from "./pages/HomePage";
 import { LoginPage } from "./pages/LoginPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { ProvidersPage } from "./pages/ProvidersPage";
 import { SessionPage } from "./pages/SessionPage";
 import { SkillsPage } from "./pages/SkillsPage";
@@ -38,6 +39,7 @@ export function App() {
                   <Route path="providers" element={<ProvidersPage />} />
                   <Route path="skills" element={<SkillsPage />} />
                   <Route path="sessions/:id" element={<SessionPage />} />
+                  <Route path="*" element={<NotFoundPage />} />
                 </Route>
               </Route>
             </Routes>

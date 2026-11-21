@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
+import { ApiError } from "../api/errors";
 import { useMessages, useSession, useSessionLsp, useSessionPlan } from "../api/queries";
 import { AppPanel } from "../chat/AppPanel";
 import { ChatSplit } from "../chat/ChatSplit";
@@ -19,9 +20,11 @@ import { useAutoScroll } from "../chat/useAutoScroll";
 import { useChat } from "../chat/useChat";
 import { AgentAvatar } from "../components/agents/AgentAvatar";
 import { API_URL } from "../config";
+import { ErrorState } from "../design-system/patterns/ErrorState";
 import { PageContainer } from "../design-system/shell/PageContainer";
 import { StatusChip } from "../design-system/primitives/StatusChip";
 import { useAuthStore } from "../store/auth";
+import { SessionNotFound } from "./session/SessionNotFound";
 import styles from "./session.module.css";
 
 function duration(ms: number) {
@@ -78,11 +81,15 @@ function LiveSegment({ segment }: { segment: Segment }) {
 export function SessionPage() {
   const { id = "" } = useParams();
   const token = useAuthStore((s) => s.token);
-  const { data: messages } = useMessages(id);
-  const { data: session } = useSession(id);
-  const { data: lsp } = useSessionLsp(id);
+  const sessionQuery = useSession(id);
+  const notFound =
+    sessionQuery.error instanceof ApiError && sessionQuery.error.status === 404;
+  const sessionEnabled = !notFound;
+  const { data: session } = sessionQuery;
+  const { data: messages } = useMessages(id, sessionEnabled);
+  const { data: lsp } = useSessionLsp(id, sessionEnabled);
   const chat = useChat(API_URL, token, id);
-  const { data: plan } = useSessionPlan(id, chat.running);
+  const { data: plan } = useSessionPlan(id, chat.running, sessionEnabled);
   const qc = useQueryClient();
   const [input, setInput] = useState("");
   const [mode, setMode] = useState<string | null>("agent");
@@ -157,6 +164,19 @@ export function SessionPage() {
       ),
     });
     await refresh();
+  }
+
+  if (notFound) return <SessionNotFound />;
+  if (sessionQuery.error) {
+    return (
+      <PageContainer>
+        <ErrorState
+          title="Could not load session"
+          message={sessionQuery.error.message}
+          onRetry={() => void sessionQuery.refetch()}
+        />
+      </PageContainer>
+    );
   }
 
   const agentName = session?.agent_name ?? "Agent";
