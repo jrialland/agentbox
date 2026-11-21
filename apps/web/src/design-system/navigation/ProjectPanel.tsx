@@ -151,9 +151,14 @@ export function ProjectPanel() {
         danger
         onConfirm={async () => {
           if (!projectToDelete) return;
+          const onDeletedProjectSession = (sessions ?? []).some(
+            (session) =>
+              session.project_id === projectToDelete.id &&
+              location.pathname === `/sessions/${session.id}`,
+          );
           await deleteProject.mutateAsync(projectToDelete.id);
           setProjectToDelete(null);
-          if (location.pathname !== "/") navigate("/");
+          if (onDeletedProjectSession) navigate("/");
         }}
         onClose={() => setProjectToDelete(null)}
       />

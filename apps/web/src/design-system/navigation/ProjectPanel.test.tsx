@@ -29,17 +29,42 @@ vi.mock("../../api/queries", async (importOriginal) => {
   };
 });
 
-function renderPanel() {
+function renderPanel(initialEntries: string[] = ["/"]) {
   const client = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
   return render(
     <ThemeProvider forceScheme="dark">
       <QueryClientProvider client={client}>
-        <MemoryRouter initialEntries={["/"]}>
+        <MemoryRouter initialEntries={initialEntries}>
           <Routes>
-            <Route path="/" element={<ProjectPanel />} />
-            <Route path="/sessions/:id" element={<div>Session page</div>} />
+            <Route
+              path="/"
+              element={
+                <>
+                  <ProjectPanel />
+                  <div>Home page</div>
+                </>
+              }
+            />
+            <Route
+              path="/agents"
+              element={
+                <>
+                  <ProjectPanel />
+                  <div>Agents page</div>
+                </>
+              }
+            />
+            <Route
+              path="/sessions/:id"
+              element={
+                <>
+                  <ProjectPanel />
+                  <div>Session page</div>
+                </>
+              }
+            />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>
@@ -166,4 +191,30 @@ test("requires the project name before deleting", async () => {
   });
   fireEvent.click(confirm);
   await waitFor(() => expect(deleteProjectMock).toHaveBeenCalledWith("p1"));
+});
+
+test("stays on a non-project route after deleting a project", async () => {
+  renderPanel(["/agents"]);
+  fireEvent.click(await screen.findByLabelText("Delete Proj A"));
+  const confirm = await screen.findByRole("button", { name: "Delete" });
+  fireEvent.change(screen.getByLabelText(/type Proj A/i), {
+    target: { value: "Proj A" },
+  });
+  fireEvent.click(confirm);
+  await waitFor(() => expect(deleteProjectMock).toHaveBeenCalledWith("p1"));
+  expect(screen.getByText("Agents page")).toBeInTheDocument();
+  expect(screen.queryByText("Home page")).not.toBeInTheDocument();
+});
+
+test("navigates home after deleting the project of the current session", async () => {
+  renderPanel(["/sessions/s1"]);
+  fireEvent.click(await screen.findByLabelText("Delete Proj A"));
+  const confirm = await screen.findByRole("button", { name: "Delete" });
+  fireEvent.change(screen.getByLabelText(/type Proj A/i), {
+    target: { value: "Proj A" },
+  });
+  fireEvent.click(confirm);
+  await waitFor(() =>
+    expect(screen.getByText("Home page")).toBeInTheDocument(),
+  );
 });
