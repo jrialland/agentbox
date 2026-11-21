@@ -132,3 +132,67 @@ def test_global_path_uses_home(
     loaded = project_instructions.load_global_instructions()
     assert loaded is not None and loaded.content == "global"
     assert loaded.source == "~/AGENTS.md"
+
+
+def test_system_block_orders_global_before_project(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+):
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "AGENTS.md").write_text("project rules", encoding="utf-8")
+    monkeypatch.setattr(
+        project_instructions,
+        "global_instructions_path",
+        lambda: tmp_path / "AGENTS.md",
+    )
+    (tmp_path / "AGENTS.md").write_text("global rules", encoding="utf-8")
+
+    block = project_instructions.build_system_instruction_block(str(project), "s1")
+    assert block.index("global rules") < block.index("project rules")
+    assert 'source="~/AGENTS.md"' in block
+    assert 'source="AGENTS.md"' in block
+
+
+def test_system_block_root_priority_over_global(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+):
+    project = tmp_path / "project"
+    project.mkdir()
+    monkeypatch.setattr(project_instructions, "MAX_INSTRUCTION_BYTES", 10)
+    (project / "AGENTS.md").write_text("1234567890", encoding="utf-8")
+    monkeypatch.setattr(
+        project_instructions,
+        "global_instructions_path",
+        lambda: tmp_path / "AGENTS.md",
+    )
+    (tmp_path / "AGENTS.md").write_text("global", encoding="utf-8")
+
+    block = project_instructions.build_system_instruction_block(str(project), "s2")
+    assert "1234567890" in block
+    assert "Global instructions omitted" in block
+
+
+def test_removing_root_clears_it_on_next_build(
+    tmp_path: pathlib.Path, monkeypatch: pytest.MonkeyPatch
+):
+    project = tmp_path / "project"
+    project.mkdir()
+    agents = project / "AGENTS.md"
+    agents.write_text("root rules", encoding="utf-8")
+    monkeypatch.setattr(
+        project_instructions,
+        "global_instructions_path",
+        lambda: tmp_path / "missing-global.md",
+    )
+    first = project_instructions.build_system_instruction_block(str(project), "s3")
+    assert "root rules" in first
+    agents.unlink()
+    second = project_instructions.build_system_instruction_block(str(project), "s3")
+    assert "root rules" not in second
+
+
+def test_clear_state_releases_session():
+    state = project_instructions.get_instruction_state("s4")
+    state.nested_bytes = 123
+    project_instructions.clear_instruction_state("s4")
+    assert project_instructions.get_instruction_state("s4").nested_bytes == 0
