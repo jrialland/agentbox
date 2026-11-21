@@ -13,7 +13,8 @@ import { Textarea } from "../../design-system/forms/Textarea";
 import { Drawer } from "../../design-system/overlays/Drawer";
 import { Button } from "../../design-system/primitives/Button";
 import { Section } from "../../design-system/primitives/Section";
-import { buildToolBindings, NATIVE_TOOLS } from "../AgentsPage";
+import { buildToolBindings } from "../AgentsPage";
+import { AgentToolsEditor } from "./AgentToolsEditor";
 import styles from "./agents.module.css";
 import { TemplatePreviewModal } from "./TemplatePreviewModal";
 
@@ -143,21 +144,7 @@ export function AgentCreateDrawer({
       </Section>
 
       <Section title="Capabilities">
-        <div className={styles.toolGrid}>
-          {NATIVE_TOOLS.map((tool) => (
-            <Checkbox
-              key={tool}
-              label={tool}
-              checked={tools.includes(tool)}
-              onChange={(e) => {
-                const checked = e.currentTarget.checked;
-                setTools((prev) =>
-                  checked ? [...prev, tool] : prev.filter((x) => x !== tool),
-                );
-              }}
-            />
-          ))}
-        </div>
+        <AgentToolsEditor value={tools} onChange={setTools} />
         <FormField label="MCP servers" description="Add one MCP server URL at a time.">
           <div className={styles.inlineForm}>
             <TextInput
@@ -269,3 +256,4 @@ export function AgentCreateDrawer({
     </Drawer>
   );
 }
+
