@@ -1,4 +1,5 @@
 import pathlib
+from dataclasses import replace
 
 import pytest
 
@@ -6,19 +7,9 @@ from agentbox_harness.tools.grep import GrepOptions, run_grep
 
 
 def options(root: pathlib.Path, pattern: str, **kwargs) -> GrepOptions:
-    values = dict(
-        fixed_strings=False,
-        ignore_case=False,
-        include=(),
-        exclude=(),
-        context_lines=0,
-        max_results=200,
-        max_file_bytes=2 * 1024 * 1024,
-        max_line_chars=300,
-        max_walk_entries=100_000,
+    return replace(
+        GrepOptions(pattern=pattern, root=root, project_root=root), **kwargs
     )
-    values.update(kwargs)
-    return GrepOptions(pattern=pattern, root=root, project_root=root, **values)
 
 
 def test_finds_matches_with_path_line_and_column(tmp_path: pathlib.Path):
