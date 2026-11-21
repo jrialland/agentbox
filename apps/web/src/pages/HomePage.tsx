@@ -153,7 +153,7 @@ export function HomePage() {
                 {recentSessions.map((session) => (
                   <li key={session.id} className={styles.sessionRow}>
                     <Link to={`/sessions/${session.id}`}>
-                      <strong>{session.agent_id}</strong>
+                      <strong>{session.title ?? session.agent_id}</strong>
                       <span>{projectName(session.project_id)}</span>
                     </Link>
                     <IconLink sessionId={session.id} />

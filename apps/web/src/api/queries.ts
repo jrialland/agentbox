@@ -42,6 +42,7 @@ import {
   fetchUsers,
   previewPrompt,
   refreshModels,
+  renameSession,
   resetAgentAvatar,
   saveSkill,
   revokeApiKey,
@@ -132,6 +133,18 @@ export function useCreateSession() {
   return useMutation({
     mutationFn: createSession,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["sessions"] }),
+  });
+}
+
+export function useRenameSession() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ sid, title }: { sid: string; title: string }) =>
+      renameSession(sid, title),
+    onSuccess: (_data, variables) => {
+      void qc.invalidateQueries({ queryKey: ["sessions"] });
+      void qc.invalidateQueries({ queryKey: ["session", variables.sid] });
+    },
   });
 }
 

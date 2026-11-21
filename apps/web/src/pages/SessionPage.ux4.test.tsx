@@ -28,6 +28,7 @@ const queries = vi.hoisted(() => ({
   ),
   useSkills: vi.fn(() => ({ data: [] })),
   useSessionFiles: vi.fn(() => ({ data: [] })),
+  useRenameSession: vi.fn(() => ({ mutateAsync: vi.fn() })),
 }));
 
 vi.mock("../api/queries", () => queries);

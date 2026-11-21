@@ -24,6 +24,7 @@ vi.mock("../api/queries", () => ({
   useSkills: () => ({ data: [] }),
   useSessionFiles: () => ({ data: [] }),
   useSessionPlan: () => ({ data: { items: [] } }),
+  useRenameSession: () => ({ mutateAsync: vi.fn() }),
 }));
 
 import { SessionPage } from "./SessionPage";

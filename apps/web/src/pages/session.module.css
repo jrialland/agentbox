@@ -29,6 +29,10 @@
   margin: 0 auto 0 0;
 }
 
+.titleInput {
+  min-width: 180px;
+}
+
 .messages {
   flex: 1 1 auto;
   min-height: 0;

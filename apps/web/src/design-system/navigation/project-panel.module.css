@@ -72,6 +72,17 @@
   color: var(--ab-phosphor);
 }
 
+.sessionTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.titleInput {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .muted {
   margin: 0;
   padding: var(--ab-space-3);

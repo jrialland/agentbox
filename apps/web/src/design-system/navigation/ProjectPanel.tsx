@@ -2,8 +2,10 @@ import {
   RiAddLine,
   RiDeleteBin6Line,
   RiFolderLine,
+  RiPencilLine,
   RiSettings3Line,
 } from "@remixicon/react";
+import { TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -13,6 +15,7 @@ import {
   useDeleteProject,
   useDeleteSession,
   useProjects,
+  useRenameSession,
   useSessions,
 } from "../../api/queries";
 import { NewProjectModal } from "../../components/projects/NewProjectModal";
@@ -28,6 +31,7 @@ export function ProjectPanel() {
   const { data: sessions } = useSessions();
   const deleteProject = useDeleteProject();
   const deleteSession = useDeleteSession();
+  const renameSession = useRenameSession();
   const navigate = useNavigate();
   const location = useLocation();
   const [projectOpen, projectModal] = useDisclosure(false);
@@ -35,6 +39,15 @@ export function ProjectPanel() {
   const [sessionProject, setSessionProject] = useState<string | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  const [renaming, setRenaming] = useState<string | null>(null);
+  const [titleDraft, setTitleDraft] = useState("");
+
+  async function saveTitle(sessionId: string) {
+    const title = titleDraft.trim();
+    if (!title) return;
+    await renameSession.mutateAsync({ sid: sessionId, title });
+    setRenaming(null);
+  }
 
   if (isLoading) return <p className={styles.muted}>Loading.</p>;
   if (error) return <p className={styles.muted}>Failed to load projects</p>;
@@ -96,16 +109,47 @@ export function ProjectPanel() {
                   <ul className={styles.sessions}>
                     {projectSessions.map((session, index) => (
                       <li key={session.id} className={styles.sessionRow}>
-                        <Link to={`/sessions/${session.id}`}>
-                          Session {index + 1}
-                        </Link>
-                        <IconButton
-                          label={`Delete session ${session.id}`}
-                          icon={RiDeleteBin6Line}
-                          size={16}
-                          color="red"
-                          onClick={() => setSessionToDelete(session.id)}
-                        />
+                        {renaming === session.id ? (
+                          <TextInput
+                            aria-label="Session title"
+                            className={styles.titleInput}
+                            value={titleDraft}
+                            onChange={(event) =>
+                              setTitleDraft(event.currentTarget.value)
+                            }
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                void saveTitle(session.id);
+                              }
+                              if (event.key === "Escape") setRenaming(null);
+                            }}
+                            autoFocus
+                          />
+                        ) : (
+                          <Link to={`/sessions/${session.id}`}>
+                            <span className={styles.sessionTitle}>
+                              {session.title ?? `Session ${index + 1}`}
+                            </span>
+                          </Link>
+                        )}
+                        <div className={styles.actions}>
+                          <IconButton
+                            label={`Rename session ${session.id}`}
+                            icon={RiPencilLine}
+                            size={16}
+                            onClick={() => {
+                              setTitleDraft(session.title ?? "");
+                              setRenaming(session.id);
+                            }}
+                          />
+                          <IconButton
+                            label={`Delete session ${session.id}`}
+                            icon={RiDeleteBin6Line}
+                            size={16}
+                            color="red"
+                            onClick={() => setSessionToDelete(session.id)}
+                          />
+                        </div>
                       </li>
                     ))}
                   </ul>

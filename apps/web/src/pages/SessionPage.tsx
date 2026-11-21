@@ -1,10 +1,10 @@
-import { Button, Modal } from "@mantine/core";
+import { Button, Modal, TextInput } from "@mantine/core";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 
 import { ApiError } from "../api/errors";
-import { useMessages, useSession, useSessionLsp, useSessionPlan } from "../api/queries";
+import { useMessages, useSession, useSessionLsp, useSessionPlan, useRenameSession } from "../api/queries";
 import { AppPanel } from "../chat/AppPanel";
 import { ChatSplit } from "../chat/ChatSplit";
 import { Composer } from "../chat/Composer";
@@ -90,6 +90,7 @@ export function SessionPage() {
   const lspQuery = useSessionLsp(id, sessionEnabled);
   const chat = useChat(API_URL, token, id);
   const planQuery = useSessionPlan(id, chat.running, sessionEnabled);
+  const rename = useRenameSession();
   const { data: messages } = messagesQuery;
   const { data: lsp } = lspQuery;
   const { data: plan } = planQuery;
@@ -101,6 +102,8 @@ export function SessionPage() {
   const [skill, setSkill] = useState<string | null>(null);
   const [previousInput, setPreviousInput] = useState("");
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [titleDraft, setTitleDraft] = useState("");
   const [elapsed, setElapsed] = useState(0);
   const startedAt = useRef<number | null>(null);
   const messagesRef = useRef<HTMLDivElement>(null);
@@ -125,7 +128,16 @@ export function SessionPage() {
   async function refresh() {
     await qc.refetchQueries({ queryKey: ["messages", id] });
     await qc.invalidateQueries({ queryKey: ["session-plan", id] });
+    await qc.invalidateQueries({ queryKey: ["sessions"] });
+    await qc.invalidateQueries({ queryKey: ["session", id] });
     chat.reset();
+  }
+
+  async function saveTitle() {
+    const title = titleDraft.trim();
+    if (!title) return;
+    await rename.mutateAsync({ sid: id, title });
+    setRenaming(false);
   }
 
   async function handleSend(attachmentIds: string[]) {
@@ -197,7 +209,43 @@ export function SessionPage() {
             <Button size="compact-xs" variant="light" onClick={() => setAboutOpen(true)}>
               About
             </Button>
-            <h1>Session</h1>
+            <h1>{session?.title ?? "Session"}</h1>
+            <Button
+              size="compact-xs"
+              variant="light"
+              onClick={() => {
+                setTitleDraft(session?.title ?? "");
+                setRenaming(true);
+              }}
+            >
+              Rename
+            </Button>
+            {renaming && (
+              <>
+                <TextInput
+                  aria-label="Session title"
+                  className={styles.titleInput}
+                  size="xs"
+                  value={titleDraft}
+                  onChange={(event) => setTitleDraft(event.currentTarget.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") void saveTitle();
+                    if (event.key === "Escape") setRenaming(false);
+                  }}
+                  autoFocus
+                />
+                <Button size="compact-xs" onClick={() => void saveTitle()}>
+                  Save title
+                </Button>
+                <Button
+                  size="compact-xs"
+                  variant="light"
+                  onClick={() => setRenaming(false)}
+                >
+                  Cancel
+                </Button>
+              </>
+            )}
           </div>
           {planQuery.error ? (
             <ErrorCard

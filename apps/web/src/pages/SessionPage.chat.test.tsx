@@ -33,9 +33,10 @@ vi.mock("../chat/useChat", () => ({
 
 vi.mock("../api/queries", () => ({
   useMessages: () => ({ data: state.messages }),
-  useSession: () => ({ data: { agent_name: "bot" } }),
+  useSession: () => ({ data: { agent_name: "bot", title: "Release plan" } }),
   useSessionLsp: () => ({ data: { detected: [], active: [] } }),
   useSessionPlan: () => ({ data: { items: [] } }),
+  useRenameSession: () => ({ mutateAsync: vi.fn() }),
   useSkills: () => ({ data: [] }),
   useSessionFiles: () => ({ data: [] }),
 }));
@@ -64,6 +65,14 @@ describe("SessionPage chat surface", () => {
     state.send.mockClear();
     state.cancel.mockClear();
     state.reset.mockClear();
+  });
+
+  it("shows the session title in the header", () => {
+    renderPage();
+
+    expect(
+      screen.getByRole("heading", { name: "Release plan" }),
+    ).toBeTruthy();
   });
 
   it("renders history activity chips, attachments and errors", () => {

@@ -70,6 +70,15 @@ export async function createSession(body: {
   return data as Session;
 }
 
+export async function renameSession(sid: string, title: string): Promise<Session> {
+  const { data, error, response } = await api.PATCH("/sessions/{sid}", {
+    params: { path: { sid } },
+    body: { title },
+  });
+  if (error || !response.ok) throw toApiError(error, "Failed to rename session", response.status);
+  return data as Session;
+}
+
 export async function fetchAgents(): Promise<Agent[]> {
   const { data, error, response } = await api.GET("/agents");
   if (error || !response.ok) throw toApiError(error, "Failed to load agents", response.status);

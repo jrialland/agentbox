@@ -13,12 +13,16 @@ const deleteSessionMock = vi.hoisted(() =>
 const deleteProjectMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue(undefined),
 );
+const renameSessionMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue(undefined),
+);
 vi.mock("../../api/queries", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../api/queries")>();
   return {
     ...actual,
     useDeleteSession: () => ({ mutateAsync: deleteSessionMock }),
     useDeleteProject: () => ({ mutateAsync: deleteProjectMock }),
+    useRenameSession: () => ({ mutateAsync: renameSessionMock }),
   };
 });
 
@@ -91,6 +95,31 @@ test("renders projects with grouped sessions and navigates", async () => {
   fireEvent.click(session);
   await waitFor(() =>
     expect(screen.getByText("Session page")).toBeInTheDocument(),
+  );
+});
+
+test("shows and renames a session title", async () => {
+  vi.spyOn(endpoints, "fetchSessions").mockResolvedValueOnce([
+    {
+      id: "s1",
+      project_id: "p1",
+      agent_id: "ag",
+      title: "Release plan",
+      created_at: "t2",
+    },
+  ] as never);
+  renderPanel();
+  expect(await screen.findByText("Release plan")).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Rename session s1"));
+  fireEvent.change(screen.getByLabelText("Session title"), {
+    target: { value: "Launch checklist" },
+  });
+  fireEvent.keyDown(screen.getByLabelText("Session title"), { key: "Enter" });
+  await waitFor(() =>
+    expect(renameSessionMock).toHaveBeenCalledWith({
+      sid: "s1",
+      title: "Launch checklist",
+    }),
   );
 });
 
