@@ -61,3 +61,32 @@ const meta: Meta<typeof OverlaysDemo> = {
 export default meta;
 type Story = StoryObj<typeof OverlaysDemo>;
 export const Default: Story = {};
+
+export const StandardConfirm: Story = {
+  render: () => (
+    <ConfirmDialog
+      opened
+      title="Delete session?"
+      description="This permanently deletes the session. This cannot be undone."
+      confirmLabel="Delete session"
+      danger
+      onConfirm={() => {}}
+      onClose={() => {}}
+    />
+  ),
+};
+
+export const TypeToConfirm: Story = {
+  render: () => (
+    <ConfirmDialog
+      opened
+      title="Delete project?"
+      description="This permanently deletes the project. This cannot be undone."
+      requireText="demo-project"
+      confirmLabel="Delete project"
+      danger
+      onConfirm={() => {}}
+      onClose={() => {}}
+    />
+  ),
+};
