@@ -9,6 +9,7 @@ import { FormField } from "../design-system/forms/FormField";
 import { Select } from "../design-system/forms/Select";
 import { TextInput } from "../design-system/forms/TextInput";
 import { IconButton } from "../design-system/icons/IconButton";
+import { ConfirmDialog } from "../design-system/overlays/ConfirmDialog";
 import { Modal } from "../design-system/overlays/Modal";
 import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
 import { ListPage } from "../design-system/patterns/ListPage";
@@ -49,6 +50,7 @@ export function ApiKeysPage() {
   const [scopes, setScopes] = useState<string[]>([]);
   const [expiry, setExpiry] = useState<string | null>("never");
   const [created, setCreated] = useState<string | null>(null);
+  const [keyToRevoke, setKeyToRevoke] = useState<ApiKey | null>(null);
   const createdRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -174,13 +176,27 @@ export function ApiKeysPage() {
                   icon={RiDeleteBin6Line}
                   size={16}
                   color="red"
-                  onClick={() => revoke.mutateAsync(key.id)}
+                  onClick={() => setKeyToRevoke(key)}
                 />
               ) : null,
           },
         ]}
       />
       )}
+
+      <ConfirmDialog
+        opened={keyToRevoke !== null}
+        title="Revoke API key?"
+        description="This key will stop working immediately. This cannot be undone."
+        confirmLabel="Revoke key"
+        danger
+        onConfirm={async () => {
+          if (!keyToRevoke) return;
+          await revoke.mutateAsync(keyToRevoke.id);
+          setKeyToRevoke(null);
+        }}
+        onClose={() => setKeyToRevoke(null)}
+      />
 
       <Modal
         opened={!!created}

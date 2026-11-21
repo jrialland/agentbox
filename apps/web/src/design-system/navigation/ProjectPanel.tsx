@@ -5,7 +5,6 @@ import {
   RiSettings3Line,
 } from "@remixicon/react";
 import { useDisclosure } from "@mantine/hooks";
-import { modals } from "@mantine/modals";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
@@ -35,18 +34,7 @@ export function ProjectPanel() {
   const [editProject, setEditProject] = useState<string | null>(null);
   const [sessionProject, setSessionProject] = useState<string | null>(null);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
-
-  function onDeleteSession(id: string) {
-    modals.openConfirmModal({
-      title: "Delete session?",
-      labels: { confirm: "Delete", cancel: "Cancel" },
-      confirmProps: { color: "red" },
-      onConfirm: async () => {
-        await deleteSession.mutateAsync(id);
-        if (location.pathname === `/sessions/${id}`) navigate("/");
-      },
-    });
-  }
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
 
   if (isLoading) return <p className={styles.muted}>Loading.</p>;
   if (error) return <p className={styles.muted}>Failed to load projects</p>;
@@ -116,7 +104,7 @@ export function ProjectPanel() {
                           icon={RiDeleteBin6Line}
                           size={16}
                           color="red"
-                          onClick={() => onDeleteSession(session.id)}
+                          onClick={() => setSessionToDelete(session.id)}
                         />
                       </li>
                     ))}
@@ -161,6 +149,22 @@ export function ProjectPanel() {
           if (onDeletedProjectSession) navigate("/");
         }}
         onClose={() => setProjectToDelete(null)}
+      />
+      <ConfirmDialog
+        opened={sessionToDelete !== null}
+        title="Delete session?"
+        description="Delete this session permanently? This cannot be undone."
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!sessionToDelete) return;
+          await deleteSession.mutateAsync(sessionToDelete);
+          setSessionToDelete(null);
+          if (location.pathname === `/sessions/${sessionToDelete}`) {
+            navigate("/");
+          }
+        }}
+        onClose={() => setSessionToDelete(null)}
       />
     </Panel>
   );

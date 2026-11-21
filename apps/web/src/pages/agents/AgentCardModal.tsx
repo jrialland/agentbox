@@ -7,6 +7,7 @@ import { FormField } from "../../design-system/forms/FormField";
 import { MultiSelect } from "../../design-system/forms/MultiSelect";
 import { TextInput } from "../../design-system/forms/TextInput";
 import { Textarea } from "../../design-system/forms/Textarea";
+import { ConfirmDialog } from "../../design-system/overlays/ConfirmDialog";
 import { Modal } from "../../design-system/overlays/Modal";
 import { Button } from "../../design-system/primitives/Button";
 import { Tabs } from "../../design-system/primitives/Tabs";
@@ -46,6 +47,7 @@ export function AgentCardModal({
   const [tab, setTab] = useState<string | null>("structured");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [jsonError, setJsonError] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   useEffect(() => {
     if (dirty) return;
@@ -93,7 +95,8 @@ export function AgentCardModal({
   }
 
   return (
-    <Modal opened onClose={onClose} title={`A2A card: ${name}`} size="lg">
+    <>
+      <Modal opened onClose={onClose} title={`A2A card: ${name}`} size="lg">
       <Tabs
         value={tab}
         onChange={(value) => {
@@ -275,14 +278,25 @@ export function AgentCardModal({
         <Button
           variant="light"
           color="red"
-          onClick={async () => {
-            await remove.mutateAsync(name);
-            onClose();
-          }}
+          onClick={() => setConfirmRemove(true)}
         >
           Remove
         </Button>
       </div>
-    </Modal>
+      </Modal>
+      <ConfirmDialog
+        opened={confirmRemove}
+        title="Remove agent card?"
+        description={`Remove the A2A card for "${name}"? This cannot be undone.`}
+        confirmLabel="Remove"
+        danger
+        onConfirm={async () => {
+          await remove.mutateAsync(name);
+          setConfirmRemove(false);
+          onClose();
+        }}
+        onClose={() => setConfirmRemove(false)}
+      />
+    </>
   );
 }

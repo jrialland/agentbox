@@ -294,6 +294,7 @@ function ModelsTab() {
   const [labelFilter, setLabelFilter] = useState<string | null>(null);
   const [editing, setEditing] = useState<Model | null>(null);
   const [labelsOpen, setLabelsOpen] = useState(false);
+  const [modelToDelete, setModelToDelete] = useState<Model | null>(null);
 
   const visibleModels = (models ?? []).filter(
     (model) =>
@@ -419,7 +420,7 @@ function ModelsTab() {
                   icon={RiDeleteBin6Line}
                   size={16}
                   color="red"
-                  onClick={() => del.mutateAsync(model.id)}
+                  onClick={() => setModelToDelete(model)}
                 />
               </div>
             ),
@@ -431,6 +432,19 @@ function ModelsTab() {
         model={editing}
         opened={labelsOpen}
         onClose={() => setLabelsOpen(false)}
+      />
+      <ConfirmDialog
+        opened={modelToDelete !== null}
+        title="Delete model?"
+        description={`Delete "${modelToDelete?.name ?? ""}" permanently? This cannot be undone.`}
+        confirmLabel="Delete"
+        danger
+        onConfirm={async () => {
+          if (!modelToDelete) return;
+          await del.mutateAsync(modelToDelete.id);
+          setModelToDelete(null);
+        }}
+        onClose={() => setModelToDelete(null)}
       />
     </div>
   );

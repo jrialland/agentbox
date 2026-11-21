@@ -7,13 +7,6 @@ import * as endpoints from "../../api/endpoints";
 import { ThemeProvider } from "../theme/ThemeProvider";
 import { ProjectPanel } from "./ProjectPanel";
 
-vi.mock("@mantine/modals", () => ({
-  modals: {
-    openConfirmModal: (opts: { onConfirm?: () => void }) =>
-      opts.onConfirm?.(),
-  },
-}));
-
 const deleteSessionMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue(undefined),
 );
@@ -175,9 +168,10 @@ test("edits project settings", async () => {
   );
 });
 
-test("deletes a session", async () => {
+test("confirms before deleting a session", async () => {
   renderPanel();
   fireEvent.click(await screen.findByLabelText("Delete session s1"));
+  fireEvent.click(await screen.findByRole("button", { name: "Delete" }));
   await waitFor(() => expect(deleteSessionMock).toHaveBeenCalledWith("s1"));
 });
 
