@@ -221,6 +221,15 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 35 | D21 grep content search | `specs/2026-11-21-grep-content-search-design.md` | `plans/2026-11-21-grep-content-search.md` |
 | 36 | D19 Rust LSP quiescence readiness | `specs/2026-11-21-rust-lsp-quiescence-design.md` | `plans/2026-11-21-rust-lsp-quiescence.md` |
 | 37 | D22 stdio MCP servers (session lifecycle + create/edit UI) | `specs/2026-11-22-stdio-mcp-servers-design.md` | `plans/2026-11-22-stdio-mcp-servers.md` |
+| 38 | Technical architecture documentation set | `specs/2026-11-22-technical-architecture-docs-design.md` | `plans/2026-11-22-technical-architecture-docs.md` |
+
+## Technical documentation
+
+Maintainer-oriented architecture docs live in [`docs/architecture/`](architecture/README.md):
+system overview, technology stack, backend, harness/runtime, data model, auth/security, protocols,
+frontend, chat/streaming, concurrency/lifecycle, testing/observability, and a glossary/decision
+log. They describe the implemented system and link out to the per-feature specs and plans rather
+than duplicating them.
 
 ## Known issues
 

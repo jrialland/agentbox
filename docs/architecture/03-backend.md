@@ -107,9 +107,7 @@ All routers are `APIRouter(prefix=..., tags=[...])` instances included by `creat
 
 ```mermaid
 flowchart TB
-  app["create_app"] --> identity
-  app --> content
-  app --> special
+  app["create_app"]
   subgraph identity["Identity and administration"]
     auth["/auth"]
     users["/users"]
@@ -131,6 +129,21 @@ flowchart TB
     sandbox["/sandbox"]
     a2a["/a2a"]
   end
+  app --> auth
+  app --> users
+  app --> roles
+  app --> perms
+  app --> keys
+  app --> agents
+  app --> providers
+  app --> models
+  app --> labels
+  app --> projects
+  app --> sessions
+  app --> skills
+  app --> prompts
+  app --> sandbox
+  app --> a2a
 ```
 
 ## Turn request flow

@@ -18,6 +18,7 @@ sequenceDiagram
   participant Log as Logging
   participant LSP as LSP manager
   participant MCP as MCP manager
+  participant Term as Terminal manager
   participant Sub as Sub-sessions
   participant DB as Engine
 
@@ -30,7 +31,7 @@ sequenceDiagram
   L->>MCP: cancel sweep
   L->>MCP: close_all
   L->>LSP: shutdown
-  L->>LSP: shutdown terminal jobs
+  L->>Term: shutdown
   L->>Sub: shutdown all
   L->>DB: dispose
 ```

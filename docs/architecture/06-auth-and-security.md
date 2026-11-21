@@ -16,8 +16,8 @@ flowchart LR
   user["User"] --> url["UserRoleLink"] --> role["Role"]
   role --> rpl["RolePermissionLink"] --> perm["Permission"]
   key["ApiKey"] --> user
-  user -. "JWT: effective scopes from roles" .-> scope["Request scopes"]
-  key -. "API key: stored scopes" .-> scope
+  user -.->|"JWT: scopes from roles"| scope["Request scopes"]
+  key -.->|"API key: stored scopes"| scope
 ```
 
 The development seed defines the permission set: `agents:*`, `providers:*`, `projects:*`,

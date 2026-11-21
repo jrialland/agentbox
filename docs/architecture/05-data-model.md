@@ -265,7 +265,7 @@ flowchart LR
   u1["user 1"] --> a1["assistant 1"] --> u2["user 2"] --> a2["assistant 2"]
   s["summary"] --> u3["user 3"] --> a3["assistant 3"]
   u2 --> a2b["assistant 2 (fork)"]
-  a1 -. "prefix summarized" .-> s
+  a1 -.->|"prefix summarized"| s
 ```
 
 ## Deletion and cascades

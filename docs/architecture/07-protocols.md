@@ -217,7 +217,7 @@ proxy page and computes its CSP.
 > reused until the session is closed or idle-swept.
 
 > **Implementation note:** A2A task state is in memory. A restart loses A2A task bookkeeping but
-> keeps the underlying Agentbox sessions and turns.
+> keeps the Agentbox sessions and turns.
 
 > **Implementation note:** the frontend parses the AG-UI SSE stream itself. `@ag-ui/client` is a
 > dependency, but the client's agent abstraction is not used.
