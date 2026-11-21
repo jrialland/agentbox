@@ -171,6 +171,56 @@
       }
     },
     "/agents/{name}": {
+      "put": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "Update Agent",
+        "operationId": "update_agent_agents__name__put",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentCreate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AgentSpec"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": [
           "agents"
@@ -3259,6 +3309,18 @@
             },
             "type": "object",
             "title": "Env"
+          },
+          "env_passthrough": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Env Passthrough"
+          },
+          "cwd": {
+            "type": "string",
+            "title": "Cwd",
+            "default": ""
           }
         },
         "type": "object",

@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import uuid
 
 from a2a import types as a2a_types
@@ -27,6 +28,7 @@ from agentbox_harness.spec import (
     ModelBinding,
     NativeToolBinding,
 )
+from agentbox_harness.tools.mcp import mcp_toolset_id
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.tables.core import Agent, AgentCard
 
@@ -49,11 +51,45 @@ class AgentCreate(BaseModel):
         return required_name(value)
 
 
+_ENV_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _validate_mcp_item(item: dict) -> None:
+    server_url = str(item.get("server_url") or "").strip()
+    command = str(item.get("command") or "").strip()
+    if bool(server_url) == bool(command):
+        raise ValueError("Each MCP server must set exactly one of server_url or command")
+    if command and not str(item.get("id") or "").strip():
+        raise ValueError("Local MCP servers require a non-empty id")
+    args = item.get("args") or []
+    if not isinstance(args, list) or not all(isinstance(a, str) for a in args):
+        raise ValueError("MCP args must be a list of strings")
+    env = item.get("env") or {}
+    if not isinstance(env, dict) or not all(
+        isinstance(k, str) and isinstance(v, str) for k, v in env.items()
+    ):
+        raise ValueError("MCP env must be a string-to-string object")
+    passthrough = item.get("env_passthrough") or []
+    if not isinstance(passthrough, list) or not all(
+        isinstance(name, str) and _ENV_NAME.match(name) for name in passthrough
+    ):
+        raise ValueError(
+            "MCP env_passthrough entries must be valid environment variable names"
+        )
+
+
 def _to_spec(body: AgentCreate) -> AgentSpec:
     bindings = []
+    seen: set[str] = set()
     for b in body.tool_bindings:
         if "server_url" in b or "command" in b:
-            bindings.append(McpToolBinding(**b))
+            _validate_mcp_item(b)
+            binding = McpToolBinding(**b)
+            server_id = mcp_toolset_id(binding)
+            if server_id in seen:
+                raise ValueError(f"Duplicate MCP server id: {server_id}")
+            seen.add(server_id)
+            bindings.append(binding)
         else:
             bindings.append(NativeToolBinding(**b))
     return AgentSpec(
@@ -83,6 +119,29 @@ async def create_agent(
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     logger.info("agent created agent={}", spec.name)
+    return spec
+
+
+@router.put("/{name}", response_model=AgentSpec)
+async def update_agent(
+    name: str,
+    body: AgentCreate,
+    request: Request,
+    _=Depends(require_permission("agents:create")),
+):
+    if body.name != name:
+        raise HTTPException(status_code=400, detail="Agent name cannot be changed")
+    if bool(body.model) == bool(body.model_label):
+        raise HTTPException(
+            status_code=400,
+            detail="Exactly one of model or model_label is required",
+        )
+    repo = AgentRepository(request.app.state.session_factory)
+    try:
+        spec = await repo.save(_to_spec(body))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    logger.info("agent updated agent={}", spec.name)
     return spec
 
 

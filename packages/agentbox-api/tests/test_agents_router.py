@@ -67,3 +67,101 @@ async def test_create_and_list_agent():
         names = [a["name"] for a in r.json()]
         assert "coder" in names
     await engine.dispose()
+
+async def _agent_client():
+    engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
+    await init_db(engine)
+    async with factory() as s:
+        s.add(Provider(id="p1", name="test", kind="generic"))
+        s.add(Model(id="m1", provider_id="p1", name="test-model"))
+        await s.commit()
+    await _seed_user_with_perms(factory, "u1", "alice", ["agents:create", "agents:read"])
+    app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)
+    transport = httpx.ASGITransport(app=app)
+    client = httpx.AsyncClient(transport=transport, base_url="http://test")
+    return engine, client
+
+
+async def test_update_agent_round_trips_stdio_binding():
+    engine, client = await _agent_client()
+    try:
+        token = await _login(client, "alice")
+        h = {"Authorization": f"Bearer {token}"}
+        r = await client.post(
+            "/agents",
+            json={"name": "coder", "model": "test-model"},
+            headers=h,
+        )
+        assert r.status_code == 200
+
+        binding = {
+            "id": "time",
+            "command": "uvx",
+            "args": ["mcp-server-time"],
+            "env": {"TZ": "UTC"},
+            "env_passthrough": ["PATH"],
+            "cwd": "sub",
+        }
+        r = await client.put(
+            "/agents/coder",
+            json={
+                "name": "coder",
+                "model": "test-model",
+                "tool_bindings": [binding],
+            },
+            headers=h,
+        )
+        assert r.status_code == 200
+        saved = r.json()["tool_bindings"][0]
+        assert saved["id"] == "time"
+        assert saved["command"] == "uvx"
+        assert saved["cwd"] == "sub"
+        assert saved["env_passthrough"] == ["PATH"]
+
+        r = await client.get("/agents/coder", headers=h)
+        assert r.json()["tool_bindings"][0]["command"] == "uvx"
+    finally:
+        await client.aclose()
+        await engine.dispose()
+
+
+async def test_rejects_invalid_stdio_bindings():
+    engine, client = await _agent_client()
+    try:
+        token = await _login(client, "alice")
+        h = {"Authorization": f"Bearer {token}"}
+        cases = [
+            {
+                "name": "both",
+                "model": "test-model",
+                "tool_bindings": [
+                    {"id": "x", "command": "python", "server_url": "http://x"}
+                ],
+            },
+            {
+                "name": "missing-id",
+                "model": "test-model",
+                "tool_bindings": [{"command": "python"}],
+            },
+            {
+                "name": "dupe",
+                "model": "test-model",
+                "tool_bindings": [
+                    {"id": "x", "command": "python"},
+                    {"id": "x", "command": "python"},
+                ],
+            },
+            {
+                "name": "bad-env",
+                "model": "test-model",
+                "tool_bindings": [
+                    {"id": "x", "command": "python", "env_passthrough": ["NOT-A-NAME"]}
+                ],
+            },
+        ]
+        for body in cases:
+            r = await client.post("/agents", json=body, headers=h)
+            assert r.status_code == 400, body["name"]
+    finally:
+        await client.aclose()
+        await engine.dispose()

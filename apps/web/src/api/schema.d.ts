@@ -82,7 +82,8 @@ export interface paths {
         };
         /** Get Agent */
         get: operations["get_agent_agents__name__get"];
-        put?: never;
+        /** Update Agent */
+        put: operations["update_agent_agents__name__put"];
         post?: never;
         /** Delete Agent */
         delete: operations["delete_agent_agents__name__delete"];
@@ -933,6 +934,13 @@ export interface components {
             env?: {
                 [key: string]: string;
             };
+            /** Env Passthrough */
+            env_passthrough?: string[];
+            /**
+             * Cwd
+             * @default
+             */
+            cwd: string;
         };
         /** MeResponse */
         MeResponse: {
@@ -1552,6 +1560,41 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentSpec"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_agent_agents__name__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AgentCreate"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
