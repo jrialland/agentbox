@@ -171,3 +171,4 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
 | D19 | **Rust LSP latency** | Replace rust-analyzer's 15 s push-mode settle window with `experimental/serverStatus` quiescence tracking, so clean Rust writes return immediately while keeping `didSave`-triggered diagnostics. |
+| D21 | **Grep content search tool** | Add a filesystem toolset grep tool for searching file contents, distinct from the existing filename/glob search. Intended scope: regex and literal modes, include/exclude globs, context lines, result limits, binary-file skipping, and project-root/allowed-root containment. |
