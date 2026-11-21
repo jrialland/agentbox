@@ -185,4 +185,5 @@ def test_configure_custom_stack_quiescence():
         ]
     )
     manager.configure(_settings(lsp_servers_json=payload))
+    assert manager.stacks is not None
     assert manager.stacks[0].quiescence == "server_status"
