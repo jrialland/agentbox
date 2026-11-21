@@ -204,6 +204,7 @@ export function useChat(baseUrl: string, token: string | null, sessionId: string
 
   function reset() {
     setSegments(emptySegments());
+    setError(null);
   }
 
   function closeApp(id: string) {
