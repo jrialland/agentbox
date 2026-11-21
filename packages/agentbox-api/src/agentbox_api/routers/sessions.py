@@ -410,6 +410,7 @@ async def chat(
         store=store,
         head_id=None,
         mode_name=body.mode or "agent",
+        extra_roots=project.extra_roots,
     )
 
     record_user_turn = True
