@@ -4,8 +4,9 @@ import hashlib
 import pathlib
 from dataclasses import dataclass, field
 
-from agentbox_harness.tools.registry import ToolHookContext
 from loguru import logger
+
+from agentbox_harness.tools.registry import ToolHookContext
 
 MAX_INSTRUCTION_BYTES = 32 * 1024
 AGENTS_FILENAME = "AGENTS.md"

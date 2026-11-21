@@ -3,6 +3,7 @@ import pathlib
 import pytest
 
 from agentbox_api import project_instructions
+from agentbox_harness.tools.registry import ToolHookContext
 
 
 def test_loads_project_root_file(tmp_path: pathlib.Path):
@@ -196,9 +197,6 @@ def test_clear_state_releases_session():
     state.nested_bytes = 123
     project_instructions.clear_instruction_state("s4")
     assert project_instructions.get_instruction_state("s4").nested_bytes == 0
-
-
-from agentbox_harness.tools.registry import ToolHookContext
 
 
 async def test_discovers_nested_nearest_last(tmp_path: pathlib.Path):
