@@ -75,6 +75,10 @@ Defaults:
 >
 > `rust-analyzer` must be installed (e.g. `rustup component add rust-analyzer`);
 > there is no zero-install runner equivalent to `uvx`/`npx`.
+>
+> Readiness timing for Rust is refined by D19:
+> `2026-11-21-rust-lsp-quiescence-design.md` (return on
+> `experimental/serverStatus` quiescence; settle remains the fallback).
 
 `lsp_servers_json` (settings) may replace this list with an array of the same
 fields.
