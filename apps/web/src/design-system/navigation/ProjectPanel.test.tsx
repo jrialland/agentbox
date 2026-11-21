@@ -273,3 +273,10 @@ test("navigates home after deleting the project of the current session", async (
     expect(screen.getByText("Home page")).toBeInTheDocument(),
   );
 });
+
+test("shows a retry state instead of an empty project list", async () => {
+  vi.spyOn(endpoints, "fetchProjects").mockRejectedValueOnce(new Error("boom"));
+  renderPanel();
+  expect(await screen.findByText("Could not load projects")).toBeInTheDocument();
+  expect(screen.queryByText("No projects")).not.toBeInTheDocument();
+});

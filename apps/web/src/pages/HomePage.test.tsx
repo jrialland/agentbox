@@ -2,21 +2,28 @@ import { render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { vi } from "vitest";
 
+import { ApiError } from "../api/errors";
 import { ThemeProvider } from "../design-system/theme/ThemeProvider";
 import { HomePage } from "./HomePage";
 
+const state = vi.hoisted(() => ({ projectsError: null as Error | null }));
+
 vi.mock("../api/queries", () => ({
   useProjects: () => ({
-    data: [
-      {
-        id: "p1",
-        name: "Demo",
-        path: "/demo",
-        owner_id: "u1",
-        created_at: "t1",
-        extra_roots: [],
-      },
-    ],
+    data: state.projectsError
+      ? undefined
+      : [
+          {
+            id: "p1",
+            name: "Demo",
+            path: "/demo",
+            owner_id: "u1",
+            created_at: "t1",
+            extra_roots: [],
+          },
+        ],
+    error: state.projectsError,
+    refetch: vi.fn(),
   }),
   useSessions: () => ({
     data: [
@@ -54,6 +61,10 @@ vi.mock("../api/queries", () => ({
   useUpdateProject: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
+beforeEach(() => {
+  state.projectsError = null;
+});
+
 test("renders the command center dashboard", () => {
   render(
     <ThemeProvider forceScheme="dark">
@@ -72,6 +83,19 @@ test("renders the command center dashboard", () => {
   expect(
     screen.getByRole("button", { name: /new project/i }),
   ).toBeInTheDocument();
+});
+
+test("shows an error state instead of an empty project list", () => {
+  state.projectsError = new ApiError("boom", 500);
+  render(
+    <ThemeProvider forceScheme="dark">
+      <MemoryRouter>
+        <HomePage />
+      </MemoryRouter>
+    </ThemeProvider>,
+  );
+  expect(screen.getByText("Could not load projects")).toBeInTheDocument();
+  expect(screen.queryByText("No projects")).not.toBeInTheDocument();
 });
 
 

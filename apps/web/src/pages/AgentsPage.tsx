@@ -2,6 +2,7 @@ import { RiAddLine } from "@remixicon/react";
 import { useState } from "react";
 
 import { useAgents } from "../api/queries";
+import { ErrorState } from "../design-system/patterns/ErrorState";
 import { ListPage } from "../design-system/patterns/ListPage";
 import { Button } from "../design-system/primitives/Button";
 import { AgentCreateDrawer } from "./agents/AgentCreateDrawer";
@@ -45,9 +46,19 @@ export function buildToolBindings(tools: string[]) {
 }
 
 export function AgentsPage() {
-  const { data: agents } = useAgents();
+  const { data: agents, error, refetch } = useAgents();
   const [createOpen, setCreateOpen] = useState(false);
   const agentList = agents ?? [];
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Could not load agents"
+        message={error.message}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   return (
     <ListPage

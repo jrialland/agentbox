@@ -23,12 +23,13 @@ import { NewProjectModal } from "../../components/projects/NewProjectModal";
 import { NewSessionModal } from "../../components/projects/NewSessionModal";
 import { IconButton } from "../icons/IconButton";
 import { ConfirmDialog } from "../overlays/ConfirmDialog";
+import { ErrorState } from "../patterns/ErrorState";
 import { EmptyState } from "../primitives/EmptyState";
 import { Panel } from "../primitives/Panel";
 import styles from "./project-panel.module.css";
 
 export function ProjectPanel() {
-  const { data: projects, isLoading, error } = useProjects();
+  const { data: projects, isLoading, error, refetch } = useProjects();
   const { data: sessions } = useSessions();
   const deleteProject = useDeleteProject();
   const deleteSession = useDeleteSession();
@@ -55,7 +56,15 @@ export function ProjectPanel() {
   }
 
   if (isLoading) return <p className={styles.muted}>Loading.</p>;
-  if (error) return <p className={styles.muted}>Failed to load projects</p>;
+  if (error) {
+    return (
+      <ErrorState
+        title="Could not load projects"
+        message={error.message}
+        onRetry={() => void refetch()}
+      />
+    );
+  }
 
   const projectList = projects ?? [];
 

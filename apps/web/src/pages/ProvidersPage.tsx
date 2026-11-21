@@ -29,6 +29,7 @@ import { IconButton } from "../design-system/icons/IconButton";
 import { ConfirmDialog } from "../design-system/overlays/ConfirmDialog";
 import { Drawer } from "../design-system/overlays/Drawer";
 import { Modal } from "../design-system/overlays/Modal";
+import { ErrorState } from "../design-system/patterns/ErrorState";
 import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
 import { ListPage } from "../design-system/patterns/ListPage";
 import { Badge } from "../design-system/primitives/Badge";
@@ -101,7 +102,7 @@ function ProvidersTab({
   onEdit: (provider: Provider) => void;
   onCreate: () => void;
 }) {
-  const { data: providers } = useProviders();
+  const { data: providers, error, refetch } = useProviders();
   const del = useDeleteProvider();
   const refresh = useRefreshModels();
   const [providerToDelete, setProviderToDelete] = useState<Provider | null>(
@@ -115,6 +116,16 @@ function ProvidersTab({
     } catch {
       notifications.show({ message: "Failed to refresh models", color: "red" });
     }
+  }
+
+  if (error) {
+    return (
+      <ErrorState
+        title="Could not load providers"
+        message={error.message}
+        onRetry={() => void refetch()}
+      />
+    );
   }
 
   if ((providers ?? []).length === 0) {
@@ -283,8 +294,12 @@ function ProviderFormDrawer({
 }
 
 function ModelsTab() {
-  const { data: models } = useModels();
-  const { data: providers } = useProviders();
+  const { data: models, error: modelsError, refetch: refetchModels } = useModels();
+  const {
+    data: providers,
+    error: providersError,
+    refetch: refetchProviders,
+  } = useProviders();
   const create = useCreateModel();
   const del = useDeleteModel();
   const { data: labels } = useLabels();
@@ -320,6 +335,26 @@ function ModelsTab() {
     } catch {
       notifications.show({ message: "Failed to create model", color: "red" });
     }
+  }
+
+  if (providersError) {
+    return (
+      <ErrorState
+        title="Could not load providers"
+        message={providersError.message}
+        onRetry={() => void refetchProviders()}
+      />
+    );
+  }
+
+  if (modelsError) {
+    return (
+      <ErrorState
+        title="Could not load models"
+        message={modelsError.message}
+        onRetry={() => void refetchModels()}
+      />
+    );
   }
 
   return (

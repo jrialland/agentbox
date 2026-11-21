@@ -13,6 +13,7 @@ import { NewProjectModal } from "../components/projects/NewProjectModal";
 import { Button } from "../design-system/primitives/Button";
 import { DashboardCard } from "../design-system/patterns/DashboardCard";
 import { EmptyStatePanel } from "../design-system/patterns/EmptyStatePanel";
+import { ErrorState } from "../design-system/patterns/ErrorState";
 import { PageContainer } from "../design-system/shell/PageContainer";
 import { PageHeader } from "../design-system/primitives/PageHeader";
 import { HomeChecklist } from "../onboarding/HomeChecklist";
@@ -26,11 +27,27 @@ import { Panel } from "../design-system/primitives/Panel";
 import styles from "./home.module.css";
 
 export function HomePage() {
-  const { data: projects } = useProjects();
-  const { data: sessions } = useSessions();
-  const { data: agents } = useAgents();
-  const { data: providers } = useProviders();
-  const { data: models } = useModels();
+  const {
+    data: projects,
+    error: projectsError,
+    refetch: refetchProjects,
+  } = useProjects();
+  const {
+    data: sessions,
+    error: sessionsError,
+    refetch: refetchSessions,
+  } = useSessions();
+  const { data: agents, error: agentsError, refetch: refetchAgents } = useAgents();
+  const {
+    data: providers,
+    error: providersError,
+    refetch: refetchProviders,
+  } = useProviders();
+  const {
+    data: models,
+    error: modelsError,
+    refetch: refetchModels,
+  } = useModels();
   const [projectOpen, setProjectOpen] = useState(false);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [wizardStep, setWizardStep] = useState<OnboardingStep>("welcome");
@@ -49,10 +66,17 @@ export function HomePage() {
   const progress = deriveOnboardingProgress(snapshot);
 
   useEffect(() => {
+    if (providersError || agentsError) return;
     if (snapshot.providers === 0 && snapshot.agents === 0 && !dismissed) {
       setWizardOpen(true);
     }
-  }, [snapshot.providers, snapshot.agents, dismissed]);
+  }, [
+    snapshot.providers,
+    snapshot.agents,
+    dismissed,
+    providersError,
+    agentsError,
+  ]);
 
   const recentSessions = [...sessionList]
     .sort((a, b) => (b.created_at ?? "").localeCompare(a.created_at ?? ""))
@@ -113,19 +137,19 @@ export function HomePage() {
       <div className={styles.stats}>
         <DashboardCard
           label="Projects"
-          value={projectList.length}
+          value={projectsError ? "—" : projectList.length}
           hint="workspaces"
           icon={<RiFolderLine size={18} />}
         />
         <DashboardCard
           label="Sessions"
-          value={sessionList.length}
+          value={sessionsError ? "—" : sessionList.length}
           hint="across all projects"
           icon={<RiChat3Line size={18} />}
         />
         <DashboardCard
           label="Agents"
-          value={agentList.length}
+          value={agentsError ? "—" : agentList.length}
           hint="configured"
           icon={<RiRobot2Line size={18} />}
         />
@@ -137,7 +161,13 @@ export function HomePage() {
             <span>Recent sessions</span>
           </Panel.Header>
           <Panel.Body>
-            {recentSessions.length === 0 ? (
+            {sessionsError ? (
+              <ErrorState
+                title="Could not load sessions"
+                message={sessionsError.message}
+                onRetry={() => void refetchSessions()}
+              />
+            ) : recentSessions.length === 0 ? (
               <EmptyStatePanel
                 icon={RiChat3Line}
                 title="No sessions yet"
@@ -169,7 +199,13 @@ export function HomePage() {
             <span>Projects</span>
           </Panel.Header>
           <Panel.Body>
-            {projectList.length === 0 ? (
+            {projectsError ? (
+              <ErrorState
+                title="Could not load projects"
+                message={projectsError.message}
+                onRetry={() => void refetchProjects()}
+              />
+            ) : projectList.length === 0 ? (
               <EmptyStatePanel
                 icon={RiFolderLine}
                 title="No projects"
