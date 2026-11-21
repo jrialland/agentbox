@@ -16,7 +16,6 @@ export type StructuredA2ACard = {
   capabilities: {
     streaming: boolean;
     pushNotifications: boolean;
-    stateTransitionHistory: boolean;
   };
   defaultInputModes: string[];
   defaultOutputModes: string[];
@@ -33,7 +32,6 @@ export const EMPTY_A2A_CARD: StructuredA2ACard = {
   capabilities: {
     streaming: true,
     pushNotifications: false,
-    stateTransitionHistory: false,
   },
   defaultInputModes: ["text/plain"],
   defaultOutputModes: ["text/plain"],
@@ -72,7 +70,6 @@ export function toStructuredCard(
     capabilities: {
       streaming: capabilities.streaming === true,
       pushNotifications: capabilities.pushNotifications === true,
-      stateTransitionHistory: capabilities.stateTransitionHistory === true,
     },
     defaultInputModes: strArray(card.defaultInputModes),
     defaultOutputModes: strArray(card.defaultOutputModes),

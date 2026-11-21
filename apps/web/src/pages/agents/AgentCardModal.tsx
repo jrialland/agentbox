@@ -34,21 +34,29 @@ export function AgentCardModal({
   const save = useSetAgentCard();
   const remove = useDeleteAgentCard();
   const [rawCard, setRawCard] = useState<RawCard | null>(null);
-  const [structured, setStructured] =
+  const [structured, setStructuredState] =
     useState<StructuredA2ACard>(EMPTY_A2A_CARD);
+  const [dirty, setDirty] = useState(false);
+
+  function setStructured(next: StructuredA2ACard) {
+    setDirty(true);
+    setStructuredState(next);
+  }
   const [jsonText, setJsonText] = useState("");
   const [tab, setTab] = useState<string | null>("structured");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [jsonError, setJsonError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (dirty) return;
     const raw =
       card ??
       ({ name, description: "", version: "1.0.0", skills: [] } as RawCard);
     setRawCard(raw);
-    setStructured(toStructuredCard(raw, name));
+    setStructuredState(toStructuredCard(raw, name));
     setJsonText(JSON.stringify(raw, null, 2));
-  }, [card, name]);
+    setDirty(false);
+  }, [card, name, dirty]);
 
   function onJsonChange(text: string) {
     setJsonText(text);
@@ -214,19 +222,7 @@ export function AgentCardModal({
               })
             }
           />
-          <Checkbox
-            label="State transition history"
-            checked={structured.capabilities.stateTransitionHistory}
-            onChange={(event) =>
-              setStructured({
-                ...structured,
-                capabilities: {
-                  ...structured.capabilities,
-                  stateTransitionHistory: event.currentTarget.checked,
-                },
-              })
-            }
-          />
+
 
           <FormField label="Default input modes">
             <MultiSelect
@@ -290,4 +286,3 @@ export function AgentCardModal({
     </Modal>
   );
 }
-
