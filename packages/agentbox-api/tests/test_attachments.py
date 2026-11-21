@@ -59,3 +59,33 @@ async def test_upload_attachment():
     finally:
         await client.aclose()
         await engine.dispose()
+
+
+async def test_download_attachment_returns_bytes_and_headers():
+    engine, client = await _make_app(["sessions:create", "sessions:read"])
+    try:
+        token = await _login(client)
+        upload = await client.post(
+            "/sessions/s1/attachments",
+            files={"file": ("note.txt", b"hello", "text/plain")},
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        attachment_id = upload.json()["id"]
+
+        r = await client.get(
+            f"/sessions/s1/attachments/{attachment_id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert r.status_code == 200
+        assert r.content == b"hello"
+        assert r.headers["content-type"].startswith("text/plain")
+        assert 'filename="note.txt"' in r.headers["content-disposition"]
+
+        missing = await client.get(
+            f"/sessions/other/attachments/{attachment_id}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        assert missing.status_code == 404
+    finally:
+        await client.aclose()
+        await engine.dispose()

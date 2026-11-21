@@ -58,14 +58,14 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Left tree: projects → sessions | DONE | `ProjectPanel` uses design-system icon actions and a stable single-row layout. |
 | Choose agent + chat interface | DONE | Chat sub-project. |
 | AG-UI-compatible chat window | DONE | AG-UI client (`@ag-ui/client`). |
-| Input form with attachments (paperclip) | PARTIAL | Multimodal attachments work; attachments are not shown in transcript history and use a text button rather than a paperclip icon (UX-2). |
+| Input form with attachments (paperclip) | DONE | Paperclip/drop composer; attachment metadata persists on user turns with authenticated history chips and downloads. |
 | Speech-to-text (Web Audio API, microphone) | DONE | Web Speech API. |
 | Autocomplete `/` for installed **skills** | DONE | Composer `/` menu; `skill=<name>` explicit activation. |
 | Autocomplete `@` for filenames (project root) | DONE | `GET /sessions/{sid}/files` + composer `@` menu (inserts `@relative/path`). |
-| Streamed tokens; visible reasoning; Markdown; Mermaid + pan/zoom + copy-source | PARTIAL | Streaming works, but reasoning/tool calls are transient, Markdown is unstyled, Mermaid corrupts the SPA during streaming, and there is no run/thinking indicator (UX-2). |
+| Streamed tokens; visible reasoning; Markdown; Mermaid + pan/zoom + copy-source | DONE | Ordered live segments preserve event order; summary activity persists; Markdown/highlight.js/copy; Mermaid renders only complete fences with fallback. |
 | Direct mode: closing browser ends the session | DEVIATION | Harness supports detach/re-attach (run continues); documented in the harness spec. |
 | Resume existing session | DONE | Loads history. |
-| Edit a previous question → conversation restarts | PARTIAL | Fork via `fork_from_turn_id` works, but the UI gives no visible fork/editing state (UX-2). |
+| Edit a previous question → conversation restarts | DONE | Visible fork banner with Cancel; retry uses `retry_turn_id` without duplicating user turns. |
 | Mode switching (Ask / Agent) | DONE | Mode selector. |
 | Agent modes defined in the agent config UI | DONE | Modes editor in the agent form. |
 
@@ -87,7 +87,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Requirement | Status | Notes |
 |---|---|---|
 | Render MCP Apps from MCP servers | DONE | Backend MCP relay + `@mcp-ui/client` `AppRenderer` in no-client mode; app content proxied by the backend. |
-| Shown as tabs **on the right of the conversation** (corrected from the original "left"; Claude.ai style) | DONE | `AppPanel` halves the chat when a tab is open; tabs closable. |
+| Shown as tabs **on the right of the conversation** (corrected from the original "left"; Claude.ai style) | DONE | Resizable desktop split with keyboard-accessible divider; full-screen sheet on mobile; tabs closable. |
 
 ## Technical stack
 
@@ -98,7 +98,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Async wherever possible | DONE | Async throughout. |
 | Backend: FastAPI, SQLModel, **loguru** | DONE | FastAPI + SQLModel; `loguru.logger` used across the API (sinks configured in #20). |
 | Monorepo via **Uv Workspaces** | DONE (Python) / DEVIATION (frontend) | Python packages are a Uv workspace; the React app is a separate Bun project in `apps/web`. |
-| UI: React + **Mantine** + **Bulma** + **RemixIcons**, light/dark (system) | DONE | Mantine-first design system with RemixIcons, Silkscreen/Inter/JetBrains Mono, dark-first theme + toggle, and Storybook. Bulma is isolated to the temporary chat compatibility layer until UX-2. |
+| UI: React + **Mantine** + **RemixIcons**, light/dark (system) | DONE | Mantine-first design system with RemixIcons, Silkscreen/Inter/JetBrains Mono, dark-first theme + toggle, and Storybook. Bulma has been removed. |
 | Precise components, message bus, no oversimplification | DONE | Component split + typed `mitt` bus. |
 | Protocol compliance mandatory (no homegrown) | DONE (AG-UI, ACP, A2A) | — |
 
@@ -109,7 +109,7 @@ Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These wo
 | ID | Workstream | Status | Priority | Scope | Source findings |
 |---|---|---|---|---|---|
 | UX-1 | Design system, shell & product character | DONE | P0/P1 | Brand kit, design tokens, typography, RemixIcon system, responsive shell, nav/sidebar, page titles, empty-state visual language, form layout, dark mode, replace/rescope Bulma. | E1–E6, C1–C2, C7–C10, G |
-| UX-2 | Chat surface & runtime UX | CURRENT | P0/P1 | Markdown stylesheet, safe Mermaid rendering, auto-scroll/sticky composer, thinking/running status, stop control, persisted reasoning/tool traces, attachment history, fork banner, per-turn errors/retry, icon composer. | A1–A12 |
+| UX-2 | Chat surface & runtime UX | DONE | P0/P1 | Markdown stylesheet, safe Mermaid rendering, auto-scroll/sticky composer, thinking/running status, stop control, persisted reasoning/tool traces, attachment history, fork banner, per-turn errors/retry, icon composer. | A1–A12 |
 | UX-3 | Contextual help & structured editors | PLANNED | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
 | UX-4 | Data integrity, errors & navigation states | PLANNED | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
 
@@ -149,6 +149,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 28 | Automatic compaction (usage-driven summaries + context-window recovery) | `specs/2026-11-20-compaction-design.md` | `plans/2026-11-20-compaction.md` |
 | 29 | Sub-agent sessions (background children, monitoring, cancellation) | `specs/2026-11-20-subagent-sessions-design.md` | `plans/2026-11-20-subagent-sessions.md` |
 | 30 | UX-1 design system + command shell | `specs/2026-11-20-ux-1-design-system-design.md` | `plans/2026-11-20-ux-1-design-system.md` |
+| 31 | UX-2 chat surface + runtime UX | `specs/2026-11-21-ux-2-chat-surface-design.md` | `plans/2026-11-21-ux-2-chat-surface.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -167,3 +168,5 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
 | D19 | **Rust LSP latency** | Replace rust-analyzer's 15 s push-mode settle window with `experimental/serverStatus` quiescence tracking, so clean Rust writes return immediately while keeping `didSave`-triggered diagnostics. |
+
+

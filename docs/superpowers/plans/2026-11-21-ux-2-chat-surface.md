@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild the chat surface around an ordered AG-UI segment model, persist compact run activity, add cancellation/retry/errors/attachment downloads, and make Markdown, Mermaid, scrolling, and the composer production-quality.
+**Status:** COMPLETE (2026-11-21). All 21 tasks implemented and verified.\n\n**Goal:** Rebuild the chat surface around an ordered AG-UI segment model, persist compact run activity, add cancellation/retry/errors/attachment downloads, and make Markdown, Mermaid, scrolling, and the composer production-quality.
 
 **Architecture:** Backend adds JSON `activity`/`attachments` fields to turns, an active-run registry with cancellation, retry-without-duplicate-user-turn, AG-UI `RUN_ERROR` emission, and attachment download. Frontend replaces transient chat buffers with an ordered segment reducer, renders live segments in event order, shows persisted activity chips in history, and rebuilds the chat/composer/MCP split view with the UX-1 design system.
 
@@ -1183,3 +1183,4 @@ git commit -m "feat(web): complete UX-2 chat surface"
 - **Placeholder scan:** no TBD/TODO steps; every task has files, tests/verification, and implementation snippets or exact extraction instructions.
 - **Type consistency:** `Turn.activity`/`attachments` are used consistently; `retry_turn_id`, `record_user_turn`, `RunActivityCollector`, `Segment`, `applyAgUiEvent`, `chat.send({retryTurnId})`, and `RunStatus` names are consistent across tasks.
 - **Ordering:** reducer tests explicitly cover interleaving; useChat integration preserves event order; history uses summary chips because full ordering is not persisted by design.
+

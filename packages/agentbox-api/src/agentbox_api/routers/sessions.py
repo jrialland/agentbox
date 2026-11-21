@@ -473,7 +473,7 @@ async def chat(
     return agui_response(raw_events())
 
 
-@router.post("/{sid}/messages/cancel")
+@router.post("/{sid}/messages/cancel", status_code=202)
 async def cancel_message(
     sid: str,
     request: Request,
@@ -588,3 +588,4 @@ async def session_plan(
             for item in items
         ]
     )
+

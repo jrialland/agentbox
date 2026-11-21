@@ -32,18 +32,25 @@ class RunActivityCollector:
 
     def observe(self, event: object) -> None:
         now = time.monotonic()
-        if isinstance(event, PartStartEvent) and isinstance(event.part, ThinkingPart):
-            if self.reasoning_started_at is None:
-                self.reasoning_started_at = now
-        if isinstance(event, PartDeltaEvent) and isinstance(
-            event.delta, ThinkingPartDelta
+        if (
+            isinstance(event, PartStartEvent)
+            and isinstance(event.part, ThinkingPart)
+            and self.reasoning_started_at is None
         ):
-            if self.reasoning_started_at is None:
-                self.reasoning_started_at = now
-        if isinstance(event, PartEndEvent) and isinstance(event.part, ThinkingPart):
-            if self.reasoning_started_at is not None:
-                self.reasoning_ms += int((now - self.reasoning_started_at) * 1000)
-                self.reasoning_started_at = None
+            self.reasoning_started_at = now
+        if (
+            isinstance(event, PartDeltaEvent)
+            and isinstance(event.delta, ThinkingPartDelta)
+            and self.reasoning_started_at is None
+        ):
+            self.reasoning_started_at = now
+        if (
+            isinstance(event, PartEndEvent)
+            and isinstance(event.part, ThinkingPart)
+            and self.reasoning_started_at is not None
+        ):
+            self.reasoning_ms += int((now - self.reasoning_started_at) * 1000)
+            self.reasoning_started_at = None
         if isinstance(event, PartStartEvent) and isinstance(event.part, TextPart):
             self.text += event.part.content
         if isinstance(event, PartDeltaEvent) and isinstance(event.delta, TextPartDelta):
@@ -83,3 +90,4 @@ class RunActivityCollector:
             ],
             "error": error,
         }
+

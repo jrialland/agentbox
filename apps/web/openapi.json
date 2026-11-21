@@ -1537,6 +1537,55 @@
         }
       }
     },
+    "/sessions/{sid}/attachments/{aid}": {
+      "get": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Download Attachment",
+        "operationId": "download_attachment_sessions__sid__attachments__aid__get",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          },
+          {
+            "name": "aid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Aid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/sessions/{sid}/mcp/{server_id}/resources/read": {
       "post": {
         "tags": [
@@ -1635,6 +1684,46 @@
         },
         "responses": {
           "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/sessions/{sid}/messages/cancel": {
+      "post": {
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Cancel Message",
+        "operationId": "cancel_message_sessions__sid__messages_cancel_post",
+        "parameters": [
+          {
+            "name": "sid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Sid"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
             "description": "Successful Response",
             "content": {
               "application/json": {
@@ -3138,6 +3227,33 @@
           "created_at": {
             "type": "string",
             "title": "Created At"
+          },
+          "activity": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Activity"
+          },
+          "attachments": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Attachments"
           }
         },
         "type": "object",
@@ -3192,6 +3308,17 @@
               }
             ],
             "title": "Fork From Turn Id"
+          },
+          "retry_turn_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Retry Turn Id"
           },
           "attachment_ids": {
             "items": {

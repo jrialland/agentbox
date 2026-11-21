@@ -1,8 +1,8 @@
 import pytest
 from pydantic_ai.models.anthropic import AnthropicModel
+from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.models.ollama import OllamaModel
 from pydantic_ai.models.openai import OpenAIChatModel, OpenAIResponsesModel
-from pydantic_ai.models.function import FunctionModel
 from pydantic_ai.models.test import TestModel
 
 from agentbox_models.tables.core import Provider

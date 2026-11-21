@@ -395,6 +395,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/sessions/{sid}/attachments/{aid}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download Attachment */
+        get: operations["download_attachment_sessions__sid__attachments__aid__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/sessions/{sid}/mcp/{server_id}/resources/read": {
         parameters: {
             query?: never;
@@ -423,6 +440,23 @@ export interface paths {
         put?: never;
         /** Call App Tool */
         post: operations["call_app_tool_sessions__sid__mcp__server_id__tools_call_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sessions/{sid}/messages/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Cancel Message */
+        post: operations["cancel_message_sessions__sid__messages_cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -903,6 +937,14 @@ export interface components {
             parent_id?: string | null;
             /** Created At */
             created_at: string;
+            /** Activity */
+            activity?: {
+                [key: string]: unknown;
+            } | null;
+            /** Attachments */
+            attachments?: {
+                [key: string]: unknown;
+            }[] | null;
         };
         /** MessageRequest */
         MessageRequest: {
@@ -919,6 +961,8 @@ export interface components {
             fork: boolean;
             /** Fork From Turn Id */
             fork_from_turn_id?: string | null;
+            /** Retry Turn Id */
+            retry_turn_id?: string | null;
             /**
              * Attachment Ids
              * @default []
@@ -2479,6 +2523,38 @@ export interface operations {
             };
         };
     };
+    download_attachment_sessions__sid__attachments__aid__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+                aid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     read_app_resource_sessions__sid__mcp__server_id__resources_read_post: {
         parameters: {
             query?: never;
@@ -2533,6 +2609,37 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_message_sessions__sid__messages_cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                sid: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
