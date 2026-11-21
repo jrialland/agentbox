@@ -2,6 +2,7 @@ from collections.abc import Callable
 
 from loguru import logger
 from pydantic_ai import Agent
+from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models import Model
 
 from agentbox_harness.spec import AgentSpec, McpToolBinding, Mode, NativeToolBinding
@@ -20,6 +21,7 @@ def build_subagent_tools(
     model: Model,
     depth: int = 0,
     max_depth: int = 3,
+    stdio_toolsets: list[MCPToolset] | None = None,
 ) -> list[Callable]:
     tools: list[Callable] = []
     if depth >= max_depth or not sub_agents:
@@ -36,6 +38,7 @@ def build_subagent_tools(
             sub_agents=sub_agents,
             depth=depth + 1,
             max_depth=max_depth,
+            stdio_toolsets=stdio_toolsets,
         )
         tools.append(build_subagent_tool(sub_agent))
     return tools
@@ -51,6 +54,7 @@ def build_agent(
     max_depth: int = 3,
     sub_session_runner=None,
     session_id: str | None = None,
+    stdio_toolsets: list[MCPToolset] | None = None,
 ) -> Agent:
     native_names: set[str] = set()
     mcp_bindings: list[McpToolBinding] = []
@@ -62,12 +66,25 @@ def build_agent(
 
     tools = registry.select_tools(mode, names=native_names)
     tools.extend(
-        build_subagent_tools(spec, sub_agents, registry, model, depth, max_depth)
+        build_subagent_tools(
+            spec,
+            sub_agents,
+            registry,
+            model,
+            depth,
+            max_depth,
+            stdio_toolsets=stdio_toolsets,
+        )
     )
     tools.extend(
         build_sub_session_tools(spec, mode, sub_session_runner, session_id)
     )
-    toolsets = [build_mcp_toolset(b) for b in mcp_bindings]
+    toolsets = [
+        build_mcp_toolset(b)
+        for b in mcp_bindings
+        if not b.command or stdio_toolsets is None
+    ]
+    toolsets.extend(stdio_toolsets or [])
     logger.debug("agent built name={} tools={} toolsets={}", spec.name, len(tools), len(toolsets))
     return Agent(
         model=model,

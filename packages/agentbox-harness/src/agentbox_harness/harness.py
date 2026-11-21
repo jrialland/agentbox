@@ -11,7 +11,12 @@ from agentbox_harness.messages import turns_to_messages
 from agentbox_harness.middleware import MiddlewarePipeline, RunContext, RunMiddleware
 from agentbox_harness.run import Run, RunManager
 from agentbox_harness.session import Session, Turn
-from agentbox_harness.spec import AgentSpec, Mode
+from agentbox_harness.spec import AgentSpec, McpToolBinding, Mode
+from agentbox_harness.tools.mcp_session import (
+    McpSessionManager,
+    SessionToolsets,
+    get_mcp_session_manager,
+)
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_harness.usage import context_tokens_from_usage
 
@@ -26,6 +31,7 @@ class Harness:
         middleware: list[RunMiddleware] | None = None,
         compaction: CompactionConfig | None = None,
         sub_session_runner=None,
+        mcp_manager: McpSessionManager | None = None,
     ):
         self.registry = registry
         self.model = model
@@ -38,6 +44,21 @@ class Harness:
             else [CompactionMiddleware(compaction)]
         )
         self.sub_session_runner = sub_session_runner
+        self.mcp_manager = mcp_manager or get_mcp_session_manager()
+
+    async def prepare_mcp(self, session: Session) -> SessionToolsets:
+        spec = session.agent_spec
+        bindings = (
+            [b for b in spec.tool_bindings if isinstance(b, McpToolBinding)]
+            if spec is not None
+            else []
+        )
+        return await self.mcp_manager.toolsets_for(
+            session.session_id,
+            bindings,
+            session.project_root,
+            session.extra_roots,
+        )
 
     def start_session(
         self,
@@ -107,6 +128,7 @@ class Harness:
             mode.name,
             session.session_id,
         )
+        session_tools = await self.prepare_mcp(session)
         agent = build_agent(
             spec,
             mode,
@@ -115,6 +137,7 @@ class Harness:
             sub_agents=self.sub_agents,
             sub_session_runner=self.sub_session_runner,
             session_id=session.session_id,
+            stdio_toolsets=session_tools.toolsets,
         )
         return self.run_manager.start(
             agent,

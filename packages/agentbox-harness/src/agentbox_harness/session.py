@@ -1,4 +1,4 @@
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Protocol
 
@@ -57,6 +57,7 @@ class Session:
     store: MessageLogStore
     head_id: str | None
     mode_name: str = "agent"
+    extra_roots: list[str] = field(default_factory=list)
 
     async def append(self, turn: Turn, parent_id: str | None) -> None:
         turn = replace(turn, parent_id=parent_id)

@@ -47,3 +47,28 @@ def test_build_agent_attaches_mcp_toolsets():
 
     mcp = [t for t in agent.toolsets if isinstance(t, MCPToolset)]
     assert len(mcp) == 1
+
+def test_build_agent_uses_provided_stdio_toolsets():
+    from pydantic_ai.mcp import MCPToolset
+
+    reg = ToolRegistry()
+    provided = MCPToolset("https://example.com/stdio", id="provided")
+    spec = _spec(
+        [
+            McpToolBinding(id="local", command="python", args=["-m", "srv"]),
+            McpToolBinding(server_url="https://example.com/mcp"),
+        ]
+    )
+
+    agent = build_agent(
+        spec,
+        Mode(name="agent", flags={}),
+        reg,
+        TestModel(),
+        stdio_toolsets=[provided],
+    )
+
+    mcp = [t for t in agent.toolsets if isinstance(t, MCPToolset)]
+    assert len(mcp) == 2
+    assert provided in mcp
+    assert all(t is not provided for t in mcp if t.id != "provided")
