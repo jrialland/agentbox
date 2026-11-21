@@ -15,7 +15,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 |---|---|---|
 | ACP (Agent Client Protocol) adapter (IDE, JSON-RPC over STDIO) | DONE | `agentbox-acp` / `python -m agentbox_api.acp_server` (official `agent-client-protocol` v1). |
 | A2A (Agent-to-Agent) adapter + agent cards + API-key auth | DONE | `a2a-sdk` 1.3; `/a2a/{agent}` (card + JSON-RPC), API-key auth. |
-| MCP for external tools/resources | PARTIAL | Agent factory consumes MCP servers via pydantic-ai `MCPToolset`; no MCP server management UI yet. |
+| MCP for external tools/resources | DONE | Remote URL + stdio agent bindings; session-scoped stdio processes with cwd/env sandboxing, MCP Apps relay, create/edit UI. |
 | AG-UI streaming (agent → web UI) | DONE | Backend uses pydantic-ai `AGUIAdapter`; frontend consumes it via `@ag-ui/client`. |
 | Full compliance with the protocols (no homegrown protocol code) | DONE (AG-UI, ACP, A2A) | AG-UI + ACP use pydantic-ai/the official SDK; MCP via pydantic-ai. |
 | Extensive research on libraries/protocols | DONE | Captured in the per-sub-project specs. |
@@ -220,6 +220,13 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 34 | D20 AGENTS.md project instructions | `specs/2026-11-21-agents-md-project-instructions-design.md` | `plans/2026-11-21-agents-md-project-instructions.md` |
 | 35 | D21 grep content search | `specs/2026-11-21-grep-content-search-design.md` | `plans/2026-11-21-grep-content-search.md` |
 | 36 | D19 Rust LSP quiescence readiness | `specs/2026-11-21-rust-lsp-quiescence-design.md` | `plans/2026-11-21-rust-lsp-quiescence.md` |
+| 37 | D22 stdio MCP servers (session lifecycle + create/edit UI) | `specs/2026-11-22-stdio-mcp-servers-design.md` | `plans/2026-11-22-stdio-mcp-servers.md` |
+
+## Known issues
+
+| ID | Issue | Priority | Status | Notes |
+|---|---|---|---|---|
+| KI-1 | `test_lsp_real.py::test_rust_analyzer` returns no diagnostics from real rust-analyzer on Windows (baseline failure observed 2026-11-22) | P1 | PLANNED | Reproduce with `uv run pytest packages/agentbox-harness/tests/test_lsp_real.py::test_rust_analyzer -q --timeout=20`; inspect quiescence/server-status handling and the installed rust-analyzer version. |
 
 ## Deferred backlog (future evolutions)
 

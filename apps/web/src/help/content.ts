@@ -134,18 +134,27 @@ export const HELP_ENTRIES: Record<HelpId, HelpEntry> = {
     id: "agent.mcp",
     title: "MCP servers",
     summary:
-      "MCP servers add tools and apps over a remote MCP endpoint.",
+      "MCP servers add tools and apps, either from a remote endpoint or a local command.",
     sections: [
       {
-        heading: "Endpoint",
+        heading: "Remote URL",
         paragraphs: [
-          "Enter the HTTP or HTTPS URL for the MCP server. Authentication and transport settings belong to the server.",
+          "Enter the HTTP or HTTPS URL for a remote MCP server. Authentication and transport settings belong to the server.",
+        ],
+      },
+      {
+        heading: "Local command",
+        paragraphs: [
+          "A local MCP server runs as a child process of a session. Its working directory defaults to the project root and can be narrowed to a subdirectory; absolute paths must stay inside the project or its extra roots.",
+          "Environment variables can be set explicitly or passed through from the host by name. Values are stored with the agent and never written to logs.",
+          "The process starts on the session's first run and is reused for later turns. It stops when the session is deleted or closed, after an idle timeout, or when the server shuts down.",
         ],
       },
       {
         heading: "Failures",
         bullets: [
-          "An unreachable server appears as a tool error in chat.",
+          "A broken local server shows a warning and the rest of the agent keeps working.",
+          "An unreachable remote server appears as a tool error in chat.",
           "Remove servers you no longer trust or need.",
         ],
       },
