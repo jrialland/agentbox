@@ -1,7 +1,7 @@
 # UX-4 - Data Integrity, Errors, and Navigation States
 
 - **Date:** 2026-11-21
-- **Status:** Draft (design approved; pending spec review)
+- **Status:** Approved
 - **Sub-project:** UX-4 - required-field and path validation, destructive confirmations, API error propagation, 404 and session-not-found states, session titles, admin permission guidance, and safe provider-error logging.
 - **Source:** [`docs/reviews/2026-11-20-ux-review/report.md`](../../reviews/2026-11-20-ux-review/report.md) findings B1-B5, C5-C6, C7, D4, H1-H2, and the remaining parts of A4-A5.
 - **Roadmap:** `UX-4` in [`docs/ROADMAP.md`](../../ROADMAP.md).

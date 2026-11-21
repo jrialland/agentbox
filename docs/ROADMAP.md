@@ -111,9 +111,9 @@ Source: [2026-11-20 UX review](reviews/2026-11-20-ux-review/report.md). These wo
 | UX-1 | Design system, shell & product character | DONE | P0/P1 | Brand kit, design tokens, typography, RemixIcon system, responsive shell, nav/sidebar, page titles, empty-state visual language, form layout, dark mode, replace/rescope Bulma. | E1–E6, C1–C2, C7–C10, G |
 | UX-2 | Chat surface & runtime UX | DONE | P0/P1 | Markdown stylesheet, safe Mermaid rendering, auto-scroll/sticky composer, thinking/running status, stop control, persisted reasoning/tool traces, attachment history, fork banner, per-turn errors/retry, icon composer. | A1–A12 |
 | UX-3 | Contextual help & structured editors | DONE | P1/P2 | A2A structured card editor, provider setup help/test connection, tool/mode/MCP/scope help, tooltips, docs links, guided empty states. | F1–F4, D2, D5, D7, C3–C4 |
-| UX-4 | Data integrity, errors & navigation states | PLANNED | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
+| UX-4 | Data integrity, errors & navigation states | DONE | P1/P2 | Required-field/path validation, destructive confirmations, API error propagation, 404/session-not-found, active nav, backend error logging. | B1–B5, C5–C6, H1–H2, D4, A4–A5 |
 
-The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1, UX-2, and UX-3 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, and `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, and `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`. Next cycle: **UX-4** data integrity, errors, and navigation states.
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-4 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, and `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, and `superpowers/plans/2026-11-21-ux-4-data-integrity.md`. The next cycle is not yet scheduled.
 
 ## Sub-project history
 
@@ -151,6 +151,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 30 | UX-1 design system + command shell | `specs/2026-11-20-ux-1-design-system-design.md` | `plans/2026-11-20-ux-1-design-system.md` |
 | 31 | UX-2 chat surface + runtime UX | `specs/2026-11-21-ux-2-chat-surface-design.md` | `plans/2026-11-21-ux-2-chat-surface.md` |
 | 32 | UX-3 contextual help + structured editors | `specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md` | `plans/2026-11-21-ux-3-contextual-help-structured-editors.md` |
+| 33 | UX-4 data integrity, errors + navigation states | `specs/2026-11-21-ux-4-data-integrity-design.md` | `plans/2026-11-21-ux-4-data-integrity.md` |
 
 ## Deferred backlog (future evolutions)
 
@@ -169,3 +170,4 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
 | D19 | **Rust LSP latency** | Replace rust-analyzer's 15 s push-mode settle window with `experimental/serverStatus` quiescence tracking, so clean Rust writes return immediately while keeping `didSave`-triggered diagnostics. |
+| D20 | **AGENTS.md** | When there is an AGENTS.md at the project root, include its content in the system prompt. During a session, if AGENTS.md is modified, the system prompt should be updated accordingly. Subagents also receive it. See https://agents.md/ for precise implementation details. |
