@@ -98,3 +98,113 @@ async def test_no_tracker_without_quiescence(tmp_path):
         assert server._tracker is None
     finally:
         await server.stop()
+
+
+def _elapsed(started):
+    return asyncio.get_running_loop().time() - started
+
+
+async def _quiescence_server(tmp_path, *args, settle=5.0, timeout=5.0):
+    server = await LspServer(
+        command("--server-status", *args),
+        tmp_path,
+        quiescence="server_status",
+        settle=settle,
+        diagnostics_timeout=timeout,
+    ).start()
+    for _ in range(100):
+        if server._tracker is not None and server._tracker.seq > 0:
+            break
+        await asyncio.sleep(0.01)
+    return server
+
+
+async def test_quiescence_clean_returns_fast(tmp_path):
+    path = tmp_path / "a.rs"
+    path.write_text("fn main() {}", encoding="utf-8")
+    server = await _quiescence_server(tmp_path, "--clean")
+    try:
+        await server.sync_document(str(path), "rust")
+        await server.save_document(str(path))
+        started = asyncio.get_running_loop().time()
+        result = await server.diagnostics(str(path))
+        assert result == []
+        assert _elapsed(started) < 2.0
+    finally:
+        await server.stop()
+
+
+async def test_quiescence_error_returns_diagnostics(tmp_path):
+    path = tmp_path / "a.rs"
+    path.write_text("fn main() {}", encoding="utf-8")
+    server = await _quiescence_server(tmp_path, "--error")
+    try:
+        await server.sync_document(str(path), "rust")
+        await server.save_document(str(path))
+        result = await server.diagnostics(str(path))
+        assert result[0]["message"] == "fake error"
+    finally:
+        await server.stop()
+
+
+async def test_quiescence_publish_while_quiescent_returns_fast(tmp_path):
+    path = tmp_path / "a.rs"
+    path.write_text("fn main() {}", encoding="utf-8")
+    server = await _quiescence_server(tmp_path, "--stale", "--error")
+    try:
+        await server.sync_document(str(path), "rust")
+        await server.save_document(str(path))
+        started = asyncio.get_running_loop().time()
+        result = await server.diagnostics(str(path))
+        assert result[0]["message"] == "fake error"
+        assert _elapsed(started) < 2.0
+    finally:
+        await server.stop()
+
+
+async def test_quiescence_waits_for_quiet(tmp_path):
+    path = tmp_path / "a.rs"
+    path.write_text("fn main() {}", encoding="utf-8")
+    server = await _quiescence_server(tmp_path, "--busy-then-quiet")
+    try:
+        await server.sync_document(str(path), "rust")
+        await server.save_document(str(path))
+        started = asyncio.get_running_loop().time()
+        result = await server.diagnostics(str(path))
+        elapsed = _elapsed(started)
+        assert result == []
+        assert elapsed >= 0.15
+        assert elapsed < 2.0
+    finally:
+        await server.stop()
+
+
+async def test_quiescence_busy_timeout_returns_latest(tmp_path):
+    path = tmp_path / "a.rs"
+    path.write_text("fn main() {}", encoding="utf-8")
+    server = await _quiescence_server(tmp_path, "--busy", settle=0.5, timeout=0.5)
+    try:
+        await server.sync_document(str(path), "rust")
+        await server.save_document(str(path))
+        result = await server.diagnostics(str(path))
+        assert result[0]["message"] == "fake error"
+    finally:
+        await server.stop()
+
+
+async def test_quiescence_without_status_falls_back_to_settle(tmp_path):
+    path = tmp_path / "a.py"
+    path.write_text("x = 1", encoding="utf-8")
+    server = await LspServer(
+        command("--push"),
+        tmp_path,
+        quiescence="server_status",
+        settle=1.0,
+        diagnostics_timeout=1.0,
+    ).start()
+    try:
+        await server.sync_document(str(path), "python")
+        result = await server.diagnostics(str(path))
+        assert result[0]["message"] == "fake error"
+    finally:
+        await server.stop()

@@ -51,6 +51,7 @@ class LspServer:
         self._versions = {}
         self._diagnostics = {}
         self._diagnostic_events = {}
+        self._publish_counts = {}
         self._capabilities = {}
         self._tracker = (
             ServerStatusTracker() if quiescence == "server_status" else None
@@ -186,6 +187,9 @@ class LspServer:
                     published = params.get("diagnostics", [])
                     logger.debug("lsp publish path={} count={}", key, len(published))
                     self._diagnostics[key] = published
+                    self._publish_counts[key] = (
+                        self._publish_counts.get(key, 0) + 1
+                    )
                     event = self._diagnostic_events.get(key)
                     if event:
                         event.set()
@@ -253,30 +257,65 @@ class LspServer:
                 )
                 return (result or {}).get("items", [])
             grace = min(self.diagnostics_timeout, self.settle)
-            event = asyncio.Event()
-            self._diagnostic_events[target] = event
-            last = self._diagnostics.get(target, [])
-            if last:
-                return last
-            loop = asyncio.get_running_loop()
-            deadline = loop.time() + grace
-            try:
-                while True:
-                    remaining = deadline - loop.time()
-                    if remaining <= 0:
-                        return last
-                    try:
-                        await asyncio.wait_for(event.wait(), remaining)
-                    except TimeoutError:
-                        return last
-                    event.clear()
-                    last = self._diagnostics.get(target, [])
-                    if last:
-                        return last
-            finally:
-                self._diagnostic_events.pop(target, None)
+            if self._tracker is not None and self._tracker.seq > 0:
+                return await self._quiescence_wait(target, grace)
+            return await self._settle_wait(target, grace)
         except TimeoutError:
             return []
+
+    async def _settle_wait(self, target, grace):
+        event = asyncio.Event()
+        self._diagnostic_events[target] = event
+        last = self._diagnostics.get(target, [])
+        if last:
+            return last
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + grace
+        try:
+            while True:
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    return last
+                try:
+                    await asyncio.wait_for(event.wait(), remaining)
+                except TimeoutError:
+                    return last
+                event.clear()
+                last = self._diagnostics.get(target, [])
+                if last:
+                    return last
+        finally:
+            self._diagnostic_events.pop(target, None)
+
+    async def _quiescence_wait(self, target, grace):
+        tracker = self._tracker
+        assert tracker is not None
+        busy_seq_at_start = tracker.busy_seq
+        publish_at_start = self._publish_counts.get(target, 0)
+        event = asyncio.Event()
+        self._diagnostic_events[target] = event
+        tracker.waiters.add(event)
+        loop = asyncio.get_running_loop()
+        deadline = loop.time() + grace
+        try:
+            while True:
+                settled = tracker.quiescent is True and (
+                    self._publish_counts.get(target, 0) > publish_at_start
+                    or tracker.busy_seq > busy_seq_at_start
+                )
+                if settled:
+                    return self._diagnostics.get(target, [])
+                remaining = deadline - loop.time()
+                if remaining <= 0:
+                    return self._diagnostics.get(target, [])
+                event.clear()
+                try:
+                    await asyncio.wait_for(event.wait(), remaining)
+                except TimeoutError:
+                    return self._diagnostics.get(target, [])
+        finally:
+            self._diagnostic_events.pop(target, None)
+            tracker.waiters.discard(event)
 
     async def stop(self):
         if self.process and self.process.returncode is None:
