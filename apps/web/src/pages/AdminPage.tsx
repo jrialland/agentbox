@@ -33,6 +33,7 @@ import {
   useUsers,
 } from "../api/queries";
 import { requiredText } from "../lib/validation";
+import { describePermission } from "./admin/permissionDescriptions";
 
 export function AdminPage() {
   return (
@@ -147,7 +148,7 @@ function PermissionsTab() {
           {(data ?? []).map((p) => (
             <Table.Tr key={p.id}>
               <Table.Td>{p.name}</Table.Td>
-              <Table.Td>{p.description}</Table.Td>
+              <Table.Td>{describePermission(p.name, p.description)}</Table.Td>
               <Table.Td>
                 <Button size="xs" onClick={() => openEdit(p)}>
                   Edit
@@ -255,7 +256,7 @@ function RolesTab() {
           {(roles ?? []).map((r) => (
             <Table.Tr key={r.id}>
               <Table.Td>{r.name}</Table.Td>
-              <Table.Td>{r.description}</Table.Td>
+              <Table.Td>{describePermission(r.name, r.description)}</Table.Td>
               <Table.Td>
                 <Button size="xs" onClick={() => setEditRole(r)}>
                   Edit
@@ -353,7 +354,10 @@ function RolePermissionsModal({
     <Modal opened onClose={onClose} title={`Permissions for ${role.name}`}>
       <MultiSelect
         label="Permissions"
-        data={permissions.map((p) => ({ value: p.id, label: p.name }))}
+        data={permissions.map((p) => ({
+          value: p.id,
+          label: `${p.name} — ${describePermission(p.name, p.description)}`,
+        }))}
         value={value}
         onChange={setSelected}
       />
