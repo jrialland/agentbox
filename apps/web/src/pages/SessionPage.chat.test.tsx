@@ -17,6 +17,12 @@ const state = vi.hoisted(() => ({
   closeApp: vi.fn(),
 }));
 
+const renameMock = vi.hoisted(() => vi.fn(async () => undefined));
+const notifyMock = vi.hoisted(() => vi.fn());
+vi.mock("@mantine/notifications", () => ({
+  notifications: { show: notifyMock },
+}));
+
 vi.mock("../chat/useChat", () => ({
   useChat: () => ({
     segments: state.segments,
@@ -36,7 +42,7 @@ vi.mock("../api/queries", () => ({
   useSession: () => ({ data: { agent_name: "bot", title: "Release plan" } }),
   useSessionLsp: () => ({ data: { detected: [], active: [] } }),
   useSessionPlan: () => ({ data: { items: [] } }),
-  useRenameSession: () => ({ mutateAsync: vi.fn() }),
+  useRenameSession: () => ({ mutateAsync: renameMock, isPending: false }),
   useSkills: () => ({ data: [] }),
   useSessionFiles: () => ({ data: [] }),
 }));
@@ -65,6 +71,8 @@ describe("SessionPage chat surface", () => {
     state.send.mockClear();
     state.cancel.mockClear();
     state.reset.mockClear();
+    renameMock.mockClear();
+    notifyMock.mockClear();
   });
 
   it("shows the session title in the header", () => {
@@ -73,6 +81,24 @@ describe("SessionPage chat surface", () => {
     expect(
       screen.getByRole("heading", { name: "Release plan" }),
     ).toBeTruthy();
+  });
+
+  it("reports a failed rename and keeps the editor open", async () => {
+    renameMock.mockRejectedValueOnce(new Error("title too long"));
+    renderPage();
+
+    fireEvent.click(screen.getByRole("button", { name: "Rename" }));
+    const input = screen.getByLabelText("Session title");
+    fireEvent.change(input, { target: { value: "x".repeat(121) } });
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await waitFor(() =>
+      expect(notifyMock).toHaveBeenCalledWith({
+        message: "Failed to rename session",
+        color: "red",
+      }),
+    );
+    expect(screen.getByLabelText("Session title")).toBeTruthy();
   });
 
   it("renders history activity chips, attachments and errors", () => {

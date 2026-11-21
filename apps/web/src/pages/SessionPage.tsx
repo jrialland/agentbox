@@ -1,4 +1,5 @@
 import { Button, Modal, TextInput } from "@mantine/core";
+import { notifications } from "@mantine/notifications";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
@@ -135,9 +136,13 @@ export function SessionPage() {
 
   async function saveTitle() {
     const title = titleDraft.trim();
-    if (!title) return;
-    await rename.mutateAsync({ sid: id, title });
-    setRenaming(false);
+    if (!title || rename.isPending) return;
+    try {
+      await rename.mutateAsync({ sid: id, title });
+      setRenaming(false);
+    } catch {
+      notifications.show({ message: "Failed to rename session", color: "red" });
+    }
   }
 
   async function handleSend(attachmentIds: string[]) {
@@ -209,7 +214,7 @@ export function SessionPage() {
             <Button size="compact-xs" variant="light" onClick={() => setAboutOpen(true)}>
               About
             </Button>
-            <h1>{session?.title ?? "Session"}</h1>
+            <h1>{session?.title?.trim() || "Session"}</h1>
             <Button
               size="compact-xs"
               variant="light"
@@ -226,6 +231,7 @@ export function SessionPage() {
                   aria-label="Session title"
                   className={styles.titleInput}
                   size="xs"
+                  maxLength={120}
                   value={titleDraft}
                   onChange={(event) => setTitleDraft(event.currentTarget.value)}
                   onKeyDown={(event) => {

@@ -33,6 +33,13 @@ vi.mock("../api/queries", () => ({
         title: "Release plan",
         created_at: "t3",
       },
+      {
+        id: "s3",
+        project_id: "p1",
+        agent_id: "Whitespace",
+        title: "   ",
+        created_at: "t4",
+      },
     ],
   }),
   useAgents: () => ({ data: [{ name: "Reviewer" }] }),
@@ -59,6 +66,7 @@ test("renders the command center dashboard", () => {
   expect(screen.getAllByText("Demo").length).toBeGreaterThan(0);
   expect(screen.getByText("Reviewer")).toBeInTheDocument();
   expect(screen.getByText("Release plan")).toBeInTheDocument();
+  expect(screen.getByText("Whitespace")).toBeInTheDocument();
   expect(screen.getByText("Provider connected")).toBeInTheDocument();
   expect(screen.getByText("Agent ready")).toBeInTheDocument();
   expect(

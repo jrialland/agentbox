@@ -7,6 +7,7 @@ import {
 } from "@remixicon/react";
 import { TextInput } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
+import { notifications } from "@mantine/notifications";
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 
@@ -44,9 +45,13 @@ export function ProjectPanel() {
 
   async function saveTitle(sessionId: string) {
     const title = titleDraft.trim();
-    if (!title) return;
-    await renameSession.mutateAsync({ sid: sessionId, title });
-    setRenaming(null);
+    if (!title || renameSession.isPending) return;
+    try {
+      await renameSession.mutateAsync({ sid: sessionId, title });
+      setRenaming(null);
+    } catch {
+      notifications.show({ message: "Failed to rename session", color: "red" });
+    }
   }
 
   if (isLoading) return <p className={styles.muted}>Loading.</p>;
@@ -113,6 +118,7 @@ export function ProjectPanel() {
                           <TextInput
                             aria-label="Session title"
                             className={styles.titleInput}
+                            maxLength={120}
                             value={titleDraft}
                             onChange={(event) =>
                               setTitleDraft(event.currentTarget.value)
@@ -128,7 +134,7 @@ export function ProjectPanel() {
                         ) : (
                           <Link to={`/sessions/${session.id}`}>
                             <span className={styles.sessionTitle}>
-                              {session.title ?? `Session ${index + 1}`}
+                              {session.title?.trim() || `Session ${index + 1}`}
                             </span>
                           </Link>
                         )}

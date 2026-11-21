@@ -16,6 +16,10 @@ const deleteProjectMock = vi.hoisted(() =>
 const renameSessionMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue(undefined),
 );
+const notifyMock = vi.hoisted(() => vi.fn());
+vi.mock("@mantine/notifications", () => ({
+  notifications: { show: notifyMock },
+}));
 vi.mock("../../api/queries", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../api/queries")>();
   return {
@@ -70,6 +74,8 @@ function renderPanel(initialEntries: string[] = ["/"]) {
 }
 
 beforeEach(() => {
+  renameSessionMock.mockClear();
+  notifyMock.mockClear();
   vi.spyOn(endpoints, "fetchProjects").mockResolvedValue([
     {
       id: "p1",
@@ -121,6 +127,32 @@ test("shows and renames a session title", async () => {
       title: "Launch checklist",
     }),
   );
+});
+
+test("reports a failed rename and keeps the editor open", async () => {
+  vi.spyOn(endpoints, "fetchSessions").mockResolvedValueOnce([
+    {
+      id: "s1",
+      project_id: "p1",
+      agent_id: "ag",
+      title: "Release plan",
+      created_at: "t2",
+    },
+  ] as never);
+  renameSessionMock.mockRejectedValueOnce(new Error("title too long"));
+  renderPanel();
+  expect(await screen.findByText("Release plan")).toBeInTheDocument();
+  fireEvent.click(screen.getByLabelText("Rename session s1"));
+  const input = screen.getByLabelText("Session title");
+  fireEvent.change(input, { target: { value: "x".repeat(121) } });
+  fireEvent.keyDown(input, { key: "Enter" });
+  await waitFor(() =>
+    expect(notifyMock).toHaveBeenCalledWith({
+      message: "Failed to rename session",
+      color: "red",
+    }),
+  );
+  expect(screen.getByLabelText("Session title")).toBeInTheDocument();
 });
 
 test("creates a project via the modal", async () => {
