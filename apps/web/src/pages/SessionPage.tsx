@@ -7,6 +7,7 @@ import { useMessages, useSession, useSessionLsp, useSessionPlan } from "../api/q
 import { AppPanel } from "../chat/AppPanel";
 import "../chat/apps.css";
 import { Composer } from "../chat/Composer";
+import { ForkBanner } from "../chat/ForkBanner";
 import { MarkdownBlock } from "../chat/MarkdownBlock";
 import { PlanPanel } from "../chat/PlanPanel";
 import { ReasoningBlock } from "../chat/ReasoningBlock";
@@ -33,6 +34,7 @@ export function SessionPage() {
   const [forkFromTurnId, setForkFromTurnId] = useState<string | null>(null);
   const [forkMode, setForkMode] = useState(false);
   const [skill, setSkill] = useState<string | null>(null);
+  const [previousInput, setPreviousInput] = useState("");
   const [aboutOpen, setAboutOpen] = useState(false);
   const messagesRef = useRef<HTMLDivElement>(null);
   const { atBottom, scrollToBottom } = useAutoScroll(messagesRef, [
@@ -98,6 +100,7 @@ export function SessionPage() {
                       size="compact-xs"
                       variant="subtle"
                       onClick={() => {
+                        setPreviousInput(input);
                         setInput(m.content);
                         setForkMode(true);
                         setForkFromTurnId(m.parent_id ?? null);
@@ -138,6 +141,15 @@ export function SessionPage() {
             </Button>
           )}
         </div>
+        {forkMode && (
+          <ForkBanner
+            onCancel={() => {
+              setInput(previousInput);
+              setForkMode(false);
+              setForkFromTurnId(null);
+            }}
+          />
+        )}
         <Composer
           sessionId={id}
           value={input}
@@ -182,5 +194,6 @@ export function SessionPage() {
     </div>
   );
 }
+
 
 

@@ -162,3 +162,20 @@
   font-family: var(--ab-font-mono);
   font-size: var(--ab-text-xs);
 }
+
+.forkBanner {
+  align-items: center;
+  background: color-mix(in srgb, var(--ab-amber) 8%, var(--ab-surface));
+  border: var(--ab-border-width) solid
+    color-mix(in srgb, var(--ab-amber) 40%, var(--ab-border));
+  border-radius: var(--ab-radius-sm);
+  color: var(--ab-text);
+  display: flex;
+  font-size: var(--ab-text-sm);
+  gap: var(--ab-space-2);
+  padding: var(--ab-space-2) var(--ab-space-3);
+}
+
+.forkBanner span {
+  flex: 1;
+}
