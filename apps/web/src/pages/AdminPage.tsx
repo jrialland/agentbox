@@ -12,6 +12,7 @@ import { TextInput } from "../design-system/forms/TextInput";
 import { ConfirmDialog } from "../design-system/overlays/ConfirmDialog";
 import { Modal } from "../design-system/overlays/Modal";
 import { AdminTablePage } from "../design-system/patterns/AdminTablePage";
+import { ErrorState } from "../design-system/patterns/ErrorState";
 import { Button } from "../design-system/primitives/Button";
 import { Panel } from "../design-system/primitives/Panel";
 import {
@@ -59,7 +60,7 @@ export function AdminPage() {
 }
 
 function PermissionsTab() {
-  const { data } = usePermissions();
+  const { data, error, refetch } = usePermissions();
   const create = useCreatePermission();
   const update = useUpdatePermission();
   const del = useDeletePermission();
@@ -136,6 +137,13 @@ function PermissionsTab() {
           </Button>
         </Panel.Body>
       </Panel>
+      {error ? (
+        <ErrorState
+          title="Could not load permissions"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : (
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -161,6 +169,7 @@ function PermissionsTab() {
           ))}
         </Table.Tbody>
       </Table>
+      )}
       <Modal opened={!!editing} onClose={() => setEditing(null)} title="Edit permission">
         <TextInput
           label="Name"
@@ -196,7 +205,7 @@ function PermissionsTab() {
 }
 
 function RolesTab() {
-  const { data: roles } = useRoles();
+  const { data: roles, error, refetch } = useRoles();
   const { data: permissions } = usePermissions();
   const create = useCreateRole();
   const del = useDeleteRole();
@@ -244,6 +253,13 @@ function RolesTab() {
           </Button>
         </Panel.Body>
       </Panel>
+      {error ? (
+        <ErrorState
+          title="Could not load roles"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : (
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -272,6 +288,7 @@ function RolesTab() {
           ))}
         </Table.Tbody>
       </Table>
+      )}
       {editRole && <RoleEditModal role={editRole} onClose={() => setEditRole(null)} />}
       {permRole && (
         <RolePermissionsModal
@@ -369,7 +386,7 @@ function RolePermissionsModal({
 }
 
 function UsersTab() {
-  const { data: users } = useUsers();
+  const { data: users, error, refetch } = useUsers();
   const { data: roles } = useRoles();
   const create = useCreateUser();
   const del = useDeleteUser();
@@ -427,6 +444,13 @@ function UsersTab() {
           </Button>
         </Panel.Body>
       </Panel>
+      {error ? (
+        <ErrorState
+          title="Could not load users"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : (
       <Table>
         <Table.Thead>
           <Table.Tr>
@@ -457,6 +481,7 @@ function UsersTab() {
           ))}
         </Table.Tbody>
       </Table>
+      )}
       {editUser && (
         <UserEditModal user={editUser} onClose={() => setEditUser(null)} />
       )}

@@ -11,6 +11,7 @@ import { TextInput } from "../design-system/forms/TextInput";
 import { IconButton } from "../design-system/icons/IconButton";
 import { ConfirmDialog } from "../design-system/overlays/ConfirmDialog";
 import { Modal } from "../design-system/overlays/Modal";
+import { ErrorState } from "../design-system/patterns/ErrorState";
 import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
 import { ListPage } from "../design-system/patterns/ListPage";
 import { Badge } from "../design-system/primitives/Badge";
@@ -44,7 +45,7 @@ function statusTone(value: "active" | "expired" | "revoked") {
 
 export function ApiKeysPage() {
   const user = useAuthStore((state) => state.user);
-  const { data: keys } = useApiKeys();
+  const { data: keys, error, refetch } = useApiKeys();
   const create = useCreateApiKey();
   const revoke = useRevokeApiKey();
   const [scopes, setScopes] = useState<string[]>([]);
@@ -107,7 +108,13 @@ export function ApiKeysPage() {
         </Panel.Body>
       </Panel>
 
-      {(keys ?? []).length === 0 ? (
+      {error ? (
+        <ErrorState
+          title="Could not load API keys"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : (keys ?? []).length === 0 ? (
         <GuidedEmptyState
           icon={RiKey2Line}
           title="No API keys yet"

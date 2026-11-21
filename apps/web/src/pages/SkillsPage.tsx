@@ -9,6 +9,7 @@ import { FormField } from "../design-system/forms/FormField";
 import { TextInput } from "../design-system/forms/TextInput";
 import { Textarea } from "../design-system/forms/Textarea";
 import { IconButton } from "../design-system/icons/IconButton";
+import { ErrorState } from "../design-system/patterns/ErrorState";
 import { GuidedEmptyState } from "../design-system/patterns/GuidedEmptyState";
 import { ListPage } from "../design-system/patterns/ListPage";
 import { Button } from "../design-system/primitives/Button";
@@ -18,7 +19,7 @@ import { StatusChip } from "../design-system/primitives/StatusChip";
 type SkillRow = { name: string; description: string; scope: string };
 
 export function SkillsPage() {
-  const { data: skills } = useSkills();
+  const { data: skills, error, refetch } = useSkills();
   const save = useSaveSkill();
   const del = useDeleteSkill();
   const [editing, setEditing] = useState<string | null>(null);
@@ -102,7 +103,13 @@ export function SkillsPage() {
         </Panel.Body>
       </Panel>
 
-      {(skills ?? []).length === 0 ? (
+      {error ? (
+        <ErrorState
+          title="Could not load skills"
+          message={error.message}
+          onRetry={() => void refetch()}
+        />
+      ) : (skills ?? []).length === 0 ? (
         <GuidedEmptyState
           icon={RiBookOpenLine}
           title="No skills yet"
