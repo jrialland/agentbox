@@ -1,0 +1,10 @@
+# Agentbox API
+
+> Agentbox is a self-hosted agent runtime. This guide explains how to authenticate, create agent configurations and sessions, stream runs over AG-UI, and call the A2A surface.
+
+Agentbox exposes a JSON HTTP API rooted at this server's origin. An **agent** is a configuration (model, instructions, tools, modes); a **session** is a live instance of that configuration on a project directory. Every path below is relative to this origin. Exact request and response schemas are in [openapi.json](/openapi.json).
+
+## Optional
+
+- [OpenAPI document](/openapi.json): machine-readable schema for all documented endpoints.
+- [Interactive API docs](/docs): Swagger UI for manual exploration.
