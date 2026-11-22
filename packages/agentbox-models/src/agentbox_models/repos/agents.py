@@ -10,6 +10,7 @@ from agentbox_harness.spec import (
     Mode,
     ModelBinding,
     NativeToolBinding,
+    PluginMcpBinding,
 )
 from agentbox_models.repos.model_labels import (
     canonical_label,
@@ -19,6 +20,7 @@ from agentbox_models.tables.core import (
     Agent,
     AgentMode,
     AgentModeFlag,
+    AgentPluginMcpBinding,
     AgentToolBinding,
     AgentToolBindingArg,
     AgentToolBindingEnv,
@@ -139,6 +141,45 @@ async def _load_bindings(session, agent_id: str):
     return bindings
 
 
+async def _save_plugin_bindings(session, agent_id: str, bindings) -> None:
+    await session.execute(
+        delete(AgentPluginMcpBinding).where(
+            AgentPluginMcpBinding.agent_id == agent_id  # ty: ignore[invalid-argument-type]
+        )
+    )
+    for position, binding in enumerate(bindings):
+        session.add(
+            AgentPluginMcpBinding(
+                id=uuid.uuid4().hex,
+                agent_id=agent_id,
+                position=position,
+                plugin=binding.plugin,
+                server=binding.server,
+                project_id=binding.project_id,
+                binding_id=binding.id,
+            )
+        )
+
+
+async def _load_plugin_bindings(session, agent_id: str):
+    rows = (
+        await session.execute(
+            select(AgentPluginMcpBinding)
+            .where(AgentPluginMcpBinding.agent_id == agent_id)
+            .order_by(AgentPluginMcpBinding.position)  # ty: ignore[invalid-argument-type]
+        )
+    ).scalars().all()
+    return [
+        PluginMcpBinding(
+            plugin=row.plugin,
+            server=row.server,
+            project_id=row.project_id,
+            id=row.binding_id,
+        )
+        for row in rows
+    ]
+
+
 async def _save_modes(session, agent_id: str, modes) -> None:
     await session.execute(delete(AgentMode).where(AgentMode.agent_id == agent_id))  # ty: ignore[invalid-argument-type]
     for position, mode in enumerate(modes):
@@ -220,6 +261,9 @@ class AgentRepository:
             s.add(row)
             await s.flush()
             await _save_bindings(s, row.id, spec.tool_bindings)
+            await _save_plugin_bindings(
+                s, row.id, spec.plugin_mcp_bindings
+            )
             await _save_modes(s, row.id, spec.mode_definitions)
             await s.commit()
             logger.info("agent saved name={}", spec.name)
@@ -258,6 +302,7 @@ class AgentRepository:
                 description=row.description,
                 instructions=row.instructions,
                 tool_bindings=await _load_bindings(s, row.id),
+                plugin_mcp_bindings=await _load_plugin_bindings(s, row.id),
                 mode_definitions=await _load_modes(s, row.id),
                 model_binding=ModelBinding(
                     model=model.name, provider=provider.name

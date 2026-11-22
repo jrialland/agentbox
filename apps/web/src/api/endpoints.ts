@@ -207,9 +207,15 @@ export async function createAgent(body: {
   model?: string;
   model_label?: string;
   tool_bindings: Record<string, unknown>[];
+  plugin_mcp_bindings?: Record<string, unknown>[];
   mode_definitions: Record<string, unknown>[];
 }): Promise<Agent> {
-  const { data, error, response } = await api.POST("/agents", { body });
+  const { data, error, response } = await api.POST("/agents", {
+    body: {
+      ...body,
+      plugin_mcp_bindings: body.plugin_mcp_bindings ?? [],
+    },
+  });
   if (error || !response.ok) throw toApiError(error, "Failed to create agent", response.status);
   return data as Agent;
 }
@@ -223,12 +229,16 @@ export async function updateAgent(
     model?: string;
     model_label?: string;
     tool_bindings: Record<string, unknown>[];
+    plugin_mcp_bindings?: Record<string, unknown>[];
     mode_definitions: Record<string, unknown>[];
   },
 ): Promise<Agent> {
   const { data, error, response } = await api.PUT("/agents/{name}", {
     params: { path: { name } },
-    body,
+    body: {
+      ...body,
+      plugin_mcp_bindings: body.plugin_mcp_bindings ?? [],
+    },
   });
   if (error || !response.ok)
     throw toApiError(error, "Failed to update agent", response.status);
@@ -575,8 +585,86 @@ export async function deleteAgentCard(name: string): Promise<void> {
   if (error || !response.ok) throw toApiError(error, "Failed to delete agent card", response.status);
 }
 
-export type SkillInfo = { name: string; description: string; scope: string };
+export type SkillInfo = {
+  name: string;
+  description: string;
+  scope: string;
+  plugin?: string | null;
+};
 export type SkillDetail = SkillInfo & { body: string };
+
+export type PluginSkillInfo = { name: string; description: string };
+export type PluginMcpInfo = { name: string; transport: string };
+export type PluginIssue = {
+  severity: string;
+  component: string;
+  message: string;
+};
+export type PluginInfo = {
+  name: string;
+  version: string;
+  description: string;
+  scope: string;
+  project_id: string | null;
+  enabled: boolean;
+  valid: boolean;
+  shadowed: boolean;
+  author: Record<string, unknown>;
+  homepage: string;
+  repository: string;
+  license: string;
+  keywords: string[];
+  skills: PluginSkillInfo[];
+  mcp_servers: PluginMcpInfo[];
+  issues: PluginIssue[];
+};
+export type PluginStateUpdate = {
+  plugin_name: string;
+  scope: string;
+  project_id?: string | null;
+  enabled: boolean;
+};
+
+export async function fetchPlugins(
+  projectId?: string,
+): Promise<PluginInfo[]> {
+  const { data, error, response } = await api.GET("/plugins", {
+    params: { query: projectId ? { project_id: projectId } : {} },
+  });
+  if (error || !response.ok)
+    throw toApiError(error, "Failed to load plugins", response.status);
+  return (data as PluginInfo[]) ?? [];
+}
+
+export async function fetchPlugin(
+  scope: string,
+  name: string,
+  projectId?: string,
+): Promise<PluginInfo> {
+  const { data, error, response } = await api.GET(
+    "/plugins/{scope}/{name}",
+    {
+      params: {
+        path: { scope, name },
+        query: projectId ? { project_id: projectId } : {},
+      },
+    },
+  );
+  if (error || !response.ok)
+    throw toApiError(error, "Failed to load plugin", response.status);
+  return data as PluginInfo;
+}
+
+export async function setPluginState(
+  body: PluginStateUpdate,
+): Promise<PluginInfo> {
+  const { data, error, response } = await api.PUT("/plugins/state", {
+    body,
+  });
+  if (error || !response.ok)
+    throw toApiError(error, "Failed to update plugin", response.status);
+  return data as PluginInfo;
+}
 
 export async function fetchSkills(projectId?: string): Promise<SkillInfo[]> {
   const { data, error, response } = await api.GET("/skills", {

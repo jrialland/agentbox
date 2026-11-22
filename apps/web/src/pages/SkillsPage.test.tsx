@@ -38,6 +38,23 @@ test("renders skills and scopes", async () => {
   expect(screen.getAllByText("user").length).toBeGreaterThan(0);
 });
 
+test("shows plugin skills read-only", async () => {
+  vi.spyOn(endpoints, "fetchSkills").mockResolvedValue([
+    {
+      name: "acme-tools:review",
+      description: "Review",
+      scope: "plugin",
+      plugin: "acme-tools",
+    },
+  ] as never);
+  renderPage();
+  expect(await screen.findByText("acme-tools:review")).toBeInTheDocument();
+  expect(screen.getByText("plugin: acme-tools")).toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Edit" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Delete" })).toBeNull();
+});
+
+
 test("shows a retry state when skills fail to load", async () => {
   vi.spyOn(endpoints, "fetchSkills").mockRejectedValueOnce(new Error("boom"));
   renderPage();

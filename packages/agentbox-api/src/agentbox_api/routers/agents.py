@@ -21,6 +21,7 @@ from sqlmodel import select
 
 from agentbox_api import avatars
 from agentbox_api.deps import require_permission
+from agentbox_api.plugin_service import PluginService
 from agentbox_api.validation import required_name
 from agentbox_harness.spec import (
     AgentSpec,
@@ -28,10 +29,17 @@ from agentbox_harness.spec import (
     Mode,
     ModelBinding,
     NativeToolBinding,
+    PluginMcpBinding,
 )
 from agentbox_harness.tools.mcp import mcp_toolset_id
 from agentbox_models.repos.agents import AgentRepository
-from agentbox_models.tables.core import Agent, AgentCard, MediaFile, utcnow
+from agentbox_models.tables.core import (
+    Agent,
+    AgentCard,
+    MediaFile,
+    Project,
+    utcnow,
+)
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -43,6 +51,7 @@ class AgentCreate(BaseModel):
     model: str | None = None
     model_label: str | None = None
     tool_bindings: list[dict] = []
+    plugin_mcp_bindings: list[dict] = []
     mode_definitions: list[dict] = []
 
     @field_validator("name")
@@ -92,6 +101,30 @@ def _to_spec(body: AgentCreate) -> AgentSpec:
             bindings.append(binding)
         else:
             bindings.append(NativeToolBinding(**b))
+    plugin_bindings = []
+    plugin_seen: set[tuple[str | None, str, str]] = set()
+    for item in body.plugin_mcp_bindings:
+        plugin = str(item.get("plugin") or "").strip()
+        server = str(item.get("server") or "").strip()
+        if not plugin or not server:
+            raise ValueError(
+                "Plugin MCP bindings require plugin and server"
+            )
+        project_id = item.get("project_id") or None
+        key = (project_id, plugin, server)
+        if key in plugin_seen:
+            raise ValueError(
+                f"Duplicate plugin MCP server: {plugin}:{server}"
+            )
+        plugin_seen.add(key)
+        plugin_bindings.append(
+            PluginMcpBinding(
+                plugin=plugin,
+                server=server,
+                project_id=project_id,
+                id=str(item.get("id") or f"{plugin}:{server}"),
+            )
+        )
     return AgentSpec(
         name=body.name,
         description=body.description,
@@ -100,7 +133,41 @@ def _to_spec(body: AgentCreate) -> AgentSpec:
         mode_definitions=[Mode(**m) for m in body.mode_definitions],
         model_binding=ModelBinding(model=body.model or "", provider=""),
         model_label=body.model_label,
+        plugin_mcp_bindings=plugin_bindings,
     )
+
+
+async def _validate_plugin_bindings(
+    request: Request, spec: AgentSpec
+) -> None:
+    if not spec.plugin_mcp_bindings:
+        return
+    settings = request.app.state.settings
+    factory = request.app.state.session_factory
+    service = PluginService(
+        factory, settings.plugins_user_dir, settings.plugins_data_dir
+    )
+    for binding in spec.plugin_mcp_bindings:
+        project_root = "."
+        if binding.project_id is not None:
+            async with factory() as s:
+                project = await s.get(Project, binding.project_id)
+            if project is None:
+                raise ValueError(
+                    f"Unknown project for plugin MCP binding: {binding.project_id}"
+                )
+            project_root = project.path
+        resolved = await service.resolve_mcp(
+            binding.plugin,
+            binding.server,
+            binding.project_id,
+            project_root,
+        )
+        if resolved is None:
+            raise ValueError(
+                "Unknown or disabled plugin MCP server: "
+                f"{binding.plugin}:{binding.server}"
+            )
 
 
 @router.post("", response_model=AgentSpec)
@@ -114,7 +181,9 @@ async def create_agent(
         )
     repo = AgentRepository(request.app.state.session_factory)
     try:
-        spec = await repo.save(_to_spec(body))
+        spec = _to_spec(body)
+        await _validate_plugin_bindings(request, spec)
+        spec = await repo.save(spec)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     logger.info("agent created agent={}", spec.name)
@@ -137,7 +206,9 @@ async def update_agent(
         )
     repo = AgentRepository(request.app.state.session_factory)
     try:
-        spec = await repo.save(_to_spec(body))
+        spec = _to_spec(body)
+        await _validate_plugin_bindings(request, spec)
+        spec = await repo.save(spec)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     logger.info("agent updated agent={}", spec.name)

@@ -442,6 +442,63 @@ class TurnAttachment(SQLModel, table=True):
     position: int = Field(sa_column=Column(Integer, nullable=False))
 
 
+class AgentPluginMcpBinding(SQLModel, table=True):
+    __tablename__ = "agent_plugin_mcp_binding"
+    __table_args__ = (
+        UniqueConstraint(
+            "agent_id", "position", name="uq_agent_plugin_mcp_pos"
+        ),
+    )
+    id: str = Field(sa_column=Column(String(32), primary_key=True))
+    agent_id: str = Field(
+        sa_column=Column(
+            String(32),
+            ForeignKey("agent.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
+    position: int = Field(sa_column=Column(Integer, nullable=False))
+    plugin: str = Field(sa_column=Column(String(64), nullable=False))
+    server: str = Field(sa_column=Column(String(255), nullable=False))
+    project_id: str | None = Field(
+        default=None,
+        sa_column=Column(
+            String(32),
+            ForeignKey("project.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+    )
+    binding_id: str = Field(
+        default="", sa_column=Column(String(160), nullable=False)
+    )
+
+
+class PluginState(SQLModel, table=True):
+    id: str = Field(sa_column=Column(String(160), primary_key=True))
+    plugin_name: str = Field(sa_column=Column(String(64), nullable=False))
+    scope: str = Field(sa_column=Column(String(16), nullable=False))
+    project_id: str | None = Field(
+        default=None,
+        sa_column=Column(
+            String(32),
+            ForeignKey("project.id", ondelete="CASCADE"),
+            nullable=True,
+            index=True,
+        ),
+    )
+    enabled: bool = Field(
+        default=False, sa_column=Column(Boolean, nullable=False)
+    )
+    created_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(UTCDateTime, nullable=False)
+    )
+    updated_at: datetime = Field(
+        default_factory=utcnow, sa_column=Column(UTCDateTime, nullable=False)
+    )
+
+
 class PlanItem(SQLModel, table=True):
     id: str = Field(sa_column=Column(String(32), primary_key=True))
     session_id: str = Field(

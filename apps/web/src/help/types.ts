@@ -11,6 +11,7 @@ export type HelpId =
   | "a2a.skills"
   | "api.scopes"
   | "skills.overview"
+  | "plugins.overview"
   | "onboarding.provider"
   | "onboarding.agent"
   | "onboarding.session";

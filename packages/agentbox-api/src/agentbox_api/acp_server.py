@@ -156,6 +156,7 @@ class AcpSession:
     subagent_session_runner: object | None = None
     run: Run | None = None
     extra_roots: list[str] = field(default_factory=list)
+    plugin_roots: list[str] = field(default_factory=list)
     client_tools: AcpClientTools | None = None
 
 
@@ -261,6 +262,9 @@ class AgentboxAcpAgent:
             context_editing=context_editing_config_from_settings(
                 self._settings
             ),
+            project_id=project.id if project is not None else None,
+            plugins_user_dir=self._settings.plugins_user_dir,
+            plugins_data_dir=self._settings.plugins_data_dir,
         )
         runtime = prepared.runtime
         owner = runtime.created_by or await self._admin_id()
@@ -298,6 +302,7 @@ class AgentboxAcpAgent:
             session_id, cwd, project_id, runtime.agent_id, spec, runtime.model,
             prepared.registry, mode, prepared.subagent_session_runner,
             extra_roots=extra_roots,
+            plugin_roots=[str(path) for path in prepared.plugin_roots],
             client_tools=client_tools,
         )
         logger.info("acp session new agent={} session={}", self._agent_name, session_id)
@@ -322,6 +327,7 @@ class AgentboxAcpAgent:
             head_id=await _latest_leaf(self._factory, session_id),
             mode_name=sess.mode,
             extra_roots=sess.extra_roots,
+            plugin_roots=sess.plugin_roots,
         )
         harness = Harness(
             registry=sess.registry,
@@ -512,6 +518,9 @@ class AgentboxAcpAgent:
             context_editing=context_editing_config_from_settings(
                 self._settings
             ),
+            project_id=project.id if project is not None else None,
+            plugins_user_dir=self._settings.plugins_user_dir,
+            plugins_data_dir=self._settings.plugins_data_dir,
         )
         if row.agent_id != prepared.runtime.agent_id:
             raise acp.RequestError(-32002, "unknown session")
@@ -542,6 +551,7 @@ class AgentboxAcpAgent:
             _default_mode(spec),
             prepared.subagent_session_runner,
             extra_roots=extra_roots,
+            plugin_roots=[str(path) for path in prepared.plugin_roots],
             client_tools=client_tools,
         )
         self._sessions[session_id] = sess

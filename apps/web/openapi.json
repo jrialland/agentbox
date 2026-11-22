@@ -2842,6 +2842,157 @@
           }
         }
       }
+    },
+    "/plugins": {
+      "get": {
+        "tags": [
+          "plugins"
+        ],
+        "summary": "List Plugins",
+        "operationId": "list_plugins_plugins_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugins/{scope}/{name}": {
+      "get": {
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Get Plugin",
+        "operationId": "get_plugin_plugins__scope___name__get",
+        "parameters": [
+          {
+            "name": "scope",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Scope"
+            }
+          },
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Name"
+            }
+          },
+          {
+            "name": "project_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/plugins/state": {
+      "put": {
+        "tags": [
+          "plugins"
+        ],
+        "summary": "Set Plugin State",
+        "operationId": "set_plugin_state_plugins_state_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PluginStateBody"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -2891,6 +3042,15 @@
             },
             "type": "array",
             "title": "Tool Bindings",
+            "default": []
+          },
+          "plugin_mcp_bindings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Plugin Mcp Bindings",
             "default": []
           },
           "mode_definitions": {
@@ -2958,6 +3118,14 @@
               }
             ],
             "title": "Model Label"
+          },
+          "plugin_mcp_bindings": {
+            "items": {
+              "$ref": "#/components/schemas/PluginMcpBinding"
+            },
+            "type": "array",
+            "title": "Plugin Mcp Bindings",
+            "default": []
           }
         },
         "type": "object",
@@ -3305,6 +3473,18 @@
             "type": "string",
             "title": "Cwd",
             "default": ""
+          },
+          "transport": {
+            "type": "string",
+            "title": "Transport",
+            "default": ""
+          },
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Headers"
           }
         },
         "type": "object",
@@ -3795,6 +3975,74 @@
         },
         "type": "object",
         "title": "PlanRead"
+      },
+      "PluginMcpBinding": {
+        "properties": {
+          "plugin": {
+            "type": "string",
+            "title": "Plugin"
+          },
+          "server": {
+            "type": "string",
+            "title": "Server"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "default": ""
+          }
+        },
+        "type": "object",
+        "required": [
+          "plugin",
+          "server"
+        ],
+        "title": "PluginMcpBinding"
+      },
+      "PluginStateBody": {
+        "properties": {
+          "plugin_name": {
+            "type": "string",
+            "title": "Plugin Name"
+          },
+          "scope": {
+            "type": "string",
+            "title": "Scope",
+            "default": "global"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          },
+          "enabled": {
+            "type": "boolean",
+            "title": "Enabled",
+            "default": true
+          }
+        },
+        "type": "object",
+        "required": [
+          "plugin_name"
+        ],
+        "title": "PluginStateBody"
       },
       "PreviewRequest": {
         "properties": {

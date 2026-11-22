@@ -1,7 +1,11 @@
 import os
 import re
 
-from fastmcp.client.transports import StdioTransport
+from fastmcp.client.transports import (
+    SSETransport,
+    StdioTransport,
+    StreamableHttpTransport,
+)
 from loguru import logger
 from pydantic_ai.mcp import MCPToolset
 
@@ -37,4 +41,19 @@ def build_mcp_toolset(binding: McpToolBinding, *, cwd: str | None = None) -> MCP
             cwd=cwd or binding.cwd or None,
         )
         return MCPToolset(transport, id=mcp_toolset_id(binding))
-    return MCPToolset(binding.server_url, id=mcp_toolset_id(binding))
+    headers = binding.headers or None
+    if binding.transport == "sse":
+        return MCPToolset(
+            SSETransport(binding.server_url, headers=headers),
+            id=mcp_toolset_id(binding),
+        )
+    if binding.transport == "streamable-http":
+        return MCPToolset(
+            StreamableHttpTransport(binding.server_url, headers=headers),
+            id=mcp_toolset_id(binding),
+        )
+    return MCPToolset(
+        binding.server_url,
+        id=mcp_toolset_id(binding),
+        headers=headers,
+    )

@@ -5,12 +5,13 @@ from __future__ import annotations
 import asyncio
 import pathlib
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from loguru import logger
 from skills_ref import read_properties, to_prompt
 
 from agentbox_api.plan_tools import PLAN_TOOL_NAMES, make_plan_tools
+from agentbox_api.plugin_service import PluginService
 from agentbox_api.project_instructions import (
     build_system_instruction_block,
     make_project_instructions_hook,
@@ -25,7 +26,11 @@ from agentbox_harness.lsp.diagnostics import (
     make_lsp_notify_hook,
 )
 from agentbox_harness.lsp.manager import get_lsp_manager
-from agentbox_harness.spec import AgentSpec, NativeToolBinding
+from agentbox_harness.spec import (
+    AgentSpec,
+    McpToolBinding,
+    NativeToolBinding,
+)
 from agentbox_harness.subagent_sessions import SubagentSessionRunner
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_harness.tools.terminal import (
@@ -45,6 +50,7 @@ class Skill:
     description: str
     location: pathlib.Path
     scope: str
+    plugin: str | None = None
 
 
 def _scan(directory: pathlib.Path, scope: str) -> list[Skill]:
@@ -64,7 +70,11 @@ def _scan(directory: pathlib.Path, scope: str) -> list[Skill]:
     return out
 
 
-def discover_skills(project_root: str, user_dir: str) -> list[Skill]:
+def discover_skills(
+    project_root: str,
+    user_dir: str,
+    extra_skills: list[Skill] | None = None,
+) -> list[Skill]:
     scopes = {
         "builtin": _scan(_BUILTIN, "builtin"),
         "user": _scan(pathlib.Path(user_dir).expanduser(), "user"),
@@ -76,6 +86,8 @@ def discover_skills(project_root: str, user_dir: str) -> list[Skill]:
     for scope in ("builtin", "user", "project"):
         for skill in scopes[scope]:
             merged[skill.name] = skill
+    for skill in extra_skills or []:
+        merged[skill.name] = skill
     logger.debug("skills discovered count={}", len(merged))
     return list(merged.values())
 
@@ -83,12 +95,24 @@ def discover_skills(project_root: str, user_dir: str) -> list[Skill]:
 def catalog_instructions(skills: list[Skill]) -> str:
     if not skills:
         return ""
-    xml = to_prompt([s.location.parent for s in skills])
+    regular = [s for s in skills if s.scope != "plugin"]
+    plugin = [s for s in skills if s.scope == "plugin"]
+    blocks: list[str] = []
+    if regular:
+        blocks.append(to_prompt([s.location.parent for s in regular]))
+    if plugin:
+        lines = [
+            "Plugin-provided skills (activate by their full namespaced name):"
+        ]
+        lines.extend(
+            f"- {s.name} — {s.description}" for s in plugin
+        )
+        blocks.append("\n".join(lines))
     return (
         "The following skills provide specialized instructions for specific tasks. "
         "When a task matches a skill's description, call activate_skill with the "
         "skill's name before proceeding. Relative paths in a skill resolve against "
-        "its directory.\n\n" + xml
+        "its directory.\n\n" + "\n\n".join(blocks)
     )
 
 
@@ -152,6 +176,7 @@ class PreparedAgent:
     registry: ToolRegistry
     skills: list[Skill]
     subagent_session_runner: SubagentSessionRunner | None = None
+    plugin_roots: list[pathlib.Path] = field(default_factory=list)
 
 
 def _resolve_extra_roots(
@@ -186,11 +211,36 @@ async def prepare_agent(
     extra_roots: list[str] | None = None,
     compaction: CompactionConfig | None = None,
     context_editing: ContextEditingConfig | None = None,
+    project_id: str | None = None,
+    plugins_user_dir: str | None = None,
+    plugins_data_dir: str | None = None,
     subagent_session_depth: int = 0,
 ) -> PreparedAgent:
     runtime = await resolve_agent_runtime(factory, agent_name)
     resolved_extra = _resolve_extra_roots(project_root, extra_roots)
-    skills = discover_skills(project_root, user_dir)
+    plugin_skills: list[Skill] = []
+    plugin_roots: list[pathlib.Path] = []
+    plugin_service: PluginService | None = None
+    if plugins_user_dir and plugins_data_dir:
+        plugin_service = PluginService(
+            factory, plugins_user_dir, plugins_data_dir
+        )
+        plugin_skills = [
+            Skill(
+                name=item.scoped_name,
+                description=item.description,
+                location=item.location,
+                scope="plugin",
+                plugin=item.plugin_name,
+            )
+            for item in await plugin_service.list_plugin_skills(
+                project_id, project_root
+            )
+        ]
+        plugin_roots = await plugin_service.plugin_roots(
+            project_id, project_root
+        )
+    skills = discover_skills(project_root, user_dir, plugin_skills)
     resolved_user = user_name
     if resolved_user is None and runtime.created_by:
         async with factory() as s:
@@ -210,6 +260,57 @@ async def prepare_agent(
     rendered = render_prompt(runtime.spec.instructions, context, agent=agent_name)
     spec = runtime.spec.model_copy(update={"instructions": rendered})
     spec = augment_spec(spec, skills)
+    if plugin_service is not None:
+        resolved_bindings: list[McpToolBinding] = []
+        seen_ids = {
+            binding.id
+            for binding in spec.tool_bindings
+            if isinstance(binding, McpToolBinding) and binding.id
+        }
+        for reference in spec.plugin_mcp_bindings:
+            if reference.project_id is not None and (
+                reference.project_id != project_id
+            ):
+                continue
+            resolved = await plugin_service.resolve_mcp(
+                reference.plugin,
+                reference.server,
+                project_id,
+                project_root,
+            )
+            if resolved is None:
+                logger.warning(
+                    "plugin mcp unavailable plugin={} server={}",
+                    reference.plugin,
+                    reference.server,
+                )
+                continue
+            if resolved.id in seen_ids:
+                logger.warning("duplicate plugin mcp id={}", resolved.id)
+                continue
+            seen_ids.add(resolved.id)
+            resolved_bindings.append(
+                McpToolBinding(
+                    id=resolved.id,
+                    server_url=resolved.url,
+                    command=resolved.command,
+                    args=list(resolved.args),
+                    env=resolved.env,
+                    env_passthrough=list(resolved.env_passthrough),
+                    cwd=resolved.cwd,
+                    transport=resolved.transport,
+                    headers=resolved.headers,
+                )
+            )
+        if resolved_bindings:
+            spec = spec.model_copy(
+                update={
+                    "tool_bindings": [
+                        *spec.tool_bindings,
+                        *resolved_bindings,
+                    ]
+                }
+            )
     instruction_block = build_system_instruction_block(project_root, session_id)
     if instruction_block:
         spec = spec.model_copy(
@@ -251,7 +352,10 @@ async def prepare_agent(
         hooks.append(make_project_instructions_hook(project_root, session_id))
     registry = build_registry(
         project_root,
-        extra_read_roots=[s.location.parent for s in skills],
+        extra_read_roots=[
+            *[s.location.parent for s in skills],
+            *plugin_roots,
+        ],
         extra_tools=extra_tools or None,
         hooks=hooks,
         media_max_dimension=media_max_dimension,
@@ -297,9 +401,19 @@ async def prepare_agent(
             web_config=web_config,
             compaction=compaction or CompactionConfig(),
             context_editing=context_editing,
+            project_id=project_id,
+            plugins_user_dir=plugins_user_dir,
+            plugins_data_dir=plugins_data_dir,
             media_max_dimension=media_max_dimension,
             media_max_bytes=media_max_bytes,
             depth=subagent_session_depth,
         )
     )
-    return PreparedAgent(runtime, spec, registry, skills, subagent_session_runner)
+    return PreparedAgent(
+        runtime,
+        spec,
+        registry,
+        skills,
+        subagent_session_runner,
+        plugin_roots=plugin_roots,
+    )

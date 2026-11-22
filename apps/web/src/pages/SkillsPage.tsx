@@ -17,7 +17,12 @@ import { Button } from "../design-system/primitives/Button";
 import { Panel } from "../design-system/primitives/Panel";
 import { StatusChip } from "../design-system/primitives/StatusChip";
 
-type SkillRow = { name: string; description: string; scope: string };
+type SkillRow = {
+  name: string;
+  description: string;
+  scope: string;
+  plugin?: string | null;
+};
 
 export function SkillsPage() {
   const { data: skills, error, refetch } = useSkills();
@@ -141,10 +146,26 @@ export function SkillsPage() {
             key: "scope",
             header: "Scope",
             render: (skill) => (
-              <StatusChip tone={skill.scope === "user" ? "success" : "neutral"}>
+              <StatusChip
+                tone={
+                  skill.scope === "plugin"
+                    ? "warning"
+                    : skill.scope === "user"
+                      ? "success"
+                      : "neutral"
+                }
+              >
                 {skill.scope}
               </StatusChip>
             ),
+          },
+          {
+            key: "source",
+            header: "Source",
+            render: (skill) =>
+              skill.scope === "plugin"
+                ? `plugin: ${skill.plugin ?? "unknown"}`
+                : "—",
           },
           {
             key: "actions",

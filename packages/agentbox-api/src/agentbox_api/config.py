@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     a2a_workspace: str = "."
     a2a_public_url: str = "http://localhost:8000"
     skills_user_dir: str = "~/.agents/skills"
+    plugins_user_dir: str = "~/.agents/plugins"
+    plugins_data_dir: str = "~/.agents/plugins/data"
     media_max_dimension: int = 1568
     media_max_bytes: int = 1_500_000
     log_level: str = "INFO"

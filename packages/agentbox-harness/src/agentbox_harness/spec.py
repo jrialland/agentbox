@@ -35,6 +35,16 @@ class McpToolBinding:
     env: dict[str, str] = field(default_factory=dict)
     env_passthrough: list[str] = field(default_factory=list)
     cwd: str = ""
+    transport: str = ""
+    headers: dict[str, str] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class PluginMcpBinding:
+    plugin: str
+    server: str
+    project_id: str | None = None
+    id: str = ""
 
 
 ToolBinding = NativeToolBinding | McpToolBinding
@@ -48,6 +58,7 @@ class AgentSpec(BaseModel):
     mode_definitions: list[Mode] = []
     model_binding: ModelBinding
     model_label: str | None = None
+    plugin_mcp_bindings: list[PluginMcpBinding] = []
 
 
 DEFAULT_MODES = (

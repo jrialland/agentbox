@@ -65,7 +65,7 @@ class Harness:
             session.session_id,
             bindings,
             session.project_root,
-            session.extra_roots,
+            [*session.extra_roots, *session.plugin_roots],
         )
 
     def start_session(

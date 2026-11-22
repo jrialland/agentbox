@@ -10,6 +10,8 @@ vi.mock("../../api/queries", () => ({
   useUpdateAgent: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useLabels: () => ({ data: [] }),
   useModels: () => ({ data: [] }),
+  useProjects: () => ({ data: [] }),
+  usePlugins: () => ({ data: [] }),
   useProviders: () => ({ data: [] }),
   useUploadAvatar: () => ({ mutateAsync: vi.fn() }),
 }));
@@ -30,8 +32,11 @@ const agent: Agent = {
       env: {},
       env_passthrough: [],
       cwd: "",
+      transport: "",
+      headers: {},
     },
   ],
+  plugin_mcp_bindings: [],
   mode_definitions: [{ name: "agent", flags: { write: true } }],
 };
 

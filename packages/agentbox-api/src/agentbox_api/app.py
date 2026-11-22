@@ -16,6 +16,7 @@ from agentbox_api.routers.auth import router as auth_router
 from agentbox_api.routers.labels import router as labels_router
 from agentbox_api.routers.models import router as models_router
 from agentbox_api.routers.permissions import router as permissions_router
+from agentbox_api.routers.plugins import router as plugins_router
 from agentbox_api.routers.projects import router as projects_router
 from agentbox_api.routers.prompts import router as prompts_router
 from agentbox_api.routers.providers import router as providers_router
@@ -107,6 +108,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
     app.include_router(api_keys_router)
     app.include_router(labels_router)
     app.include_router(skills_router)
+    app.include_router(plugins_router)
 
     @app.get("/sandbox", include_in_schema=False)
     async def sandbox_page(csp: str | None = None):

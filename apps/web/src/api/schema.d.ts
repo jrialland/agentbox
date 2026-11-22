@@ -729,6 +729,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/plugins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Plugins */
+        get: operations["list_plugins_plugins_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/{scope}/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Plugin */
+        get: operations["get_plugin_plugins__scope___name__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plugins/state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set Plugin State */
+        put: operations["set_plugin_state_plugins_state_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -759,6 +810,13 @@ export interface components {
                 [key: string]: unknown;
             }[];
             /**
+             * Plugin Mcp Bindings
+             * @default []
+             */
+            plugin_mcp_bindings: {
+                [key: string]: unknown;
+            }[];
+            /**
              * Mode Definitions
              * @default []
              */
@@ -784,6 +842,11 @@ export interface components {
             model_binding: components["schemas"]["ModelBinding"];
             /** Model Label */
             model_label?: string | null;
+            /**
+             * Plugin Mcp Bindings
+             * @default []
+             */
+            plugin_mcp_bindings: components["schemas"]["PluginMcpBinding"][];
         };
         /** ApiKeyCreate */
         ApiKeyCreate: {
@@ -931,6 +994,15 @@ export interface components {
              * @default
              */
             cwd: string;
+            /**
+             * Transport
+             * @default
+             */
+            transport: string;
+            /** Headers */
+            headers?: {
+                [key: string]: string;
+            };
         };
         /** MeResponse */
         MeResponse: {
@@ -1109,6 +1181,37 @@ export interface components {
              * @default []
              */
             items: components["schemas"]["PlanItemRead"][];
+        };
+        /** PluginMcpBinding */
+        PluginMcpBinding: {
+            /** Plugin */
+            plugin: string;
+            /** Server */
+            server: string;
+            /** Project Id */
+            project_id?: string | null;
+            /**
+             * Id
+             * @default
+             */
+            id: string;
+        };
+        /** PluginStateBody */
+        PluginStateBody: {
+            /** Plugin Name */
+            plugin_name: string;
+            /**
+             * Scope
+             * @default global
+             */
+            scope: string;
+            /** Project Id */
+            project_id?: string | null;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
         };
         /** PreviewRequest */
         PreviewRequest: {
@@ -3497,6 +3600,104 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_plugins_plugins_get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_plugin_plugins__scope___name__get: {
+        parameters: {
+            query?: {
+                project_id?: string | null;
+            };
+            header?: never;
+            path: {
+                scope: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_plugin_state_plugins_state_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PluginStateBody"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

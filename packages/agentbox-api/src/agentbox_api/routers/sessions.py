@@ -12,6 +12,7 @@ from sqlmodel import select
 from agentbox_api.activity import RunActivityCollector
 from agentbox_api.deps import require_permission
 from agentbox_api.lsp_runtime import lsp_reminders
+from agentbox_api.plugin_service import PluginService
 from agentbox_api.runtime import (
     compaction_config_from_settings,
     context_editing_config_from_settings,
@@ -339,11 +340,24 @@ async def _agent_spec_and_root(request: Request, sid: str):
         extra_roots = (
             await load_extra_roots(s, project.id) if project is not None else []
         )
+    settings = request.app.state.settings
+    service = PluginService(
+        factory,
+        settings.plugins_user_dir,
+        settings.plugins_data_dir,
+    )
+    plugin_roots = (
+        await service.plugin_roots(project.id, project.path)
+        if project is not None
+        else []
+    )
     spec = await _agent_spec(request, sid)
     return (
         spec,
         project.path if project is not None else "",
         extra_roots,
+        project.id if project is not None else None,
+        [str(path) for path in plugin_roots],
     )
 
 
@@ -358,7 +372,13 @@ async def read_app_resource(
     from agentbox_api import mcp_relay
     from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
-    spec, project_root, extra_roots = await _agent_spec_and_root(request, sid)
+    (
+        spec,
+        project_root,
+        extra_roots,
+        _project_id,
+        plugin_roots,
+    ) = await _agent_spec_and_root(request, sid)
     try:
         return await mcp_relay.read_resource_for_app(
             get_mcp_session_manager(),
@@ -367,7 +387,7 @@ async def read_app_resource(
             spec,
             server_id,
             body.uri,
-            extra_roots,
+            [*extra_roots, *plugin_roots],
         )
     except KeyError:
         raise HTTPException(status_code=404, detail="MCP server not found") from None
@@ -384,7 +404,13 @@ async def call_app_tool(
     from agentbox_api import mcp_relay
     from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
-    spec, project_root, extra_roots = await _agent_spec_and_root(request, sid)
+    (
+        spec,
+        project_root,
+        extra_roots,
+        _project_id,
+        plugin_roots,
+    ) = await _agent_spec_and_root(request, sid)
     try:
         return await mcp_relay.call_tool_for_app(
             get_mcp_session_manager(),
@@ -394,7 +420,7 @@ async def call_app_tool(
             server_id,
             body.name,
             body.arguments,
-            extra_roots,
+            [*extra_roots, *plugin_roots],
         )
     except KeyError:
         raise HTTPException(status_code=404, detail="MCP server not found") from None
@@ -441,6 +467,9 @@ async def chat(
             context_editing=context_editing_config_from_settings(
                 request.app.state.settings
             ),
+            project_id=project.id,
+            plugins_user_dir=request.app.state.settings.plugins_user_dir,
+            plugins_data_dir=request.app.state.settings.plugins_data_dir,
         )
     except PromptTemplateError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -456,6 +485,7 @@ async def chat(
         head_id=None,
         mode_name=body.mode or "agent",
         extra_roots=extra_roots,
+        plugin_roots=[str(path) for path in prepared.plugin_roots],
     )
 
     record_user_turn = True

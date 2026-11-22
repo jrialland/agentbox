@@ -28,6 +28,8 @@ ALL_PERMISSIONS = [
     "users:manage",
     "roles:manage",
     "api_keys:manage",
+    "plugins:read",
+    "plugins:write",
 ]
 
 

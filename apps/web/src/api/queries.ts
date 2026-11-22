@@ -26,6 +26,8 @@ import {
   fetchLabels,
   fetchMessages,
   fetchModels,
+  fetchPlugin,
+  fetchPlugins,
   fetchPermissions,
   fetchProjects,
   fetchProviders,
@@ -43,6 +45,7 @@ import {
   previewPrompt,
   refreshModels,
   renameSession,
+  setPluginState,
   resetAgentAvatar,
   saveSkill,
   revokeApiKey,
@@ -523,6 +526,33 @@ export function useDeleteSkill() {
   return useMutation({
     mutationFn: deleteSkill,
     onSuccess: () => qc.invalidateQueries({ queryKey: ["skills"] }),
+  });
+}
+
+
+export function usePlugins(projectId?: string, enabled = true) {
+  return useQuery({
+    queryKey: ["plugins", projectId ?? null],
+    queryFn: () => fetchPlugins(projectId),
+    enabled,
+  });
+}
+
+export function usePlugin(scope: string, name: string, projectId?: string) {
+  return useQuery({
+    queryKey: ["plugin", scope, name, projectId ?? null],
+    queryFn: () => fetchPlugin(scope, name, projectId),
+  });
+}
+
+export function useSetPluginState() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: setPluginState,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["plugins"] });
+      qc.invalidateQueries({ queryKey: ["skills"] });
+    },
   });
 }
 

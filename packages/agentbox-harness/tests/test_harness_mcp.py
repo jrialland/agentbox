@@ -40,6 +40,7 @@ def test_session_has_extra_roots_default():
         head_id=None,
     )
     assert session.extra_roots == []
+    assert session.plugin_roots == []
 
 
 async def test_harness_prepare_mcp_uses_session_roots():
@@ -65,3 +66,26 @@ async def test_harness_prepare_mcp_uses_session_roots():
     assert manager.calls == [
         ("s1", [_spec().tool_bindings[0]], "/tmp/project", ["/tmp/extra"])
     ]
+
+
+async def test_harness_prepare_mcp_includes_plugin_roots():
+    manager = FakeManager()
+    harness = Harness(
+        registry=ToolRegistry(),
+        model=TestModel(),
+        store_factory=InMemoryMessageLogStore,
+        mcp_manager=manager,
+    )
+    session = Session(
+        session_id="s1",
+        project_root="/tmp/project",
+        agent_spec=_spec(),
+        store=InMemoryMessageLogStore(),
+        head_id=None,
+        extra_roots=["/tmp/extra"],
+        plugin_roots=["/tmp/plugin"],
+    )
+
+    await harness.prepare_mcp(session)
+
+    assert manager.calls[0][3] == ["/tmp/extra", "/tmp/plugin"]

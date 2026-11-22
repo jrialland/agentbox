@@ -240,6 +240,26 @@ export const HELP_ENTRIES: Record<HelpId, HelpEntry> = {
       },
     ],
   },
+  "plugins.overview": {
+    id: "plugins.overview",
+    title: "Plugins",
+    summary:
+      "Plugins package skills and MCP servers in the portable Agent Plugins format.",
+    sections: [
+      {
+        heading: "Enable with trust",
+        paragraphs: [
+          "Plugins are disabled by default. Enabling a plugin trusts its skills and makes its MCP servers selectable; an agent must still select an MCP server explicitly.",
+        ],
+      },
+      {
+        heading: "Scopes",
+        paragraphs: [
+          "User plugins are enabled for the whole instance. Project plugins are enabled only for the selected project.",
+        ],
+      },
+    ],
+  },
   "onboarding.provider": {
     id: "onboarding.provider",
     title: "Connect a provider",

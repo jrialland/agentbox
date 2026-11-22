@@ -219,10 +219,17 @@ The shared resolver lives in `agentbox_models.config`; Alembic uses it too.
 | Compaction | `compaction_enabled`, `compaction_ratio`, `compaction_keep_turns`, `compaction_input_budget_tokens`, `compaction_max_summary_chars` |
 | Context editing | `context_editing_enabled`, `context_editing_trigger_tokens`, `context_editing_trigger_ratio`, `context_editing_target_ratio`, `context_editing_keep_tool_results`, `context_editing_keep_recent_messages`, `context_editing_clear_tool_inputs`, `context_editing_clear_binary`, `context_editing_exclude_tools`, `context_editing_placeholder`, `context_editing_binary_placeholder` |
 | MCP | `mcp_idle_ttl_seconds`, `mcp_start_timeout_seconds`, `mcp_sweep_interval_seconds` |
+| Plugins | `plugins_user_dir` (default `~/.agents/plugins`), `plugins_data_dir` (default `~/.agents/plugins/data`) |
 
 `lsp_mode=auto` (default) analyses edited files in the background and delivers a compact
 next-run reminder; `on_demand` exposes only the `lsp_diagnostics` tool; `off` disables LSP servers,
 hooks, and the tool. `lsp_enabled=false` remains an alias for `off`.
+
+Agent Plugins v1.0.0 packages are discovered from `plugins_user_dir` and project `.agents/plugins`.
+Manifests and `mcp.json` are validated locally against vendored official schemas; enabled plugins
+contribute namespaced skills and MCP servers that agents select explicitly. Plugin state is stored
+per scope in `pluginstate`; plugin MCP references live in `agent_plugin_mcp_binding` and resolve at
+`prepare_agent` time.
 
 Context editing runs inside each agent run through pydantic-ai's `ProcessHistory` capability. When
 the estimated request exceeds `min(context_editing_trigger_tokens, trigger_ratio * context_window)`,

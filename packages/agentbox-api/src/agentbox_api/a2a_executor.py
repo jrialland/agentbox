@@ -109,6 +109,9 @@ class AgentboxA2AExecutor(AgentExecutor):
             context_editing=context_editing_config_from_settings(
                 self._settings
             ),
+            project_id=project.id if project is not None else None,
+            plugins_user_dir=self._settings.plugins_user_dir,
+            plugins_data_dir=self._settings.plugins_data_dir,
         )
         owner = await self._owner()
         async with self._factory() as s:
@@ -138,6 +141,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             head_id=await _latest_leaf(self._factory, session_id),
             mode_name="agent",
             extra_roots=extra_roots,
+            plugin_roots=[str(path) for path in prepared.plugin_roots],
         )
         harness = Harness(
             registry=prepared.registry,

@@ -58,6 +58,7 @@ class Session:
     head_id: str | None
     mode_name: str = "agent"
     extra_roots: list[str] = field(default_factory=list)
+    plugin_roots: list[str] = field(default_factory=list)
 
     async def append(self, turn: Turn, parent_id: str | None) -> None:
         turn = replace(turn, parent_id=parent_id)

@@ -50,6 +50,9 @@ class SubagentSessionContext:
     media_max_bytes: int
     depth: int
     context_editing: ContextEditingConfig | None = None
+    project_id: str | None = None
+    plugins_user_dir: str | None = None
+    plugins_data_dir: str | None = None
 
 
 @dataclass
@@ -342,6 +345,9 @@ class ApiSubagentSessionRunner:
                 web_config=self._context.web_config,
                 extra_roots=self._context.extra_roots,
                 context_editing=self._context.context_editing,
+                project_id=self._context.project_id,
+                plugins_user_dir=self._context.plugins_user_dir,
+                plugins_data_dir=self._context.plugins_data_dir,
                 compaction=self._context.compaction,
                 subagent_session_depth=self._context.depth + 1,
             )
@@ -390,6 +396,7 @@ class ApiSubagentSessionRunner:
             head_id=None,
             mode_name="agent",
             extra_roots=self._context.extra_roots,
+            plugin_roots=[str(path) for path in prepared.plugin_roots],
         )
         harness = Harness(
             registry=prepared.registry,

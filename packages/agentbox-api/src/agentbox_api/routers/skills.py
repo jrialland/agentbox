@@ -9,7 +9,8 @@ from skills_ref import validate
 from sqlmodel import select
 
 from agentbox_api.deps import require_permission
-from agentbox_api.skills import discover_skills
+from agentbox_api.plugin_service import PluginService
+from agentbox_api.skills import Skill, discover_skills
 from agentbox_models.tables.core import Project
 
 router = APIRouter(prefix="/skills", tags=["skills"])
@@ -24,6 +25,27 @@ class SkillWrite(BaseModel):
 
 def _user_dir(request: Request) -> pathlib.Path:
     return pathlib.Path(request.app.state.settings.skills_user_dir).expanduser()
+
+
+async def _plugin_skills(
+    request: Request, project_id: str | None, root: str
+) -> list[Skill]:
+    settings = request.app.state.settings
+    service = PluginService(
+        request.app.state.session_factory,
+        settings.plugins_user_dir,
+        settings.plugins_data_dir,
+    )
+    return [
+        Skill(
+            name=item.scoped_name,
+            description=item.description,
+            location=item.location,
+            scope="plugin",
+            plugin=item.plugin_name,
+        )
+        for item in await service.list_plugin_skills(project_id, root)
+    ]
 
 
 async def _project_root(request: Request, project_id: str | None) -> str:
@@ -45,9 +67,19 @@ async def list_skills(
     _=Depends(require_permission("agents:read")),
 ):
     root = await _project_root(request, project_id)
-    skills = discover_skills(root, str(_user_dir(request)))
+    skills = discover_skills(
+        root,
+        str(_user_dir(request)),
+        await _plugin_skills(request, project_id, root),
+    )
     return [
-        {"name": s.name, "description": s.description, "scope": s.scope} for s in skills
+        {
+            "name": s.name,
+            "description": s.description,
+            "scope": s.scope,
+            "plugin": s.plugin,
+        }
+        for s in skills
     ]
 
 
@@ -59,16 +91,19 @@ async def get_skill(
     _=Depends(require_permission("agents:read")),
 ):
     root = await _project_root(request, project_id)
-    skill = next(
-        (s for s in discover_skills(root, str(_user_dir(request))) if s.name == name),
-        None,
+    skills = discover_skills(
+        root,
+        str(_user_dir(request)),
+        await _plugin_skills(request, project_id, root),
     )
+    skill = next((s for s in skills if s.name == name), None)
     if skill is None:
         raise HTTPException(status_code=404, detail="Not found")
     return {
         "name": skill.name,
         "description": skill.description,
         "scope": skill.scope,
+        "plugin": skill.plugin,
         "body": skill.location.read_text(encoding="utf-8"),
     }
 
@@ -107,6 +142,8 @@ async def save_skill(
 async def delete_skill(
     name: str, request: Request, _=Depends(require_permission("agents:create"))
 ):
+    if ":" in name:
+        raise HTTPException(status_code=400, detail="Plugin-managed skill")
     target = _user_dir(request) / name
     if not (target / "SKILL.md").is_file():
         raise HTTPException(status_code=404, detail="Not found")

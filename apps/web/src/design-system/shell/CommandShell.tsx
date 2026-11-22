@@ -3,6 +3,7 @@ import {
   RiBookOpenLine,
   RiHome5Line,
   RiKey2Line,
+  RiPlugLine,
   RiRobot2Line,
   RiServerLine,
   RiShieldUserLine,
@@ -32,6 +33,12 @@ const items: ShellItem[] = [
   { to: "/agents", label: "Agents", icon: RiRobot2Line },
   { to: "/providers", label: "Providers", icon: RiServerLine },
   { to: "/skills", label: "Skills", icon: RiBookOpenLine },
+  {
+    to: "/plugins",
+    label: "Plugins",
+    icon: RiPlugLine,
+    permission: "plugins:read",
+  },
   {
     to: "/api-keys",
     label: "API keys",

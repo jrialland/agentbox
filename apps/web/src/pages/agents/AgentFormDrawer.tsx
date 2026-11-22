@@ -6,10 +6,13 @@ import {
   useCreateAgent,
   useLabels,
   useModels,
+  usePlugins,
+  useProjects,
   useProviders,
   useUpdateAgent,
   useUploadAvatar,
 } from "../../api/queries";
+import { useAuthStore } from "../../store/auth";
 import { FileDropzone } from "../../design-system/forms/FileDropzone";
 import { FormActions } from "../../design-system/forms/FormActions";
 import { FormField } from "../../design-system/forms/FormField";
@@ -24,6 +27,7 @@ import { requiredText } from "../../lib/validation";
 import { buildToolBindings, TERMINAL_TOOLS } from "../AgentsPage";
 import { AgentMcpEditor } from "./AgentMcpEditor";
 import { AgentModesEditor } from "./AgentModesEditor";
+import { AgentPluginMcpEditor } from "./AgentPluginMcpEditor";
 import { AgentToolsEditor } from "./AgentToolsEditor";
 import styles from "./agents.module.css";
 import { validateModes } from "./agentFormValidation";
@@ -33,6 +37,11 @@ import {
   validateMcpServers,
   type McpServerDraft,
 } from "./mcpTypes";
+import {
+  fromPluginBinding,
+  toPluginBinding,
+  type PluginMcpBindingDraft,
+} from "./pluginMcpTypes";
 import { TemplatePreviewModal } from "./TemplatePreviewModal";
 
 export function AgentFormDrawer({
@@ -47,6 +56,14 @@ export function AgentFormDrawer({
   const { data: models } = useModels();
   const { data: labels } = useLabels();
   const { data: providers } = useProviders();
+  const { data: projects } = useProjects();
+  const permissions = useAuthStore((state) => state.user?.permissions);
+  const canReadPlugins = permissions?.includes("plugins:read") ?? false;
+  const [pluginProjectId, setPluginProjectId] = useState("");
+  const { data: plugins } = usePlugins(
+    pluginProjectId || undefined,
+    canReadPlugins,
+  );
   const create = useCreateAgent();
   const update = useUpdateAgent();
   const upload = useUploadAvatar();
@@ -82,6 +99,13 @@ export function AgentFormDrawer({
     agent?.tool_bindings
       ?.map((binding) => fromBinding(binding as Record<string, unknown>))
       .filter((draft): draft is McpServerDraft => draft !== null) ?? [],
+  );
+  const [pluginMcp, setPluginMcp] = useState<PluginMcpBindingDraft[]>(
+    agent?.plugin_mcp_bindings
+      ?.map((binding) =>
+        fromPluginBinding(binding as Record<string, unknown>),
+      )
+      .filter((item): item is PluginMcpBindingDraft => item !== null) ?? [],
   );
   const [modes, setModes] = useState<{ name: string; write: boolean }[]>(
     agent?.mode_definitions?.map((mode) => ({
@@ -151,6 +175,7 @@ export function AgentFormDrawer({
       model: modelName,
       model_label: isLabel ? modelRef.slice("label:".length) : undefined,
       tool_bindings,
+      plugin_mcp_bindings: pluginMcp.map(toPluginBinding),
       mode_definitions,
     };
     try {
@@ -168,6 +193,8 @@ export function AgentFormDrawer({
         setErrors({});
         setTools([]);
         setMcpServers([]);
+        setPluginMcp([]);
+        setPluginProjectId("");
         setPhoto(null);
       }
       onClose();
@@ -236,6 +263,19 @@ export function AgentFormDrawer({
           onChange={setMcpServers}
           error={errors.mcp}
         />
+        {canReadPlugins ? (
+          <AgentPluginMcpEditor
+            projects={(projects ?? []).map((project) => ({
+              id: project.id,
+              name: project.name,
+            }))}
+            projectId={pluginProjectId}
+            onProjectChange={setPluginProjectId}
+            plugins={plugins ?? []}
+            value={pluginMcp}
+            onChange={setPluginMcp}
+          />
+        ) : null}
       </Section>
 
       <Section title="Behavior">

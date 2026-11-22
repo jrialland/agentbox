@@ -14,6 +14,8 @@ const BUILT_INS: Record<string, string> = {
   "users:manage": "Create and manage users.",
   "roles:manage": "Manage roles, permissions, and assignments.",
   "api_keys:manage": "Create, inspect, and revoke API keys.",
+  "plugins:read": "List and inspect installed Agent Plugins.",
+  "plugins:write": "Enable, disable, and trust Agent Plugins.",
 };
 
 export function describePermission(name: string, stored?: string | null): string {
