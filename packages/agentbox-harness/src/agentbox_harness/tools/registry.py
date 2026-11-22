@@ -22,6 +22,7 @@ ToolHook = Callable[[ToolHookContext], Awaitable[str | None]]
 @dataclass
 class _Entry:
     callable: Callable
+    raw: Callable
     required_flags: tuple[str, ...] = ()
 
 
@@ -37,6 +38,7 @@ class ToolRegistry:
         callable: Callable,
         required_flags: tuple[str, ...] = (),
     ) -> None:
+        raw = callable
         fn = callable
         if self._hooks:
             original = callable
@@ -70,7 +72,18 @@ class ToolRegistry:
                 return result
 
             fn = wrapped
-        self._native[name] = _Entry(fn, required_flags)
+        self._native[name] = _Entry(fn, raw, required_flags)
+
+    def get_native_raw(self, name: str) -> Callable | None:
+        entry = self._native.get(name)
+        return entry.raw if entry is not None else None
+
+    def override_native(self, name: str, callable: Callable) -> bool:
+        entry = self._native.get(name)
+        if entry is None:
+            return False
+        self.register_native(name, callable, required_flags=entry.required_flags)
+        return True
 
     def select_tools(
         self, mode: Mode, names: set[str] | None = None

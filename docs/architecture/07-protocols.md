@@ -79,8 +79,16 @@ ACP lets an external IDE drive sessions over stdin/stdout JSON-RPC.
 - Prompt flow: build a harness `Session` from the latest leaf, run the harness, map events with
   `update_for_event` into `session/update` payloads, then append the assistant turn.
 - MCP: ACP clients may supply stdio MCP servers; `_with_servers` adds them to the spec.
-- Shutdown: `close_session` closes MCP toolsets, kills terminal jobs, recursively cancels
-  descendant subagent sessions, and cancels the active run.
+- Client capabilities: with `fs.readTextFile`, `read_text_file`, `read_file`, and
+  `read_multiple_files` use the client; with `fs.writeTextFile`, `write_file` uses the client.
+  With both, `append_file`, `edit_file`, and `copy_file` are composed through client
+  read/write. With `terminal`, all terminal tools use client terminals. Paths outside the
+  project/extra roots and clients without the capability use server-side tools. ACP terminals
+  are released on session close/delete.
+- Non-ACP operations: ACP defines no client methods for media, directories, mkdir, move, or
+  delete; those tools remain server-side.
+- Shutdown: `close_session` closes MCP toolsets, kills terminal jobs, releases client
+  terminals, recursively cancels descendant subagent sessions, and cancels the active run.
 - Persistence: the same SQLite database as HTTP; the ACP process opens its own engine.
 
 *Figure 3 — ACP over stdio.*

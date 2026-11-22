@@ -28,7 +28,7 @@ TERMINAL_TOOL_NAMES = (
 )
 
 
-def _shell_command(command: str) -> list[str]:
+def shell_command(command: str) -> list[str]:
     if os.name == "nt":
         shell = shutil.which("pwsh") or shutil.which("powershell") or "powershell"
         wrapped = (
@@ -103,7 +103,7 @@ class JobManager:
         else:
             kwargs["start_new_session"] = True
         return await asyncio.create_subprocess_exec(
-            *_shell_command(command),
+            *shell_command(command),
             cwd=str(cwd),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,

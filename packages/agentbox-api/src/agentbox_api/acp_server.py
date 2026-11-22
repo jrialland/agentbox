@@ -34,6 +34,11 @@ from pydantic_ai.messages import (
 from pydantic_ai.models import Model as PydanticModel
 from sqlmodel import select
 
+from agentbox_api.acp_client_tools import (
+    AcpClientCapabilities,
+    AcpClientTools,
+    install_acp_client_tools,
+)
 from agentbox_api.config import Settings
 from agentbox_api.dev_seed import seed_admin
 from agentbox_api.logging import configure_logging
@@ -147,6 +152,7 @@ class AcpSession:
     subagent_session_runner: object | None = None
     run: Run | None = None
     extra_roots: list[str] = field(default_factory=list)
+    client_tools: AcpClientTools | None = None
 
 
 def _slug(value: str) -> str:
@@ -188,6 +194,7 @@ class AgentboxAcpAgent:
         self._settings = settings
         self._client: acp.Client | None = None
         self._sessions: dict[str, AcpSession] = {}
+        self._client_capabilities = AcpClientCapabilities()
         from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
         self.mcp_manager = get_mcp_session_manager()
@@ -195,9 +202,16 @@ class AgentboxAcpAgent:
     def on_connect(self, conn: acp.Client) -> None:
         self._client = conn
 
+    @property
+    def client_capabilities(self) -> AcpClientCapabilities:
+        return self._client_capabilities
+
     async def initialize(
         self, protocol_version, client_capabilities=None, client_info=None, **kwargs
     ):
+        self._client_capabilities = AcpClientCapabilities.from_sdk(
+            client_capabilities
+        )
         return s.InitializeResponse(
             protocol_version=PROTOCOL_VERSION,
             agent_capabilities=s.AgentCapabilities(
@@ -255,12 +269,25 @@ class AgentboxAcpAgent:
             )
             await db.commit()
             project_id = project.id
+        client_tools = None
+        if self._client is not None:
+            client_tools = AcpClientTools(
+                client=self._client,
+                session_id=session_id,
+                project_root=cwd,
+                extra_roots=project.extra_roots,
+                capabilities=self._client_capabilities,
+            )
+            install_acp_client_tools(
+                prepared.registry, prepared.spec, client_tools
+            )
         spec = self._with_servers(prepared.spec, mcp_servers)
         mode = _default_mode(spec)
         self._sessions[session_id] = AcpSession(
             session_id, cwd, project_id, runtime.agent_id, spec, runtime.model,
             prepared.registry, mode, prepared.subagent_session_runner,
             extra_roots=project.extra_roots,
+            client_tools=client_tools,
         )
         logger.info("acp session new agent={} session={}", self._agent_name, session_id)
         return s.NewSessionResponse(session_id=session_id, modes=_modes(spec, mode))
@@ -423,8 +450,10 @@ class AgentboxAcpAgent:
         return s.ResumeSessionResponse(modes=_modes(sess.spec, sess.mode))
 
     async def delete_session(self, session_id, **kwargs):
+        sess = self._sessions.pop(session_id, None)
+        if sess is not None and sess.client_tools is not None:
+            await sess.client_tools.close()
         await delete_session_data(self._factory, session_id)
-        self._sessions.pop(session_id, None)
         return s.DeleteSessionResponse()
 
     async def close_session(self, session_id, **kwargs):
@@ -434,6 +463,8 @@ class AgentboxAcpAgent:
         await get_job_manager().kill_session(session_id)
         await cancel_subagent_sessions(self._factory, session_id)
         sess = self._sessions.pop(session_id, None)
+        if sess is not None and sess.client_tools is not None:
+            await sess.client_tools.close()
         if sess is not None and sess.run is not None:
             sess.run.cancel()
         return s.CloseSessionResponse()
@@ -463,6 +494,21 @@ class AgentboxAcpAgent:
         )
         if row.agent_id != prepared.runtime.agent_id:
             raise acp.RequestError(-32002, "unknown session")
+        old = self._sessions.get(session_id)
+        if old is not None and old.client_tools is not None:
+            await old.client_tools.close()
+        client_tools = None
+        if self._client is not None:
+            client_tools = AcpClientTools(
+                client=self._client,
+                session_id=session_id,
+                project_root=project.path,
+                extra_roots=project.extra_roots,
+                capabilities=self._client_capabilities,
+            )
+            install_acp_client_tools(
+                prepared.registry, prepared.spec, client_tools
+            )
         spec = self._with_servers(prepared.spec, mcp_servers)
         sess = AcpSession(
             session_id,
@@ -475,6 +521,7 @@ class AgentboxAcpAgent:
             _default_mode(spec),
             prepared.subagent_session_runner,
             extra_roots=project.extra_roots,
+            client_tools=client_tools,
         )
         self._sessions[session_id] = sess
         return sess

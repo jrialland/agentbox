@@ -91,6 +91,52 @@ def resolve_model(
             custom_output_text="Hello from the test provider",
             profile=profile,
         )
+    if kind == "test_acp_fs":
+        from pydantic_ai.models.function import DeltaToolCall, FunctionModel
+
+        async def fs_stream(messages, info):
+            has_tool_result = any(
+                getattr(part, "part_kind", "") == "tool-return"
+                for message in messages
+                for part in message.parts
+            )
+            if not has_tool_result:
+                yield {
+                    0: DeltaToolCall(
+                        name="read_text_file",
+                        json_args='{"path": "hello.txt"}',
+                        tool_call_id="fs-call",
+                    )
+                }
+                return
+            yield "FS done"
+
+        return FunctionModel(
+            stream_function=fs_stream, model_name=model_name, profile=profile
+        )
+    if kind == "test_acp_terminal":
+        from pydantic_ai.models.function import DeltaToolCall, FunctionModel
+
+        async def terminal_stream(messages, info):
+            has_tool_result = any(
+                getattr(part, "part_kind", "") == "tool-return"
+                for message in messages
+                for part in message.parts
+            )
+            if not has_tool_result:
+                yield {
+                    0: DeltaToolCall(
+                        name="run_command",
+                        json_args='{"command": "echo hi"}',
+                        tool_call_id="terminal-call",
+                    )
+                }
+                return
+            yield "Terminal done"
+
+        return FunctionModel(
+            stream_function=terminal_stream, model_name=model_name, profile=profile
+        )
     if kind == "test_markdown":
         from pydantic_ai.models.test import TestModel
 

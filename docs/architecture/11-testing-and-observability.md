@@ -33,6 +33,8 @@ Backend tests are pytest suites inside each package.
 - `pytest-asyncio` is in `auto` mode with function-scoped loops.
 - Subagent-session tests cover unrestricted agent selection, live output through the `test_slow`
   provider, wait all/any, recursive cancellation, and the `subagent_session_*` migration.
+- ACP client-capability tests cover filesystem routing, outside-root fallback, terminal
+  foreground/background/timeout/close behavior, and real stdio fs and terminal calls.
 
 ## Frontend testing
 

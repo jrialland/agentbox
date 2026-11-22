@@ -64,3 +64,38 @@ async def test_hook_does_not_modify_non_string_result():
     reg.register_native("value", value)
     tools = reg.select_tools(Mode(name="ask", flags={}))
     assert await tools[0](path="a") == {"path": "a"}
+
+def test_get_native_raw_returns_unwrapped_callable():
+    async def original(path: str) -> str:
+        return "raw"
+
+    reg = ToolRegistry()
+    reg.register_native("read_file", original)
+
+    assert reg.get_native_raw("read_file") is original
+    assert reg.get_native_raw("missing") is None
+
+
+async def test_override_native_preserves_flags_and_runs_hooks_once():
+    calls: list[str] = []
+
+    async def hook(ctx):
+        calls.append("hook")
+        return "hooked"
+
+    async def original(path: str) -> str:
+        return "raw"
+
+    async def replacement(path: str) -> str:
+        return "new"
+
+    reg = ToolRegistry(hooks=[hook])
+    reg.register_native("read_file", original, required_flags=("read",))
+
+    assert reg.override_native("read_file", replacement) is True
+    assert reg.get_native_raw("read_file") is replacement
+    assert reg.override_native("missing", replacement) is False
+
+    tool = reg.select_tools(Mode(name="ask", flags={}), names={"read_file"})[0]
+    assert await tool("a.txt") == "new\n\nhooked"
+    assert calls == ["hook"]

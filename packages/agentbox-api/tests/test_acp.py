@@ -160,3 +160,21 @@ async def test_acp_lifecycle(tmp_path):
     finally:
         await engine.dispose()
 
+
+async def test_initialize_stores_client_capabilities():
+    from agentbox_api.acp_client_tools import AcpClientCapabilities
+    from agentbox_api.acp_server import AgentboxAcpAgent
+
+    agent = AgentboxAcpAgent("acp-test", None, None)
+    await agent.initialize(
+        1,
+        client_capabilities=s.ClientCapabilities(
+            fs=s.FileSystemCapabilities(
+                read_text_file=True, write_text_file=True
+            ),
+            terminal=True,
+        ),
+    )
+    assert agent.client_capabilities == AcpClientCapabilities(
+        read_text_file=True, write_text_file=True, terminal=True
+    )

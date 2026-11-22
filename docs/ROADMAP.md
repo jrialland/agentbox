@@ -73,7 +73,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 
 | Requirement | Status | Notes |
 |---|---|---|
-| External IDE drives sessions via ACP (RPC over STDIO) | DONE | ACP v1 agent over stdio; full session lifecycle; image/audio/embedded + stdio MCP. Client `fs/*`/`terminal/*` capabilities are not advertised yet (tracked as D23). |
+| External IDE drives sessions via ACP (RPC over STDIO) | DONE | ACP v1 agent over stdio; full session lifecycle; image/audio/embedded + stdio MCP. Client `fs/read_text_file`, `fs/write_text_file`, and all `terminal/*` capabilities are implemented with server-side fallback. |
 
 ## Use case 5 — A2A
 
@@ -223,6 +223,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 37 | D22 stdio MCP servers (session lifecycle + create/edit UI) | `specs/2026-11-22-stdio-mcp-servers-design.md` | `plans/2026-11-22-stdio-mcp-servers.md` |
 | 38 | Technical architecture documentation set | `specs/2026-11-22-technical-architecture-docs-design.md` | `plans/2026-11-22-technical-architecture-docs.md` |
 | 39 | Subagent session orchestration (unrestricted agents, live monitoring, recursive cancel) | `specs/2026-11-22-subagent-session-orchestration-design.md` | `plans/2026-11-22-subagent-session-orchestration.md` |
+| 40 | ACP client capabilities (fs read/write + terminal) | `specs/2026-11-22-acp-client-capabilities-design.md` | `plans/2026-11-22-acp-client-capabilities.md` |
 
 ## Technical documentation
 
@@ -253,4 +254,3 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D16 | **Telegram / WhatsApp interface** | Let a user create a channel binding (e.g. a Telegram bot) to manage an agent session from a phone: inbound messages start/continue sessions, replies stream back. |
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
-| D23 | **ACP client `fs/*` and `terminal/*` capabilities** | Today the ACP adapter advertises no client filesystem or terminal capabilities, so agent edits and commands run server-side against the project root instead of through the IDE (e.g. VS Code diff editor / integrated terminal). Add capability negotiation in `initialize`, implement `fs/read_text_file`/`fs/write_text_file` and `terminal/*` handlers with fallback to the current server-side tools, and cover them in `tests/test_acp.py`/`test_acp_stdio.py`. |

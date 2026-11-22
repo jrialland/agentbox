@@ -47,7 +47,7 @@ def _excluded(rel: str, name: str, patterns: list[str]) -> bool:
     return False
 
 
-def _apply_edit(text: str, edit: FileEdit, newline: str) -> str:
+def apply_file_edit(text: str, edit: FileEdit, newline: str) -> str:
     if edit.old_text in text:
         return text.replace(edit.old_text, edit.new_text, 1)
     old_norm = edit.old_text.replace("\r\n", "\n").replace("\r", "\n")
@@ -397,7 +397,7 @@ class FilesystemToolbox:
         newline = "\r\n" if "\r\n" in raw else ("\r" if "\r" in raw else "\n")
         updated = raw
         for edit in edits:
-            updated = _apply_edit(updated, edit, newline)
+            updated = apply_file_edit(updated, edit, newline)
         if dry_run:
             diff = "".join(
                 unified_diff(
