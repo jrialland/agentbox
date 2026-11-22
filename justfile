@@ -69,6 +69,10 @@ preview-storybook:
 e2e:
     cd apps/web && bun run e2e
 
+# Prepare `.env` and any missing dependencies.
+_dev-prepare:
+    @uv run python -m agentbox_api.dev_prepare
+
 # Start the backend dev server on port 8000.
 dev-backend:
     uv run python -m agentbox_api.dev_server
@@ -78,8 +82,12 @@ dev-web:
     cd apps/web && bun run dev
 
 # Start backend and frontend together.
-dev:
-    just --parallel dev-backend dev-web
+dev: _dev-prepare
+    @just _dev-servers
+
+# Run the backend and frontend dev servers in parallel.
+[parallel]
+_dev-servers: dev-backend dev-web
 
 # Apply Alembic migrations to the configured database.
 migrate:
