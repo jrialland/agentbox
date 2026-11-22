@@ -6,6 +6,7 @@ import { EmptyState } from "./EmptyState";
 import { PageHeader } from "./PageHeader";
 import { Panel } from "./Panel";
 import { StatusChip } from "./StatusChip";
+import { Wordmark } from "./Wordmark";
 
 describe("surface primitives", () => {
   it("renders a page header with actions", () => {
@@ -47,5 +48,12 @@ describe("surface primitives", () => {
   it("renders status tones", () => {
     render(<StatusChip tone="success">active</StatusChip>);
     expect(screen.getByText("active")).toHaveAttribute("data-tone", "success");
+  });
+
+  it("renders the wordmark with a decorative cursor", () => {
+    render(<Wordmark />);
+    expect(screen.getByRole("img", { name: "Agentbox" })).toBeInTheDocument();
+    const cursor = screen.getByText("▮");
+    expect(cursor).toHaveAttribute("aria-hidden", "true");
   });
 });

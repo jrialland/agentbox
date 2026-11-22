@@ -163,3 +163,22 @@
   background: currentColor;
   border-radius: 50%;
 }
+
+.brandCursor {
+  animation: ab-cursor-blink 1s step-end infinite;
+}
+
+@keyframes ab-cursor-blink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brandCursor {
+    animation: none;
+  }
+}
