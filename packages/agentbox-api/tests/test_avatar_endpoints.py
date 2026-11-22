@@ -17,7 +17,7 @@ from agentbox_models.tables.auth import (
 from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
 
 
-async def _setup():
+async def _setup(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
@@ -30,13 +30,18 @@ async def _setup():
             s.add(RolePermissionLink(role_id="r_u1", permission_id=f"p{i}_u1"))
         s.add(UserRoleLink(user_id="u1", role_id="r_u1"))
         s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
         s.add(Agent(id="ag", name="bot", description="", instructions="", model_id="m"))
         s.add(Project(id="prj", name="p", path=".", owner_id="u1"))
+        await s.flush()
         s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
         await s.commit()
     app = create_app(
-        Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory
+        Settings(jwt_secret="s" * 32, media_dir=str(tmp_path / "media")),
+        engine=engine,
+        session_factory=factory,
     )
     client = httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
@@ -56,8 +61,8 @@ async def _auth(client) -> dict:
     return {"Authorization": f"Bearer {r.json()['access_token']}"}
 
 
-async def test_default_avatar_public_and_deterministic():
-    engine, client = await _setup()
+async def test_default_avatar_public_and_deterministic(tmp_path):
+    engine, client = await _setup(tmp_path)
     try:
         r1 = await client.get("/agents/bot/avatar")
         r2 = await client.get("/agents/bot/avatar")
@@ -69,8 +74,8 @@ async def test_default_avatar_public_and_deterministic():
         await engine.dispose()
 
 
-async def test_unknown_agent_404():
-    engine, client = await _setup()
+async def test_unknown_agent_404(tmp_path):
+    engine, client = await _setup(tmp_path)
     try:
         assert (await client.get("/agents/nope/avatar")).status_code == 404
     finally:
@@ -78,8 +83,8 @@ async def test_unknown_agent_404():
         await engine.dispose()
 
 
-async def test_upload_then_reset():
-    engine, client = await _setup()
+async def test_upload_then_reset(tmp_path):
+    engine, client = await _setup(tmp_path)
     try:
         h = await _auth(client)
         before = (await client.get("/agents/bot/avatar")).content
@@ -101,8 +106,8 @@ async def test_upload_then_reset():
         await engine.dispose()
 
 
-async def test_upload_rejects_bad_type_and_size():
-    engine, client = await _setup()
+async def test_upload_rejects_bad_type_and_size(tmp_path):
+    engine, client = await _setup(tmp_path)
     try:
         h = await _auth(client)
         bad = await client.put(
@@ -122,8 +127,8 @@ async def test_upload_rejects_bad_type_and_size():
         await engine.dispose()
 
 
-async def test_session_detail_has_agent_name():
-    engine, client = await _setup()
+async def test_session_detail_has_agent_name(tmp_path):
+    engine, client = await _setup(tmp_path)
     try:
         h = await _auth(client)
         r = await client.get("/sessions/s1", headers=h)

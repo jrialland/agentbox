@@ -1,4 +1,3 @@
-import json
 from datetime import UTC, datetime
 
 import jwt
@@ -7,6 +6,7 @@ from starlette.authentication import AuthCredentials, AuthenticationBackend, Bas
 
 from agentbox_api.config import Settings
 from agentbox_api.security import decode_jwt, hash_api_key
+from agentbox_models.repos.api_key_scopes import load_scopes
 from agentbox_models.tables.auth import (
     ApiKey,
     Permission,
@@ -104,5 +104,7 @@ class JWTAuthenticationBackend(AuthenticationBackend):
                 expires is not None and expires <= datetime.now(UTC)
             ):
                 return None
-            scopes = json.loads(key_row.scopes or "[]")
-            return AuthCredentials(scopes=scopes), CurrentUser(user.id, user.username, set(scopes))
+            scopes = await load_scopes(s, key_row.id)
+            return AuthCredentials(scopes=scopes), CurrentUser(
+                user.id, user.username, set(scopes)
+            )

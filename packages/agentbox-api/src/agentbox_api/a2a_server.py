@@ -14,7 +14,7 @@ from sqlmodel import select
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse, PlainTextResponse
 
-from agentbox_models.tables.core import Agent, AgentCard
+from agentbox_models.tables.core import Agent, AgentCard, MediaFile
 
 a2a_user: contextvars.ContextVar[str | None] = contextvars.ContextVar(
     "a2a_user", default=None
@@ -37,9 +37,10 @@ def build_card(stored: dict, agent_name: str, public_url: str):
 
 
 class A2ADispatcher:
-    def __init__(self, session_factory, settings):
+    def __init__(self, session_factory, settings, media_store):
         self._factory = session_factory
         self._settings = settings
+        self._media_store = media_store
         self._apps: dict[str, Starlette] = {}
 
     async def _agent_with_card(self, name: str):
@@ -48,13 +49,18 @@ class A2ADispatcher:
                 await s.execute(select(Agent).where(Agent.name == name))
             ).scalars().first()
             if agent is None:
-                return None, None
+                return None, None, None
             row = (
                 await s.execute(
                     select(AgentCard).where(AgentCard.agent_id == agent.id)
                 )
             ).scalars().first()
-        return agent, row
+            media = (
+                await s.get(MediaFile, row.file_id)
+                if row is not None and row.file_id
+                else None
+            )
+        return agent, row, media
 
     def _app_for(self, name: str, stored: dict) -> Starlette:
         app = self._apps.get(name)
@@ -95,12 +101,18 @@ class A2ADispatcher:
             return await JSONResponse({"error": "forbidden"}, status_code=403)(
                 scope, receive, send
             )
-        _, row = await self._agent_with_card(name)
-        if row is None:
+        _, row, media = await self._agent_with_card(name)
+        if row is None or media is None:
             return await PlainTextResponse("Unknown agent", status_code=404)(
                 scope, receive, send
             )
-        app = self._app_for(name, json.loads(row.card))
+        try:
+            stored = json.loads(self._media_store.read(media.storage_path))
+        except FileNotFoundError:
+            return await PlainTextResponse("Unknown agent", status_code=404)(
+                scope, receive, send
+            )
+        app = self._app_for(name, stored)
         token = a2a_user.set(getattr(user, "identity", None))
         try:
             rest_scope = dict(scope)

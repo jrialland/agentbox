@@ -29,6 +29,7 @@ from agentbox_harness.harness import Harness
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.repos.message_log import DatabaseMessageLogStore
+from agentbox_models.repos.project_roots import load_extra_roots
 from agentbox_models.tables.auth import User
 from agentbox_models.tables.core import Project, SessionRow, TurnRow
 
@@ -88,6 +89,9 @@ class AgentboxA2AExecutor(AgentExecutor):
             project = (
                 await s.execute(select(Project).where(Project.path == workspace))
             ).scalars().first()
+            extra_roots = (
+                await load_extra_roots(s, project.id) if project is not None else []
+            )
         prepared = await prepare_agent(
             self._factory,
             self._agent_name,
@@ -98,7 +102,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
             web_config=web_config_from_settings(self._settings),
-            extra_roots=project.extra_roots if project is not None else None,
+            extra_roots=extra_roots or None,
             compaction=compaction_config_from_settings(self._settings),
         )
         owner = await self._owner()
@@ -128,7 +132,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             store=DatabaseMessageLogStore(self._factory, session_id),
             head_id=await _latest_leaf(self._factory, session_id),
             mode_name="agent",
-            extra_roots=project.extra_roots if project is not None else [],
+            extra_roots=extra_roots,
         )
         harness = Harness(
             registry=prepared.registry,

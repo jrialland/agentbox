@@ -16,6 +16,7 @@ from fastapi import (
 from google.protobuf import json_format
 from loguru import logger
 from pydantic import BaseModel, field_validator
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import select
 
 from agentbox_api import avatars
@@ -30,7 +31,7 @@ from agentbox_harness.spec import (
 )
 from agentbox_harness.tools.mcp import mcp_toolset_id
 from agentbox_models.repos.agents import AgentRepository
-from agentbox_models.tables.core import Agent, AgentCard
+from agentbox_models.tables.core import Agent, AgentCard, MediaFile, utcnow
 
 router = APIRouter(prefix="/agents", tags=["agents"])
 
@@ -162,8 +163,41 @@ async def get_agent(name: str, request: Request, _=Depends(require_permission("a
 async def delete_agent(
     name: str, request: Request, _=Depends(require_permission("agents:delete"))
 ):
-    repo = AgentRepository(request.app.state.session_factory)
-    await repo.delete(name)
+    factory = request.app.state.session_factory
+    media_store = request.app.state.media_store
+    paths: list[str] = []
+    async with factory() as s:
+        agent = (
+            await s.execute(select(Agent).where(Agent.name == name))
+        ).scalars().first()
+        if agent is None:
+            return {"ok": True}
+        media_rows = []
+        if agent.avatar_file_id:
+            avatar = await s.get(MediaFile, agent.avatar_file_id)
+            if avatar is not None:
+                media_rows.append(avatar)
+        card = (
+            await s.execute(select(AgentCard).where(AgentCard.agent_id == agent.id))
+        ).scalars().first()
+        if card is not None and card.file_id:
+            card_media = await s.get(MediaFile, card.file_id)
+            if card_media is not None:
+                media_rows.append(card_media)
+        paths = [row.storage_path for row in media_rows]
+        try:
+            await s.delete(agent)
+            await s.flush()
+            for media in media_rows:
+                await s.delete(media)
+            await s.commit()
+        except IntegrityError:
+            await s.rollback()
+            raise HTTPException(
+                status_code=409, detail="Agent is still referenced"
+            ) from None
+    for path in paths:
+        media_store.delete(path)
     logger.info("agent deleted agent={}", name)
     return {"ok": True}
 
@@ -171,24 +205,43 @@ async def delete_agent(
 @router.get("/{name}/avatar")
 async def get_avatar(name: str, request: Request):
     factory = request.app.state.session_factory
+    media_store = request.app.state.media_store
     async with factory() as s:
         agent = (
             await s.execute(select(Agent).where(Agent.name == name))
         ).scalars().first()
-    if agent is None:
-        raise HTTPException(status_code=404, detail="Not found")
-    if agent.avatar_data:
-        data = agent.avatar_data
-        media = agent.avatar_media_type or "image/png"
-    else:
-        data = avatars.generate_default_avatar(agent.id)
-        media = "image/png"
+        if agent is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        media_file = (
+            await s.get(MediaFile, agent.avatar_file_id)
+            if agent.avatar_file_id
+            else None
+        )
+    if media_file is not None:
+        try:
+            data = media_store.read(media_file.storage_path)
+        except FileNotFoundError:
+            logger.warning(
+                "avatar file missing agent={} path={}",
+                name,
+                media_file.storage_path,
+            )
+        else:
+            etag = '"' + media_file.sha256 + '"'
+            if request.headers.get("if-none-match") == etag:
+                return Response(status_code=304)
+            return Response(
+                content=data,
+                media_type=media_file.media_type,
+                headers={"ETag": etag, "Cache-Control": "no-cache"},
+            )
+    data = avatars.generate_default_avatar(agent.id)
     etag = '"' + hashlib.sha256(data).hexdigest() + '"'
     if request.headers.get("if-none-match") == etag:
         return Response(status_code=304)
     return Response(
         content=data,
-        media_type=media,
+        media_type="image/png",
         headers={"ETag": etag, "Cache-Control": "no-cache"},
     )
 
@@ -211,17 +264,48 @@ async def upload_avatar(
         normalized = avatars.normalize_upload(data)
     except ValueError:
         raise HTTPException(status_code=415, detail="Invalid image") from None
+
     factory = request.app.state.session_factory
-    async with factory() as s:
-        agent = (
-            await s.execute(select(Agent).where(Agent.name == name))
-        ).scalars().first()
-        if agent is None:
-            raise HTTPException(status_code=404, detail="Not found")
-        agent.avatar_data = normalized
-        agent.avatar_media_type = "image/png"
-        s.add(agent)
-        await s.commit()
+    media_store = request.app.state.media_store
+    stored = media_store.save(
+        normalized, category="avatars", media_type="image/png", suffix=".png"
+    )
+    media_id = uuid.uuid4().hex
+    old_path: str | None = None
+    try:
+        async with factory() as s:
+            agent = (
+                await s.execute(select(Agent).where(Agent.name == name))
+            ).scalars().first()
+            if agent is None:
+                raise HTTPException(status_code=404, detail="Not found")
+            old = (
+                await s.get(MediaFile, agent.avatar_file_id)
+                if agent.avatar_file_id
+                else None
+            )
+            old_path = old.storage_path if old is not None else None
+            s.add(
+                MediaFile(
+                    id=media_id,
+                    storage_path=stored.storage_path,
+                    media_type=stored.media_type,
+                    size_bytes=stored.size_bytes,
+                    sha256=stored.sha256,
+                )
+            )
+            await s.flush()
+            agent.avatar_file_id = media_id
+            s.add(agent)
+            await s.flush()
+            if old is not None:
+                await s.delete(old)
+            await s.commit()
+    except Exception:
+        media_store.delete(stored.storage_path)
+        raise
+    if old_path is not None:
+        media_store.delete(old_path)
     logger.info("avatar updated agent={}", name)
     return Response(status_code=204)
 
@@ -233,16 +317,28 @@ async def reset_avatar(
     _=Depends(require_permission("agents:create")),
 ):
     factory = request.app.state.session_factory
+    media_store = request.app.state.media_store
+    old_path: str | None = None
     async with factory() as s:
         agent = (
             await s.execute(select(Agent).where(Agent.name == name))
         ).scalars().first()
         if agent is None:
             raise HTTPException(status_code=404, detail="Not found")
-        agent.avatar_data = None
-        agent.avatar_media_type = None
+        old = (
+            await s.get(MediaFile, agent.avatar_file_id)
+            if agent.avatar_file_id
+            else None
+        )
+        old_path = old.storage_path if old is not None else None
+        agent.avatar_file_id = None
         s.add(agent)
+        await s.flush()
+        if old is not None:
+            await s.delete(old)
         await s.commit()
+    if old_path is not None:
+        media_store.delete(old_path)
     logger.info("avatar reset agent={}", name)
     return Response(status_code=204)
 
@@ -251,6 +347,7 @@ async def reset_avatar(
 async def get_agent_card(
     name: str, request: Request, _=Depends(require_permission("agents:read"))
 ):
+    media_store = request.app.state.media_store
     async with request.app.state.session_factory() as s:
         agent = (
             await s.execute(select(Agent).where(Agent.name == name))
@@ -260,9 +357,17 @@ async def get_agent_card(
         row = (
             await s.execute(select(AgentCard).where(AgentCard.agent_id == agent.id))
         ).scalars().first()
-    if row is None:
+        media = (
+            await s.get(MediaFile, row.file_id)
+            if row is not None and row.file_id
+            else None
+        )
+    if row is None or media is None:
         raise HTTPException(status_code=404, detail="No agent card")
-    return json.loads(row.card)
+    try:
+        return json.loads(media_store.read(media.storage_path))
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="No agent card") from None
 
 
 @router.put("/{name}/card")
@@ -276,22 +381,66 @@ async def set_agent_card(
         json_format.ParseDict(body, a2a_types.AgentCard())
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid A2A agent card") from None
-    async with request.app.state.session_factory() as s:
-        agent = (
-            await s.execute(select(Agent).where(Agent.name == name))
-        ).scalars().first()
-        if agent is None:
-            raise HTTPException(status_code=404, detail="Agent not found")
-        row = (
-            await s.execute(select(AgentCard).where(AgentCard.agent_id == agent.id))
-        ).scalars().first()
-        if row is None:
-            row = AgentCard(id=uuid.uuid4().hex, agent_id=agent.id, card=json.dumps(body))
-            s.add(row)
-        else:
-            row.card = json.dumps(body)
-            s.add(row)
-        await s.commit()
+
+    factory = request.app.state.session_factory
+    media_store = request.app.state.media_store
+    stored = media_store.save(
+        json.dumps(body).encode(),
+        category="agent-cards",
+        media_type="application/json",
+        suffix=".json",
+    )
+    media_id = uuid.uuid4().hex
+    old_path: str | None = None
+    try:
+        async with factory() as s:
+            agent = (
+                await s.execute(select(Agent).where(Agent.name == name))
+            ).scalars().first()
+            if agent is None:
+                raise HTTPException(status_code=404, detail="Agent not found")
+            row = (
+                await s.execute(
+                    select(AgentCard).where(AgentCard.agent_id == agent.id)
+                )
+            ).scalars().first()
+            old = (
+                await s.get(MediaFile, row.file_id)
+                if row is not None and row.file_id
+                else None
+            )
+            old_path = old.storage_path if old is not None else None
+            s.add(
+                MediaFile(
+                    id=media_id,
+                    storage_path=stored.storage_path,
+                    media_type=stored.media_type,
+                    size_bytes=stored.size_bytes,
+                    sha256=stored.sha256,
+                )
+            )
+            await s.flush()
+            if row is None:
+                row = AgentCard(
+                    id=uuid.uuid4().hex,
+                    agent_id=agent.id,
+                    file_id=media_id,
+                    updated_at=utcnow(),
+                )
+                s.add(row)
+            else:
+                row.file_id = media_id
+                row.updated_at = utcnow()
+                s.add(row)
+            await s.flush()
+            if old is not None:
+                await s.delete(old)
+            await s.commit()
+    except Exception:
+        media_store.delete(stored.storage_path)
+        raise
+    if old_path is not None:
+        media_store.delete(old_path)
     logger.info("agent card set agent={}", name)
     return body
 
@@ -300,6 +449,8 @@ async def set_agent_card(
 async def delete_agent_card(
     name: str, request: Request, _=Depends(require_permission("agents:create"))
 ):
+    media_store = request.app.state.media_store
+    old_path: str | None = None
     async with request.app.state.session_factory() as s:
         agent = (
             await s.execute(select(Agent).where(Agent.name == name))
@@ -311,7 +462,18 @@ async def delete_agent_card(
                 )
             ).scalars().first()
             if row is not None:
+                old = (
+                    await s.get(MediaFile, row.file_id)
+                    if row.file_id
+                    else None
+                )
+                old_path = old.storage_path if old is not None else None
                 await s.delete(row)
+                await s.flush()
+                if old is not None:
+                    await s.delete(old)
                 await s.commit()
+    if old_path is not None:
+        media_store.delete(old_path)
     return {"ok": True}
 

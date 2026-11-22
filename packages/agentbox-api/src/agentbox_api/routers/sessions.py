@@ -112,7 +112,6 @@ class SessionDetail(BaseModel):
     agent_id: str
     agent_name: str
     title: str | None = None
-    head_turn_id: str | None = None
     created_at: str
 
 
@@ -135,7 +134,6 @@ async def get_session(
         agent_id=row.agent_id,
         agent_name=agent.name if agent is not None else "",
         title=row.title,
-        head_turn_id=row.head_turn_id,
         created_at=row.created_at.isoformat() if row.created_at else "",
     )
 
