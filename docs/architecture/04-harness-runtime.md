@@ -140,14 +140,14 @@ successful recovery the run retries once.
 There is one delegation model: a session starts another session.
 
 - An **agent** is a configuration; a **session** is a live instance; a **subagent** is the agent
-  configuration chosen for a child session; a **subagent session** is that child session.
+  configuration chosen by a parent session for a subagent session.
 - Any agent configuration in the database may be used; there is no allow-list.
 - The model gets `list_agents`, `start_subagent_session`, `list_subagent_sessions`,
   `get_subagent_session`, `cancel_subagent_session`, `wait_subagent_session`, and
   `wait_subagent_sessions`.
-- Subagent sessions are background child sessions with their own persisted `SessionRow`, status,
-  live output, and final output. Depth is capped at 3 and a parent may run at most 5 direct
-  children.
+- Subagent sessions are background sessions with their own persisted `SessionRow`, status, live
+  output, and final output. Depth is capped at 3 and a parent may run at most 5 direct subagent
+  sessions.
 - The API layer provides `SubagentSessionManager` with live output, wait all/any, and recursive
   cancellation; see [concurrency and lifecycle](10-concurrency-and-lifecycle.md).
 

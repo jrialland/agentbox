@@ -275,7 +275,7 @@ There are no database cascades. Session deletion goes through
 1. Closes the session-scoped MCP toolsets.
 2. Clears project-instruction state for the session.
 3. Kills terminal jobs for the session.
-4. Cancels active sub-sessions.
+4. Recursively cancels active subagent sessions.
 5. Recursively deletes child sessions.
 6. Deletes turns, attachments, plan items, and finally the session row.
 
@@ -293,9 +293,9 @@ uv run alembic -c packages/agentbox-models/alembic.ini upgrade head
 ```
 
 Current revisions, in order: initial schema, agent avatar, project extra roots, compaction
-context fields, sub-sessions, model labels, chat activity, plan items, session attachments, and
-session title. Alembic uses its own sync URL from `alembic.ini`, independent of the app's async
-`DATABASE_URL`.
+context fields, subagent sessions, model labels, chat activity, plan items, session attachments,
+session title, and the subagent-session column rename/drop. Alembic uses its own sync URL from
+`alembic.ini`, independent of the app's async `DATABASE_URL`.
 
 ## Implementation notes
 

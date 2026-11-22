@@ -161,6 +161,9 @@ tokens (CSS custom properties)
 | `LoginPage` | Login and redirect | `POST /auth/login`, `GET /auth/me` |
 | `NotFoundPage` | Unknown authenticated route | — |
 
+Subagent sessions are managed through model tools; there is no dedicated child-session browser
+or agent-form subagent picker in the web UI.
+
 ## Help and onboarding
 
 - **Help registry:** `src/help/types.ts` defines 16 `HelpId`s across providers, agents, A2A, API

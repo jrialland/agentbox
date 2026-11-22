@@ -53,7 +53,7 @@ Shutdown, in order:
 2. `mcp_manager.close_all()`.
 3. Shut down the global LSP manager.
 4. Shut down the global terminal job manager.
-5. Shut down all sub-sessions.
+5. Shut down all subagent sessions.
 6. Dispose the database engine.
 
 There is no module-level `app`. `python -m agentbox_api.dev_server` calls `create_all`, seeds an
@@ -156,7 +156,7 @@ A chat turn is `POST /sessions/{sid}/messages`, which returns an SSE stream.
    system prompt, appends the skill catalog and `AGENTS.md` blocks, and adds plan and terminal
    tools.
 3. Build the tool registry with native tools and post-tool hooks (LSP diagnostics, nested
-   instructions), plus an API-backed sub-session runner.
+   instructions), plus an API-backed subagent session runner.
 4. Construct a harness `Session` over `SQLiteMessageLogStore`. The starting head depends on the
    request: retry targets a user turn without re-recording it; fork starts from
    `fork_from_turn_id`; a normal turn starts from the last leaf.

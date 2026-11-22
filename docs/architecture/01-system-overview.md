@@ -17,8 +17,8 @@ observable. Four constraints drive most structural decisions.
 | Async where possible | FastAPI, SQLModel/SQLAlchemy, and pydantic-ai are driven asynchronously; long-running work is task-based and cancellable. |
 
 A second-order constraint is that the harness must be protocol-agnostic. The same agent runtime
-serves HTTP/AG-UI, stdio/ACP, HTTP/A2A, and in-process sub-sessions. Protocol adapters translate
-events and lifecycle calls; they do not reimplement agent behavior.
+serves HTTP/AG-UI, stdio/ACP, HTTP/A2A, and session-spawned subagent sessions. Protocol adapters
+translate events and lifecycle calls; they do not reimplement agent behavior.
 
 ## Runtime topology
 

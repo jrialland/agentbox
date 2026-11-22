@@ -1,14 +1,14 @@
 # Concurrency and Lifecycle
 
 **Scope:** How work is scheduled and torn down: application lifespan, the run registry and
-cancellation, event-bus consumers, sub-sessions, session-scoped MCP processes, global LSP and
-terminal managers, and the cleanup path shared by HTTP, ACP, A2A, and shutdown.
+cancellation, event-bus consumers, subagent sessions, session-scoped MCP processes, global LSP
+and terminal managers, and the cleanup path shared by HTTP, ACP, A2A, and shutdown.
 
 ## Application lifespan
 
 Startup prepares logging and LSP, sets MCP timeouts, starts the idle sweep, and reconciles
-sub-sessions left behind by a previous process. Shutdown reverses that order and drains every
-long-lived resource.
+subagent sessions left behind by a previous process. Shutdown reverses that order and drains
+every long-lived resource.
 
 *Figure 1 — Application lifespan.*
 
@@ -19,14 +19,14 @@ sequenceDiagram
   participant LSP as LSP manager
   participant MCP as MCP manager
   participant Term as Terminal manager
-  participant Sub as Sub-sessions
+  participant Sub as Subagent sessions
   participant DB as Engine
 
   L->>Log: configure_logging
   L->>LSP: configure_lsp
   L->>MCP: set start timeout
   L->>MCP: start idle sweep task
-  L->>Sub: reconcile running children
+  L->>Sub: reconcile subagent sessions
   Note over L: serving requests
   L->>MCP: cancel sweep
   L->>MCP: close_all
@@ -87,18 +87,18 @@ sequence numbers so they sort first.
 Subagent sessions are background child sessions started by a session tool using any agent
 configuration.
 
-- Caps: at most 5 concurrent children per parent (`MAX_SUBAGENT_SESSIONS`) and depth 3
+- Caps: at most 5 concurrent subagent sessions per parent (`MAX_SUBAGENT_SESSIONS`) and depth 3
   (`MAX_SUBAGENT_SESSION_DEPTH`).
-- Each child is a real `SessionRow` with `parent_session_id`, `subagent_session_depth`, and a
-  status.
+- Each subagent session is a real `SessionRow` with `parent_session_id`,
+  `subagent_session_depth`, and a status.
 - `SubagentSessionManager` keeps active jobs in a process-global map. Each job subscribes to the
-  child `EventBus`, buffers a rolling live-output tail, and exposes wait/any/all and recursive
-  cancellation.
+  subagent session's `EventBus`, buffers a rolling live-output tail, and exposes wait/any/all and
+  recursive cancellation.
 - Status and final output are persisted on completion, failure, or cancellation. A stale
   `running` row with no live job is marked failed.
-- Children are not registered in the HTTP `RunRegistry`; they are canceled through
+- Subagent sessions are not registered in the HTTP `RunRegistry`; they are canceled through
   `cancel_subagent_sessions`, `shutdown_subagent_sessions`, or the parent's cleanup.
-- On startup, orphaned `running` children are marked failed.
+- On startup, orphaned `running` subagent sessions are marked failed.
 
 ## MCP session lifecycle
 

@@ -90,7 +90,7 @@ C4Container
 | [07 — Protocols](07-protocols.md) | AG-UI, ACP, A2A, MCP adapters and their lifecycles | Per-protocol sequences, harness mapping |
 | [08 — Frontend](08-frontend.md) | Build, providers, routing, API layer, state, design system, pages | Provider tree, route tree, data flow |
 | [09 — Chat and streaming](09-chat-and-streaming.md) | Stream lifecycle, segment reducer, composer, MCP apps, Markdown/Mermaid | Stream sequence, segment state machine |
-| [10 — Concurrency and lifecycle](10-concurrency-and-lifecycle.md) | Lifespan, runs, sub-sessions, MCP sessions, global managers, cleanup | Lifespan timeline, run/cancel, MCP lifecycle |
+| [10 — Concurrency and lifecycle](10-concurrency-and-lifecycle.md) | Lifespan, runs, subagent sessions, MCP sessions, global managers, cleanup | Lifespan timeline, run/cancel, MCP lifecycle |
 | [11 — Testing and observability](11-testing-and-observability.md) | Test strategy, e2e harness, logging, activity and token capture | Test pyramid, observability flow |
 | [12 — Glossary and decisions](12-glossary-and-decisions.md) | Terms, decision log, "where to change X" map | — |
 

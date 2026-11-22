@@ -106,7 +106,7 @@ that user.
 | MCP Apps | App iframes load through `/sandbox`, which computes a CSP and proxies resource/tool traffic through the backend |
 | Web fetch | HTTPS-only with SSRF checks, redirect revalidation, response-size limits, and a configurable user agent |
 | Media | Image reads are downscaled to configured dimensions and byte limits |
-| Sub-sessions | Concurrency and depth caps limit runaway delegation |
+| Subagent sessions | Any agent configuration may be used; concurrency and depth caps limit runaway delegation. Writes remain gated by the parent mode. |
 
 ## Security notes and limitations
 

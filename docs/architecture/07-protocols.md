@@ -75,7 +75,7 @@ ACP lets an external IDE drive sessions over stdin/stdout JSON-RPC.
 - Server: `AgentboxAcpAgent` implements initialize, new/load/resume/delete/close session, prompt,
   cancel, and set-mode.
 - Session cache: per process, keyed by ACP session id, holding the spec, model, registry, mode,
-  active run, and extra roots.
+  subagent session runner, active run, and extra roots.
 - Prompt flow: build a harness `Session` from the latest leaf, run the harness, map events with
   `update_for_event` into `session/update` payloads, then append the assistant turn.
 - MCP: ACP clients may supply stdio MCP servers; `_with_servers` adds them to the spec.
@@ -121,7 +121,8 @@ A2A exposes selected agents to other agents or services.
 - Card: `build_card` parses the stored JSON, forces streaming, and rewrites
   `supported_interfaces` to `{a2a_public_url}/a2a/{agent_name}`.
 - Execution: `AgentboxA2AExecutor` maps `task.context_id` to an Agentbox session id, works under
-  `a2a_workspace`, streams text into artifacts, and completes or fails the task.
+  `a2a_workspace`, uses the shared subagent session runner, streams text into artifacts, and
+  completes or fails the task.
 - Cancellation: the executor cancels the run tracked for that context id.
 
 *Figure 4 — A2A over HTTP.*

@@ -31,6 +31,8 @@ Backend tests are pytest suites inside each package.
 - External integration tests (Ollama, real LSP servers, `uvx` MCP servers) self-skip when the
   tool is absent. They run in CI-like environments where the tool exists.
 - `pytest-asyncio` is in `auto` mode with function-scoped loops.
+- Subagent-session tests cover unrestricted agent selection, live output through the `test_slow`
+  provider, wait all/any, recursive cancellation, and the `subagent_session_*` migration.
 
 ## Frontend testing
 
@@ -107,6 +109,10 @@ flowchart LR
 
 ## Known gaps
 
+- Subagent sessions are monitored through tools; there is no dedicated web UI or AG-UI
+  child-session stream.
+- KI-1: `test_lsp_real.py::test_rust_analyzer` returns no diagnostics from real rust-analyzer on
+  Windows.
 - ACP falls back to a development JWT secret when `JWT_SECRET` is unset.
 - A2A task state is in memory and does not survive a restart.
 - The frontend `mitt` bus is declared but unused.
