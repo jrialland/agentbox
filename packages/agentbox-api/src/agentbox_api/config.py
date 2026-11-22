@@ -9,8 +9,8 @@ from agentbox_models.config import (
 
 
 class Settings(BaseSettings):
-    database_url: str | None = None
-    media_dir: str | None = None
+    database_url: str = ""
+    media_dir: str = ""
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_expiry_seconds: int = 3600
