@@ -1122,24 +1122,6 @@ export interface components {
                 [key: string]: string;
             };
         };
-        /** Project */
-        Project: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
-            /** Path */
-            path: string;
-            /** Owner Id */
-            owner_id: string;
-            /** Extra Roots */
-            extra_roots?: string[];
-            /**
-             * Created At
-             * Format: date-time
-             */
-            created_at?: string;
-        };
         /** ProjectCreate */
         ProjectCreate: {
             /** Name */
@@ -1151,6 +1133,24 @@ export interface components {
              * @default []
              */
             extra_roots: string[];
+        };
+        /** ProjectRead */
+        ProjectRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /** Path */
+            path: string;
+            /** Owner Id */
+            owner_id: string;
+            /** Extra Roots */
+            extra_roots: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
         };
         /** ProjectUpdate */
         ProjectUpdate: {
@@ -1302,8 +1302,6 @@ export interface components {
             agent_name: string;
             /** Title */
             title?: string | null;
-            /** Head Turn Id */
-            head_turn_id?: string | null;
             /** Created At */
             created_at: string;
         };
@@ -1317,8 +1315,6 @@ export interface components {
             agent_id: string;
             /** Title */
             title?: string | null;
-            /** Head Turn Id */
-            head_turn_id?: string | null;
             /** Parent Session Id */
             parent_session_id?: string | null;
             /** Subagent Session Status */
@@ -2269,7 +2265,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Project"][];
+                    "application/json": components["schemas"]["ProjectRead"][];
                 };
             };
         };
@@ -2293,7 +2289,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Project"];
+                    "application/json": components["schemas"]["ProjectRead"];
                 };
             };
             /** @description Validation Error */
@@ -2324,7 +2320,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Project"];
+                    "application/json": components["schemas"]["ProjectRead"];
                 };
             };
             /** @description Validation Error */
@@ -2359,7 +2355,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Project"];
+                    "application/json": components["schemas"]["ProjectRead"];
                 };
             };
             /** @description Validation Error */

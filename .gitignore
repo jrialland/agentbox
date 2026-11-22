@@ -17,5 +17,7 @@ test-results/
 playwright-report/
 blob-report/
 logs/
+media/
+e2e-media/
 target/
 .worktrees/

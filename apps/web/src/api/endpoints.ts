@@ -4,7 +4,7 @@ import { api } from "./client";
 import { toApiError } from "./errors";
 import type { components } from "./schema";
 
-export type Project = components["schemas"]["Project"];
+export type Project = components["schemas"]["ProjectRead"];
 export type Session = components["schemas"]["SessionRow"];
 export type Agent = components["schemas"]["AgentSpec"];
 export type Provider = components["schemas"]["ProviderRead"];

@@ -1119,7 +1119,7 @@
               "application/json": {
                 "schema": {
                   "items": {
-                    "$ref": "#/components/schemas/Project"
+                    "$ref": "#/components/schemas/ProjectRead"
                   },
                   "type": "array",
                   "title": "Response List Projects Projects Get"
@@ -1151,7 +1151,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Project"
+                  "$ref": "#/components/schemas/ProjectRead"
                 }
               }
             }
@@ -1193,7 +1193,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Project"
+                  "$ref": "#/components/schemas/ProjectRead"
                 }
               }
             }
@@ -1243,7 +1243,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Project"
+                  "$ref": "#/components/schemas/ProjectRead"
                 }
               }
             }
@@ -3817,7 +3817,33 @@
         ],
         "title": "PreviewRequest"
       },
-      "Project": {
+      "ProjectCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "path": {
+            "type": "string",
+            "title": "Path"
+          },
+          "extra_roots": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Extra Roots",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "path"
+        ],
+        "title": "ProjectCreate"
+      },
+      "ProjectRead": {
         "properties": {
           "id": {
             "type": "string",
@@ -3853,35 +3879,11 @@
           "id",
           "name",
           "path",
-          "owner_id"
+          "owner_id",
+          "extra_roots",
+          "created_at"
         ],
-        "title": "Project"
-      },
-      "ProjectCreate": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "path": {
-            "type": "string",
-            "title": "Path"
-          },
-          "extra_roots": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Extra Roots",
-            "default": []
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "path"
-        ],
-        "title": "ProjectCreate"
+        "title": "ProjectRead"
       },
       "ProjectUpdate": {
         "properties": {
@@ -4376,17 +4378,6 @@
             ],
             "title": "Title"
           },
-          "head_turn_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Head Turn Id"
-          },
           "created_at": {
             "type": "string",
             "title": "Created At"
@@ -4426,17 +4417,6 @@
               }
             ],
             "title": "Title"
-          },
-          "head_turn_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Head Turn Id"
           },
           "parent_session_id": {
             "anyOf": [
