@@ -11,7 +11,7 @@
 ## Setup and local dev
 
 - Requires `uv` and `bun`. Run Python commands from the repo root; run frontend commands from `apps/web`.
-- Local backend needs `JWT_SECRET` of at least 32 chars (`.env` or environment). The dev server seeds `admin` / `admin`.
+- `just dev` generates `.env` with a `JWT_SECRET` of at least 32 chars if missing, installs missing dependencies, and seeds `admin` / `admin`. To run the backend directly, set `JWT_SECRET` in `.env` or the environment first.
 - Backend: `uv run python -m agentbox_api.dev_server` (port 8000).
 - Frontend: `cd apps/web && bun install && bun run dev` (Vite on 5173; `/api` is proxied to 8000 and the prefix is stripped).
 - Database defaults to `./agentbox.db`. `dev_server` uses `SQLModel.create_all` plus seeding, so schema changes need an Alembic migration; existing DBs are not auto-altered. Apply with `uv run alembic -c packages/agentbox-models/alembic.ini upgrade head`.

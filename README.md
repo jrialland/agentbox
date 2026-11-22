@@ -132,38 +132,30 @@ See [`AGENTS.md`](AGENTS.md) for the same rules in agent-oriented form.
 Prerequisites: [uv](https://docs.astral.sh/uv/), [Bun](https://bun.sh/), and optionally
 [just](https://github.com/casey/just).
 
-Install dependencies from the repo root:
-
-```powershell
-uv sync
-cd apps/web
-bun install
-```
-
-Create a `.env` at the repo root with a JWT secret of at least 32 characters:
-
-```dotenv
-JWT_SECRET=replace-with-at-least-32-characters
-```
-
-The development server calls `SQLModel.create_all` and seeds an `admin` / `admin` user. For an
-existing database, apply migrations instead:
-
-```powershell
-uv run alembic -c packages/agentbox-models/alembic.ini upgrade head
-```
-
-Run both servers:
+From the repo root, start everything with:
 
 ```powershell
 just dev
 ```
 
-Or run them separately:
+On the first run, `just dev` creates `.env` with a generated `JWT_SECRET` of at least 32
+characters, installs Python or frontend dependencies if they are missing, then starts the
+backend on `http://127.0.0.1:8000` and Vite on `http://localhost:5173`. The development
+server seeds an `admin` / `admin` user.
+
+To install dependencies without starting the servers, run `just setup`. To run the servers
+separately:
 
 ```powershell
 uv run python -m agentbox_api.dev_server   # http://127.0.0.1:8000
 cd apps/web; bun run dev                    # http://localhost:5173
+```
+
+For an existing database, apply migrations instead of relying on the dev server's
+`create_all`:
+
+```powershell
+uv run alembic -c packages/agentbox-models/alembic.ini upgrade head
 ```
 
 Vite proxies `/api` to port 8000 and strips the prefix. The database defaults to
