@@ -205,8 +205,8 @@ In-process scanner:
 - Choose `TsSourceParser` for `.ts`, `.tsx`, `.mts`, `.cts` and `JsSourceParser` for
   `.js`, `.jsx`, `.mjs`, `.cjs`. The `typescript` package is required by `TsSourceParser`.
 - Skip `.d.ts` files entirely.
-- Enable only the `crypto.*` and `unsafe-vm-context` optional warnings; leave noisy
-  performance/log warnings off.
+- Enable the `crypto.*` optional warnings; `unsafe-vm-context` is a default warning and is
+  included automatically. Leave noisy performance/log warnings off.
 - Resolve warning descriptions through `@nodesecure/i18n`:
   `extendFromSystemPath(jsxray.i18nLocation())`, then `getLocalLang()`, then
   `getTokenSync(warning.i18n)`. Fall back to the warning `kind` when resolution fails.
