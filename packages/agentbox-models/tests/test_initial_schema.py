@@ -43,3 +43,14 @@ def test_initial_schema_upgrade_and_downgrade(tmp_path):
     remaining = set(sa.inspect(engine).get_table_names())
     assert remaining <= {"alembic_version"}
     engine.dispose()
+
+def test_initial_schema_with_async_sqlite_url(tmp_path):
+    db = tmp_path / "async-mig.db"
+    config = Config("packages/agentbox-models/alembic.ini")
+    config.set_main_option("script_location", "packages/agentbox-models/alembic")
+    config.set_main_option(
+        "sqlalchemy.url", f"sqlite+aiosqlite:///{db.as_posix()}"
+    )
+    command.upgrade(config, "head")
+    assert db.exists()
+    command.downgrade(config, "base")
