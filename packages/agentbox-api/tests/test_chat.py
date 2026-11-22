@@ -7,7 +7,7 @@ from agentbox_api.config import Settings
 from agentbox_api.security import hash_password
 from agentbox_harness.session import Turn
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
-from agentbox_models.repos.message_log import SQLiteMessageLogStore
+from agentbox_models.repos.message_log import DatabaseMessageLogStore
 from agentbox_models.tables.auth import Permission, Role, RolePermissionLink, User, UserRoleLink
 from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
 
@@ -112,7 +112,7 @@ async def test_retry_turn_id_does_not_duplicate_user_turn(tmp_path, monkeypatch)
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     await _seed(factory, tmp_path)
-    store = SQLiteMessageLogStore(factory, "s1")
+    store = DatabaseMessageLogStore(factory, "s1")
     await store.append(Turn(id="u1", role="user", content="original", parent_id=None))
 
     app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)
@@ -171,7 +171,7 @@ async def test_run_error_is_streamed_and_persisted(tmp_path, monkeypatch):
             body = "".join([chunk async for chunk in r.aiter_text()])
         assert "RUN_ERROR" in body
 
-    turns = await SQLiteMessageLogStore(factory, "s1").list_turns()
+    turns = await DatabaseMessageLogStore(factory, "s1").list_turns()
     assistant = next(t for t in turns if t.role == "assistant")
     assert assistant.activity is not None
     assert assistant.activity["status"] == "error"

@@ -26,7 +26,7 @@ from agentbox_harness.tools.mcp_session import McpWarningEvent
 from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.repos.crud import SessionRepository
-from agentbox_models.repos.message_log import SQLiteMessageLogStore
+from agentbox_models.repos.message_log import DatabaseMessageLogStore
 from agentbox_models.tables.core import (
     Agent,
     PlanItem,
@@ -402,7 +402,7 @@ async def chat(
     spec = prepared.spec
     resolved = prepared.runtime.model
 
-    store = SQLiteMessageLogStore(factory, sid)
+    store = DatabaseMessageLogStore(factory, sid)
     session = Session(
         session_id=sid,
         project_root=project.path,
@@ -489,7 +489,7 @@ async def chat(
     harness = Harness(
         registry=prepared.registry,
         model=resolved,
-        store_factory=lambda: SQLiteMessageLogStore(factory, sid),
+        store_factory=lambda: DatabaseMessageLogStore(factory, sid),
         compaction=compaction_config_from_settings(request.app.state.settings),
         subagent_session_runner=prepared.subagent_session_runner,
     )

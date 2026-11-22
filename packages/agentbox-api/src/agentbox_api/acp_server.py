@@ -59,7 +59,7 @@ from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_harness.tools.terminal import get_job_manager
 from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
-from agentbox_models.repos.message_log import SQLiteMessageLogStore
+from agentbox_models.repos.message_log import DatabaseMessageLogStore
 from agentbox_models.tables.auth import User
 from agentbox_models.tables.core import (
     Project,
@@ -302,7 +302,7 @@ class AgentboxAcpAgent:
         logger.info("acp run start session={}", session_id)
         parts = prompt_parts(prompt)
         text = "".join(p for p in parts if isinstance(p, str))
-        store = SQLiteMessageLogStore(self._factory, session_id)
+        store = DatabaseMessageLogStore(self._factory, session_id)
         session = Session(
             session_id=session_id,
             project_root=sess.project_root,
@@ -315,7 +315,7 @@ class AgentboxAcpAgent:
         harness = Harness(
             registry=sess.registry,
             model=sess.model,
-            store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
+            store_factory=lambda: DatabaseMessageLogStore(self._factory, session_id),
             compaction=compaction_config_from_settings(self._settings),
             subagent_session_runner=sess.subagent_session_runner,
         )

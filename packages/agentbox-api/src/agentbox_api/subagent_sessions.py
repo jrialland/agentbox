@@ -28,7 +28,7 @@ from agentbox_harness.run import Run
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.tools.web import WebToolConfig
 from agentbox_harness.usage import context_tokens_from_usage
-from agentbox_models.repos.message_log import SQLiteMessageLogStore
+from agentbox_models.repos.message_log import DatabaseMessageLogStore
 from agentbox_models.tables.core import Agent, SessionRow, TurnRow
 
 MAX_SUBAGENT_SESSIONS = 5
@@ -376,7 +376,7 @@ class ApiSubagentSessionRunner:
 
     async def _execute(self, job, prepared, text: str) -> None:
         def store_factory():
-            return SQLiteMessageLogStore(self._context.factory, job.session_id)
+            return DatabaseMessageLogStore(self._context.factory, job.session_id)
 
         session = Session(
             session_id=job.session_id,

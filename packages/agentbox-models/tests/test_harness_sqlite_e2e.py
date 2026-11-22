@@ -11,7 +11,7 @@ from agentbox_harness.spec import (
 )
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
-from agentbox_models.repos.message_log import SQLiteMessageLogStore
+from agentbox_models.repos.message_log import DatabaseMessageLogStore
 
 
 async def write_file(path: str, content: str) -> str:
@@ -34,7 +34,7 @@ async def test_harness_session_persists_turns():
     reg.register_native("write_file", write_file, required_flags=("write",))
     harness = Harness(registry=reg, model=TestModel(), store_factory=InMemoryMessageLogStore)
 
-    store = SQLiteMessageLogStore(factory, "sess1")
+    store = DatabaseMessageLogStore(factory, "sess1")
     session = Session(
         session_id="sess1",
         project_root=".",

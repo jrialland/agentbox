@@ -28,7 +28,7 @@ from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.usage import context_tokens_from_usage
-from agentbox_models.repos.message_log import SQLiteMessageLogStore
+from agentbox_models.repos.message_log import DatabaseMessageLogStore
 from agentbox_models.tables.auth import User
 from agentbox_models.tables.core import Project, SessionRow, TurnRow
 
@@ -125,7 +125,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             session_id=session_id,
             project_root=workspace,
             agent_spec=prepared.spec,
-            store=SQLiteMessageLogStore(self._factory, session_id),
+            store=DatabaseMessageLogStore(self._factory, session_id),
             head_id=await _latest_leaf(self._factory, session_id),
             mode_name="agent",
             extra_roots=project.extra_roots if project is not None else [],
@@ -133,7 +133,7 @@ class AgentboxA2AExecutor(AgentExecutor):
         harness = Harness(
             registry=prepared.registry,
             model=prepared.runtime.model,
-            store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
+            store_factory=lambda: DatabaseMessageLogStore(self._factory, session_id),
             compaction=compaction_config_from_settings(self._settings),
             subagent_session_runner=prepared.subagent_session_runner,
         )
