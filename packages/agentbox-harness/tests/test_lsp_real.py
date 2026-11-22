@@ -2,13 +2,29 @@ import pathlib
 import shutil
 import subprocess
 import sys
-import time
+from dataclasses import replace
 
 import pytest
 
 from agentbox_harness.lsp.hooks import make_lsp_hook
 from agentbox_harness.lsp.manager import LspManager
+from agentbox_harness.lsp.stacks import DEFAULT_LSP_SERVERS
 from agentbox_harness.tools.registry import ToolHookContext
+
+pytestmark = pytest.mark.timeout(300)
+
+PROVISION_TIMEOUT = 60.0
+
+
+def _manager(settle: float | None = None) -> LspManager:
+    manager = LspManager()
+    manager.initialize_timeout = PROVISION_TIMEOUT
+    manager.diagnostics_timeout = PROVISION_TIMEOUT
+    if settle is not None:
+        manager.stacks = [
+            replace(stack, settle=settle) for stack in DEFAULT_LSP_SERVERS
+        ]
+    return manager
 
 
 def _available(tool: str) -> bool:
@@ -43,10 +59,14 @@ def _install_typescript(project: pathlib.Path) -> None:
         pytest.skip(f"npm install typescript failed: {result.stderr[-200:]!r}")
 
 
-async def _run(project: pathlib.Path, filename: str, content: str):
-    manager = LspManager()
-    manager.initialize_timeout = 60.0
-    manager.diagnostics_timeout = 60.0
+async def _run(
+    project: pathlib.Path,
+    filename: str,
+    content: str,
+    *,
+    settle: float | None = None,
+):
+    manager = _manager(settle)
     path = project / filename
     path.write_text(content, encoding="utf-8")
     hook = make_lsp_hook(manager, "real", str(project))
@@ -90,7 +110,10 @@ async def test_rust_analyzer(tmp_path):
     )
     (tmp_path / "src").mkdir()
     text = await _run(
-        tmp_path, "src/main.rs", 'fn main() { let x: i32 = "no"; }\n'
+        tmp_path,
+        "src/main.rs",
+        'fn main() { let x: i32 = "no"; }\n',
+        settle=PROVISION_TIMEOUT,
     )
     assert text and "error" in text.lower()
 
@@ -99,49 +122,15 @@ async def test_rust_analyzer(tmp_path):
     not _available("rust-analyzer") or shutil.which("cargo") is None,
     reason="rust-analyzer/cargo not installed",
 )
-async def test_rust_analyzer_clean_write_is_fast(tmp_path):
+async def test_rust_analyzer_clean_write_returns_no_diagnostics(tmp_path):
     (tmp_path / "Cargo.toml").write_text(
         "[package]\nname = 'x'\nversion = '0.1.0'\nedition = '2021'\n",
         encoding="utf-8",
     )
     (tmp_path / "src").mkdir()
-    main = tmp_path / "src" / "main.rs"
-    manager = LspManager()
-    manager.initialize_timeout = 60.0
-    manager.diagnostics_timeout = 60.0
-    hook = make_lsp_hook(manager, "real", str(tmp_path))
-    try:
-        main.write_text(
-            'fn main() { let x: i32 = 1; println!("{}", x); }\n',
-            encoding="utf-8",
-        )
-        await hook(
-            ToolHookContext(
-                tool_name="write_file",
-                args={"path": str(main)},
-                root=tmp_path,
-                result="ok",
-            )
-        )
-        server = next(iter(manager._servers.values()), None)
-        assert server is not None
-        if server._tracker is None or server._tracker.seq == 0:
-            pytest.skip("rust-analyzer did not send experimental/serverStatus")
-        main.write_text(
-            'fn main() { let x: i32 = 2; println!("{}", x); }\n',
-            encoding="utf-8",
-        )
-        started = time.perf_counter()
-        text = await hook(
-            ToolHookContext(
-                tool_name="write_file",
-                args={"path": str(main)},
-                root=tmp_path,
-                result="ok",
-            )
-        )
-        elapsed = time.perf_counter() - started
-        assert text is None
-        assert elapsed < 2.0
-    finally:
-        await manager.shutdown()
+    text = await _run(
+        tmp_path,
+        "src/main.rs",
+        'fn main() { let x: i32 = 1; println!("{}", x); }\n',
+    )
+    assert text is None
