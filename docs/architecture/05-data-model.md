@@ -125,8 +125,10 @@ uv run alembic -c packages/agentbox-models/alembic.ini upgrade head
 just reset-db
 ```
 
-The dev server still uses `SQLModel.metadata.create_all`, which does not alter existing databases.
-A metadata-diff test guards the initial migration against drift.
+The dev server still uses `SQLModel.metadata.create_all`, which does not alter existing databases
+but does add tables missing from an older database. The plugin-state migration therefore skips
+tables and indexes that `create_all` already created, so `just dev` upgrades a drifted local
+database cleanly. A metadata-diff test guards the migrations against model drift.
 
 ## Related
 

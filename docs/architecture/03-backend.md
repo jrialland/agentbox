@@ -101,6 +101,7 @@ All routers are `APIRouter(prefix=..., tags=[...])` instances included by `creat
 | `/labels` | `labels` | Model labels | `GET /labels` |
 | `/skills` | `skills` | User skill CRUD | `GET/PUT/DELETE /skills/{name}` |
 | `/sandbox` | hidden | MCP App proxy page | `GET /sandbox?csp=...` |
+| `/llms.txt`, `/llms/{section}.md` | hidden | Public agent-facing Markdown guide | `GET /llms.txt`, `GET /llms/authentication.md` |
 | `/a2a` | mount | Per-agent A2A card and JSON-RPC | `/{agent}/.well-known/agent-card.json`, `/{agent}` JSON-RPC |
 
 *Figure 2 — Router map.*

@@ -231,6 +231,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 43 | D9 context editing (heavy tool/binary reduction, complementary to compaction) | `specs/2026-11-22-context-editing-design.md` | `plans/2026-11-22-context-editing.md` |
 | 44 | D12a Agent Plugins core (local discovery, schema validation, skills, MCP, enable/trust, UI) | `specs/2026-11-22-agent-plugins-core-design.md` | `plans/2026-11-22-agent-plugins-core.md` |
 | 45 | D12b Agent Plugin hooks (`com.agentbox/hooks`, session/run/tool events, command/HTTP/context, deny/mutate) | `specs/2026-11-22-agent-plugins-hooks-design.md` | `plans/2026-11-22-agent-plugins-hooks.md` |
+| 46 | D23 llms.txt agent guide (public index + sections) | `specs/2026-11-22-llms-txt-design.md` | `plans/2026-11-22-llms-txt.md` |
 
 ## Technical documentation
 
@@ -260,4 +261,4 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D16 | **Telegram / WhatsApp interface** | Let a user create a channel binding (e.g. a Telegram bot) to manage an agent session from a phone: inbound messages start/continue sessions, replies stream back. |
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
-| D23 | **llms.txt** | fastapi should serve an llms.txt file, as explained at https://llmstxt.org/llms.txt should be a practical set of markdown explaining how to use the api, tailored for agents |
+| D23 | **llms.txt** | DONE — public `/llms.txt` index plus section files under `/llms/`, tailored for agents; spec `superpowers/specs/2026-11-22-llms-txt-design.md`, plan `superpowers/plans/2026-11-22-llms-txt.md`. |

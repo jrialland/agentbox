@@ -8,8 +8,9 @@ and onboarding surfaces. Chat behavior is covered in
 ## Build and tooling
 
 - **Vite** serves the app on port 5173. The dev proxy matches `^/api/` and forwards to
-  `http://localhost:8000`, stripping the `/api` prefix. In production the same relative paths are
-  served by whatever host fronts the API.
+  `http://localhost:8000`, stripping the `/api` prefix. It also forwards `^/llms\.txt$` and
+  `^/llms/` without rewriting so the public agent guide resolves at the browser origin. In
+  production the same relative paths are served by whatever host fronts the API.
 - **TypeScript** is strict with `noEmit`; imports are relative (there are no path aliases).
   `bun run build` runs `tsc --noEmit` before `vite build`.
 - **Environment:** `src/config.ts` is the single access point. `VITE_API_URL` defaults to
