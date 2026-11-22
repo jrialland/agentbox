@@ -20,6 +20,10 @@ class RunContext:
     outcome: RunOutcome | None = None
 
 
+class SessionReminder(Protocol):
+    async def reminder(self, session: Session) -> str | None: ...
+
+
 class RunMiddleware(Protocol):
     async def before_run(self, ctx: RunContext) -> None: ...
 

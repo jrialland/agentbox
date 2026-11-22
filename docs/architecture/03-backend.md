@@ -213,11 +213,15 @@ The shared resolver lives in `agentbox_models.config`; Alembic uses it too.
 | Skills | `skills_user_dir` (default `~/.agents/skills`) |
 | Media | `media_max_dimension`, `media_max_bytes` |
 | Logging | `log_level`, `log_dir`, `log_rotation`, `log_retention`, `log_compression`, `log_intercept` |
-| LSP | `lsp_enabled`, `lsp_servers_json`, `lsp_initialize_timeout`, `lsp_diagnostics_timeout`, `lsp_failure_backoff_seconds` |
+| LSP | `lsp_enabled`, `lsp_mode` (`auto`/`on_demand`/`off`), `lsp_servers_json`, `lsp_initialize_timeout`, `lsp_diagnostics_timeout`, `lsp_failure_backoff_seconds`, `lsp_max_open_documents`, `lsp_first_change_timeout`, `lsp_settle_window`, `lsp_session_snapshot_limit`, `lsp_warm_on_start` |
 | Web search | `web_search_provider`, `web_search_timeout`, `web_search_max_results`, `web_search_region`, `web_search_safesearch`, `web_search_ddgs_backend`, `searxng_url` |
 | Web fetch | `web_fetch_timeout`, `web_fetch_max_chars`, `web_fetch_max_bytes`, `web_fetch_user_agent` |
 | Compaction | `compaction_enabled`, `compaction_ratio`, `compaction_keep_turns`, `compaction_input_budget_tokens`, `compaction_max_summary_chars` |
 | MCP | `mcp_idle_ttl_seconds`, `mcp_start_timeout_seconds`, `mcp_sweep_interval_seconds` |
+
+`lsp_mode=auto` (default) analyses edited files in the background and delivers a compact
+next-run reminder; `on_demand` exposes only the `lsp_diagnostics` tool; `off` disables LSP servers,
+hooks, and the tool. `lsp_enabled=false` remains an alias for `off`.
 
 The app uses an async `database_url` and normalizes common sync URLs to async drivers. Alembic
 reads the same TOML/env resolver and runs through an async engine when the URL requires one.

@@ -1,6 +1,12 @@
 import pathlib
 import sys
+import time
 
+from agentbox_harness.lsp.diagnostics import (
+    DiagnosticsService,
+    make_lsp_diagnostics_tool,
+    make_lsp_notify_hook,
+)
 from agentbox_harness.lsp.hooks import format_diagnostics, make_lsp_hook
 from agentbox_harness.lsp.manager import LspManager
 from agentbox_harness.lsp.stacks import LspStack
@@ -54,6 +60,57 @@ async def test_hook_clean_file_returns_none(tmp_path):
         tool_name="write_file", args={"path": str(path)}, root=tmp_path, result="ok"
     )
     assert await hook(ctx) is None
+
+
+async def test_notify_hook_returns_immediately(tmp_path):
+    manager = LspManager()
+    manager.stacks = [FAKE]
+    service = DiagnosticsService(manager)
+    path = tmp_path / "a.py"
+    path.write_text("x = 1", encoding="utf-8")
+    hook = make_lsp_notify_hook(service, "s1", str(tmp_path))
+    ctx = ToolHookContext(
+        tool_name="write_file", args={"path": str(path)}, root=tmp_path, result="ok"
+    )
+    started = time.monotonic()
+    assert await hook(ctx) is None
+    assert time.monotonic() - started < 0.05
+    assert path.resolve() in service._queued
+    await service.shutdown()
+    await manager.shutdown()
+
+
+async def test_diagnostics_tool_refreshes_file(tmp_path):
+    manager = LspManager()
+    manager.stacks = [FAKE]
+    service = DiagnosticsService(manager)
+    path = tmp_path / "a.py"
+    path.write_text("x = 1", encoding="utf-8")
+    tool = make_lsp_diagnostics_tool(service, "s1", str(tmp_path))
+    text = await tool(path=str(path))
+    assert "fake pull error" in text
+    await service.shutdown()
+    await manager.shutdown()
+
+
+async def test_diagnostics_tool_rejects_outside_path(tmp_path):
+    manager = LspManager()
+    service = DiagnosticsService(manager)
+    tool = make_lsp_diagnostics_tool(service, "s1", str(tmp_path))
+    assert await tool(path=str(tmp_path.parent / "outside.py")) == (
+        "path is outside the project"
+    )
+    await service.shutdown()
+    await manager.shutdown()
+
+
+async def test_diagnostics_tool_rejects_bad_severity(tmp_path):
+    manager = LspManager()
+    service = DiagnosticsService(manager)
+    tool = make_lsp_diagnostics_tool(service, "s1", str(tmp_path))
+    assert "severity must be" in await tool(severity="nope")
+    await service.shutdown()
+    await manager.shutdown()
 
 
 def test_format_caps_and_filters():

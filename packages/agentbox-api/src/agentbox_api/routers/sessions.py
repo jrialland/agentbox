@@ -11,6 +11,7 @@ from sqlmodel import select
 
 from agentbox_api.activity import RunActivityCollector
 from agentbox_api.deps import require_permission
+from agentbox_api.lsp_runtime import lsp_reminders
 from agentbox_api.runtime import (
     compaction_config_from_settings,
     delete_session_data,
@@ -21,6 +22,7 @@ from agentbox_api.streaming import agui_response
 from agentbox_api.templating import PromptTemplateError
 from agentbox_harness.events import EventBus, RunEvent
 from agentbox_harness.harness import Harness
+from agentbox_harness.lsp.diagnostics import get_diagnostics_service
 from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.tools.mcp_session import McpWarningEvent
@@ -540,6 +542,7 @@ async def chat(
         store_factory=lambda: DatabaseMessageLogStore(factory, sid),
         compaction=compaction_config_from_settings(request.app.state.settings),
         subagent_session_runner=prepared.subagent_session_runner,
+        reminders=lsp_reminders(),
     )
     mcp_warnings = (await harness.prepare_mcp(session)).warnings
     bus = EventBus()
@@ -691,9 +694,21 @@ async def session_lsp(
             await s.execute(select(Project).where(Project.id == srow.project_id))
         ).scalars().first()
     manager = get_lsp_manager()
+    service = get_diagnostics_service()
     return {
         "detected": manager.detected_for_project(project.path),
         "active": manager.active_for_session(sid),
+        "snapshots": [
+            {
+                "path": snapshot.path,
+                "stack": snapshot.stack,
+                "state": snapshot.state,
+                "errors": len(snapshot.errors),
+                "warnings": len(snapshot.warnings),
+                "updated_at": snapshot.updated_at,
+            }
+            for snapshot in service.snapshots_for_session(sid)
+        ],
     }
 
 class PlanItemRead(BaseModel):

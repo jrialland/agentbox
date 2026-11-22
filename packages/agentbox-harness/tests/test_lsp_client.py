@@ -51,6 +51,78 @@ async def test_timeout_returns_empty(tmp_path):
         await server.stop()
 
 
+async def test_stderr_flood_does_not_block(tmp_path):
+    path = tmp_path / "a.py"
+    path.write_text("x = 1", encoding="utf-8")
+    server = await LspServer(
+        command("--push", "--stderr-flood", "20000"),
+        tmp_path,
+        diagnostics_timeout=5.0,
+    ).start()
+    try:
+        await asyncio.wait_for(server.sync_document(str(path), "python"), 5.0)
+        result = await asyncio.wait_for(server.diagnostics(str(path)), 5.0)
+        assert result[0]["message"] == "fake error"
+        assert server.health()["stderr_tail"]
+        assert server.health()["state"] == "ready"
+    finally:
+        await server.stop()
+
+
+async def test_concurrent_waits_both_complete(tmp_path):
+    path = tmp_path / "a.py"
+    path.write_text("x = 1", encoding="utf-8")
+    server = await LspServer(
+        command("--push"), tmp_path, diagnostics_timeout=2.0
+    ).start()
+    try:
+        await server.sync_document(str(path), "python")
+        results = await asyncio.gather(
+            server.diagnostics(str(path)),
+            server.diagnostics(str(path)),
+        )
+        assert all(result[0]["message"] == "fake error" for result in results)
+    finally:
+        await server.stop()
+
+
+async def test_stale_publish_is_not_returned_after_change(tmp_path):
+    path = tmp_path / "a.py"
+    path.write_text("x = 1", encoding="utf-8")
+    server = await LspServer(
+        command("--push"),
+        tmp_path,
+        diagnostics_timeout=2.0,
+        first_change_timeout=0.1,
+    ).start()
+    try:
+        await server.sync_document(str(path), "python")
+        await asyncio.sleep(0.1)
+        await server.sync_document(str(path), "python")
+        assert await server.diagnostics(str(path)) == []
+    finally:
+        await server.stop()
+
+
+async def test_lru_closes_oldest_document(tmp_path):
+    close_log = tmp_path / "closed.txt"
+    server = await LspServer(
+        command("--track-close", str(close_log)),
+        tmp_path,
+        doc_limit=2,
+    ).start()
+    try:
+        for name in ("a.py", "b.py", "c.py"):
+            path = tmp_path / name
+            path.write_text("x = 1", encoding="utf-8")
+            await server.sync_document(str(path), "python")
+        assert server.documents == 2
+        await asyncio.sleep(0.2)
+        assert "a.py" in close_log.read_text(encoding="utf-8")
+    finally:
+        await server.stop()
+
+
 async def test_stop_shuts_down_process(tmp_path):
     server = await LspServer(command(), tmp_path).start()
     process = server.process

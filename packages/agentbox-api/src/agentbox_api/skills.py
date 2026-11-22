@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import pathlib
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -17,7 +18,11 @@ from agentbox_api.project_instructions import (
 from agentbox_api.runtime import AgentRuntime, build_registry, resolve_agent_runtime
 from agentbox_api.templating import build_context, render_prompt
 from agentbox_harness.compaction import CompactionConfig
-from agentbox_harness.lsp.hooks import make_lsp_hook
+from agentbox_harness.lsp.diagnostics import (
+    get_diagnostics_service,
+    make_lsp_diagnostics_tool,
+    make_lsp_notify_hook,
+)
 from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.spec import AgentSpec, NativeToolBinding
 from agentbox_harness.subagent_sessions import SubagentSessionRunner
@@ -208,6 +213,11 @@ async def prepare_agent(
         spec = spec.model_copy(
             update={"instructions": spec.instructions + "\n\n" + instruction_block}
         )
+    manager = get_lsp_manager()
+    service = get_diagnostics_service()
+    lsp_active = bool(session_id and manager.enabled and service.enabled)
+    if lsp_active and service.warm_on_start:
+        asyncio.create_task(manager.warm(project_root))
     if session_id:
         existing = {
             binding.name
@@ -219,6 +229,8 @@ async def prepare_agent(
             for name in PLAN_TOOL_NAMES
             if name not in existing
         ]
+        if lsp_active and "lsp_diagnostics" not in existing:
+            additions.append(NativeToolBinding(name="lsp_diagnostics"))
         if additions:
             spec = spec.model_copy(
                 update={"tool_bindings": [*spec.tool_bindings, *additions]}
@@ -226,10 +238,13 @@ async def prepare_agent(
     extra_tools = {"activate_skill": make_activate_tool(skills)} if skills else {}
     if session_id:
         extra_tools.update(make_plan_tools(factory, session_id))
-    manager = get_lsp_manager()
+    if lsp_active:
+        extra_tools["lsp_diagnostics"] = make_lsp_diagnostics_tool(
+            service, session_id, project_root
+        )
     hooks = []
-    if session_id and manager.enabled:
-        hooks.append(make_lsp_hook(manager, session_id, project_root))
+    if lsp_active and service.mode == "auto":
+        hooks.append(make_lsp_notify_hook(service, session_id, project_root))
     if session_id:
         hooks.append(make_project_instructions_hook(project_root, session_id))
     registry = build_registry(

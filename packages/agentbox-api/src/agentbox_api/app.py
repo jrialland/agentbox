@@ -25,6 +25,10 @@ from agentbox_api.routers.skills import router as skills_router
 from agentbox_api.routers.users import router as users_router
 from agentbox_api.runs import RunRegistry
 from agentbox_api.sandbox import sandbox_response
+from agentbox_harness.lsp.diagnostics import (
+    configure_diagnostics,
+    get_diagnostics_service,
+)
 from agentbox_harness.lsp.manager import configure_lsp, get_lsp_manager
 from agentbox_harness.tools.terminal import get_job_manager
 from agentbox_models.db import create_engine_and_sessionmaker
@@ -47,6 +51,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
 
         configure_logging(settings)
         configure_lsp(settings)
+        configure_diagnostics(settings)
         manager = get_mcp_session_manager()
         manager.start_timeout = settings.mcp_start_timeout_seconds
 
@@ -66,6 +71,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
             with suppress(asyncio.CancelledError):
                 await sweep_task
             await manager.close_all()
+            await get_diagnostics_service().shutdown()
             await get_lsp_manager().shutdown()
             await get_job_manager().shutdown()
             await shutdown_subagent_sessions()

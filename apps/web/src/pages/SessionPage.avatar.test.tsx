@@ -19,6 +19,16 @@ vi.mock("../api/queries", () => ({
           documents: 1,
         },
       ],
+      snapshots: [
+        {
+          path: "src/a.py",
+          stack: "python",
+          state: "ready",
+          errors: 2,
+          warnings: 1,
+          updated_at: 1,
+        },
+      ],
     },
   }),
   useSkills: () => ({ data: [] }),
@@ -64,5 +74,24 @@ test("shows active LSP servers in the About modal", async () => {
     await screen.findByText(/python — running \(1 docs\)/),
   ).toBeInTheDocument();
   expect(screen.getByText("uvx ty server")).toBeInTheDocument();
+});
+
+test("shows LSP problem snapshots in the About modal", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  render(
+    <MantineProvider>
+      <QueryClientProvider client={client}>
+        <MemoryRouter initialEntries={["/sessions/s1"]}>
+          <Routes>
+            <Route path="/sessions/:id" element={<SessionPage />} />
+          </Routes>
+        </MemoryRouter>
+      </QueryClientProvider>
+    </MantineProvider>,
+  );
+  fireEvent.click(screen.getByRole("button", { name: "About" }));
+  expect(
+    await screen.findByText(/src\/a.py — 2 errors, 1 warnings/),
+  ).toBeInTheDocument();
 });
 

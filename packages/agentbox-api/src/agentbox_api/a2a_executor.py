@@ -19,6 +19,7 @@ from pydantic_ai.messages import PartDeltaEvent, PartStartEvent, TextPart, TextP
 from sqlmodel import select
 
 from agentbox_api.a2a_server import a2a_user
+from agentbox_api.lsp_runtime import lsp_reminders
 from agentbox_api.runtime import (
     compaction_config_from_settings,
     web_config_from_settings,
@@ -140,6 +141,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             store_factory=lambda: DatabaseMessageLogStore(self._factory, session_id),
             compaction=compaction_config_from_settings(self._settings),
             subagent_session_runner=prepared.subagent_session_runner,
+            reminders=lsp_reminders(),
         )
         warnings = (await harness.prepare_mcp(session)).warnings
         for warning in warnings:

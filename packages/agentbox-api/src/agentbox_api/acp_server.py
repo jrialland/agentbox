@@ -42,6 +42,7 @@ from agentbox_api.acp_client_tools import (
 from agentbox_api.config import Settings
 from agentbox_api.dev_seed import seed_admin
 from agentbox_api.logging import configure_logging
+from agentbox_api.lsp_runtime import lsp_reminders
 from agentbox_api.media import MediaStore
 from agentbox_api.runtime import (
     compaction_config_from_settings,
@@ -324,6 +325,7 @@ class AgentboxAcpAgent:
             store_factory=lambda: DatabaseMessageLogStore(self._factory, session_id),
             compaction=compaction_config_from_settings(self._settings),
             subagent_session_runner=sess.subagent_session_runner,
+            reminders=lsp_reminders(),
         )
         warnings = (await harness.prepare_mcp(session)).warnings
         for warning in warnings:

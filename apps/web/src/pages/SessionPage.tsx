@@ -233,7 +233,14 @@ export function SessionPage() {
           <div className={styles.header} data-testid="session-agent">
             {agentName && <AgentAvatar name={agentName} />}
             <span>{agentName || "Agent"}</span>
-            <Button size="compact-xs" variant="light" onClick={() => setAboutOpen(true)}>
+            <Button
+              size="compact-xs"
+              variant="light"
+              onClick={() => {
+                setAboutOpen(true);
+                void lspQuery.refetch?.();
+              }}
+            >
               About
             </Button>
             <h1>{sessionTitle(session?.title)}</h1>
@@ -417,14 +424,34 @@ export function SessionPage() {
               <ul>
                 {lsp.active.map((server) => (
                   <li key={server.stack}>
-                    {server.stack} — {server.status} ({server.documents} docs)
+                    {server.stack} — {server.state ?? server.status} (
+                    {server.documents} docs)
                     <br />
                     <code>{server.command}</code>
+                    {server.last_error ? (
+                      <>
+                        <br />
+                        <span>{server.last_error}</span>
+                      </>
+                    ) : null}
                   </li>
                 ))}
               </ul>
             ) : (
               <p>No active language servers yet.</p>
+            )}
+            <p>Problems</p>
+            {lsp?.snapshots && lsp.snapshots.length > 0 ? (
+              <ul data-testid="lsp-snapshots">
+                {lsp.snapshots.map((snapshot) => (
+                  <li key={snapshot.path}>
+                    {snapshot.path} — {snapshot.errors} errors,{" "}
+                    {snapshot.warnings} warnings ({snapshot.state})
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p>No problems reported yet.</p>
             )}
           </>
         )}

@@ -1,3 +1,4 @@
+import asyncio
 import pathlib
 import shutil
 import subprocess
@@ -128,9 +129,26 @@ async def test_rust_analyzer_clean_write_returns_no_diagnostics(tmp_path):
         encoding="utf-8",
     )
     (tmp_path / "src").mkdir()
-    text = await _run(
-        tmp_path,
-        "src/main.rs",
-        'fn main() { let x: i32 = 1; println!("{}", x); }\n',
+    manager = _manager()
+    path = tmp_path / "src" / "main.rs"
+    hook = make_lsp_hook(manager, "real", str(tmp_path))
+    ctx = ToolHookContext(
+        tool_name="write_file", args={"path": str(path)}, root=tmp_path, result="ok"
     )
-    assert text is None
+    try:
+        path.write_text(
+            'fn main() { let x: i32 = 1; println!("{}", x); }\n',
+            encoding="utf-8",
+        )
+        await hook(ctx)
+        path.write_text(
+            'fn main() { let x: i32 = 2; println!("{}", x); }\n',
+            encoding="utf-8",
+        )
+        started = asyncio.get_running_loop().time()
+        text = await hook(ctx)
+        elapsed = asyncio.get_running_loop().time() - started
+        assert text is None
+        assert elapsed < 3.0
+    finally:
+        await manager.shutdown()

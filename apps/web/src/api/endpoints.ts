@@ -252,6 +252,15 @@ export async function fetchSession(sid: string): Promise<SessionDetail> {
   return data as SessionDetail;
 }
 
+export type SessionLspSnapshot = {
+  path: string;
+  stack: string;
+  state: string;
+  errors: number;
+  warnings: number;
+  updated_at: number;
+};
+
 export type SessionLsp = {
   detected: string[];
   active: {
@@ -259,8 +268,11 @@ export type SessionLsp = {
     command: string;
     root: string;
     status: string;
+    state?: string;
     documents: number;
+    last_error?: string | null;
   }[];
+  snapshots?: SessionLspSnapshot[];
 };
 
 export async function fetchSessionLsp(sid: string): Promise<SessionLsp> {

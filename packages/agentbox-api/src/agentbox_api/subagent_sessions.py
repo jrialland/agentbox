@@ -20,6 +20,7 @@ from pydantic_ai.messages import (
 )
 from sqlmodel import select
 
+from agentbox_api.lsp_runtime import lsp_reminders
 from agentbox_api.skills import prepare_agent
 from agentbox_harness.compaction import CompactionConfig
 from agentbox_harness.events import EventBus
@@ -393,6 +394,7 @@ class ApiSubagentSessionRunner:
             store_factory=store_factory,
             compaction=self._context.compaction,
             subagent_session_runner=prepared.subagent_session_runner,
+            reminders=lsp_reminders(),
         )
         bus = EventBus()
         subscription = bus.subscribe()

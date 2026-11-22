@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     lsp_initialize_timeout: float = 10.0
     lsp_diagnostics_timeout: float = 5.0
     lsp_failure_backoff_seconds: float = 60.0
+    lsp_mode: str = "auto"
+    lsp_max_open_documents: int = 50
+    lsp_first_change_timeout: float = 1.0
+    lsp_settle_window: float = 0.3
+    lsp_session_snapshot_limit: int = 100
+    lsp_warm_on_start: bool = False
     web_search_provider: str = "auto"
     web_search_timeout: float = 10.0
     web_search_max_results: int = 5

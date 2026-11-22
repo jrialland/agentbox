@@ -2,6 +2,7 @@ import asyncio
 import json
 import pathlib
 import sys
+from dataclasses import replace
 from types import SimpleNamespace
 
 from agentbox_harness.lsp.manager import LspManager
@@ -167,6 +168,33 @@ async def test_manager_default_stack_has_no_tracker(tmp_path):
     assert server is not None
     assert server.quiescence is None
     assert server._tracker is None
+    await manager.shutdown()
+
+
+async def test_server_for_path_uses_nearest_root(tmp_path):
+    nested = tmp_path / "apps" / "web"
+    nested.mkdir(parents=True)
+    (nested / "package.json").write_text("{}", encoding="utf-8")
+    manager = LspManager()
+    manager.stacks = [replace(FAKE_TS, root_markers=("package.json",))]
+    result = await manager.server_for_path(str(tmp_path), str(nested / "a.ts"))
+    assert result is not None
+    _stack, root, _server = result
+    assert root == nested
+    await manager.shutdown()
+
+
+async def test_failure_backoff_is_exponential_and_resets(tmp_path):
+    manager = LspManager()
+    manager.failure_backoff = 0.05
+    broken = replace(FAKE, command=("definitely-not-a-real-command",))
+    assert await manager.get_or_start(str(tmp_path), broken) is None
+    key = (str(tmp_path.resolve()), "python")
+    assert manager._failure_attempts[key] == 1
+    await asyncio.sleep(0.06)
+    server = await manager.get_or_start(str(tmp_path), FAKE)
+    assert server is not None
+    assert key not in manager._failure_attempts
     await manager.shutdown()
 
 

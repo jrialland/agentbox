@@ -8,7 +8,12 @@ from agentbox_harness.compaction import CompactionConfig, CompactionMiddleware
 from agentbox_harness.errors import RunOutcome
 from agentbox_harness.events import EventBus
 from agentbox_harness.messages import turns_to_messages
-from agentbox_harness.middleware import MiddlewarePipeline, RunContext, RunMiddleware
+from agentbox_harness.middleware import (
+    MiddlewarePipeline,
+    RunContext,
+    RunMiddleware,
+    SessionReminder,
+)
 from agentbox_harness.run import Run, RunManager
 from agentbox_harness.session import Session, Turn
 from agentbox_harness.spec import AgentSpec, McpToolBinding, Mode
@@ -31,6 +36,7 @@ class Harness:
         compaction: CompactionConfig | None = None,
         subagent_session_runner=None,
         mcp_manager: McpSessionManager | None = None,
+        reminders: list[SessionReminder] | None = None,
     ):
         self.registry = registry
         self.model = model
@@ -43,6 +49,7 @@ class Harness:
         )
         self.subagent_session_runner = subagent_session_runner
         self.mcp_manager = mcp_manager or get_mcp_session_manager()
+        self.reminders = list(reminders or [])
 
     async def prepare_mcp(self, session: Session) -> SessionToolsets:
         spec = session.agent_spec
@@ -116,6 +123,23 @@ class Harness:
             await session.append(turn, parent_id=session.head_id)
         message_history = turns_to_messages(await session.history())
 
+        reminder_texts: list[str] = []
+        for provider in self.reminders:
+            try:
+                text = await provider.reminder(session)
+            except Exception:
+                logger.exception("reminder provider failed")
+                continue
+            if text:
+                reminder_texts.append(text)
+        reminder = "\n\n".join(reminder_texts)
+        effective_prompt = (
+            user_message if not reminder else f"{user_message}\n\n{reminder}"
+        )
+        effective_override = prompt_override
+        if prompt_override is not None and reminder:
+            effective_override = [*prompt_override, reminder]
+
         mode = self._resolve_mode(session)
         spec = session.agent_spec
         if spec is None:
@@ -138,12 +162,12 @@ class Harness:
         )
         return self.run_manager.start(
             agent,
-            user_message,
+            effective_prompt,
             run_id=uuid.uuid4().hex,
             bus=bus,
             model_override=model_override,
             message_history=message_history,
-            prompt_override=prompt_override,
+            prompt_override=effective_override,
             on_context_overflow=lambda: self.middleware.recover(context),
         )
 

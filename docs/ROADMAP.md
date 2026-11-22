@@ -180,7 +180,7 @@ live DeepSeek screenshots in `reviews/2026-11-21-ux-5/assets/post-fix-*.png`). T
 helpers are now shared in `apps/web/e2e/helpers.ts`. **All UX-5 items are DONE**; no row is
 considered complete until it is verified against the live app, not just Storybook.
 
-The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-5, D19, D20, and D21 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`, `superpowers/specs/2026-11-21-rust-lsp-quiescence-design.md`, `superpowers/specs/2026-11-21-agents-md-project-instructions-design.md`, and `superpowers/specs/2026-11-21-grep-content-search-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, `superpowers/plans/2026-11-21-ux-4-data-integrity.md`, `superpowers/plans/2026-11-21-ux-5-chat-layout-mermaid.md`, `superpowers/plans/2026-11-21-rust-lsp-quiescence.md`, `superpowers/plans/2026-11-21-agents-md-project-instructions.md`, and `superpowers/plans/2026-11-21-grep-content-search.md`. The UX-5 evidence is in `reviews/2026-11-21-ux-5/`. The next cycle is not yet scheduled.
+The visual direction is **technical command center with hacker/computer-culture pop** (pixel display type, phosphor palette, subtle CRT accents). **UX-1 through UX-5, D19, D20, and D21 are complete** - specs `superpowers/specs/2026-11-20-ux-1-design-system-design.md`, `superpowers/specs/2026-11-21-ux-2-chat-surface-design.md`, `superpowers/specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md`, `superpowers/specs/2026-11-21-ux-4-data-integrity-design.md`, `superpowers/specs/2026-11-21-rust-lsp-quiescence-design.md`, `superpowers/specs/2026-11-21-agents-md-project-instructions-design.md`, and `superpowers/specs/2026-11-21-grep-content-search-design.md`; plans `superpowers/plans/2026-11-20-ux-1-design-system.md`, `superpowers/plans/2026-11-21-ux-2-chat-surface.md`, `superpowers/plans/2026-11-21-ux-3-contextual-help-structured-editors.md`, `superpowers/plans/2026-11-21-ux-4-data-integrity.md`, `superpowers/plans/2026-11-21-ux-5-chat-layout-mermaid.md`, `superpowers/plans/2026-11-21-rust-lsp-quiescence.md`, `superpowers/plans/2026-11-21-agents-md-project-instructions.md`, and `superpowers/plans/2026-11-21-grep-content-search.md`. The UX-5 evidence is in `reviews/2026-11-21-ux-5/`. The LSP foundations and non-blocking diagnostics rework (#41-#42) is complete: writes no longer wait for diagnostics, analysis is backgrounded, and an on-demand `lsp_diagnostics` tool plus a next-run reminder replace the old blocking hook. The next cycle is not yet scheduled.
 
 ## Sub-project history
 
@@ -226,6 +226,8 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 38 | Technical architecture documentation set | `specs/2026-11-22-technical-architecture-docs-design.md` | `plans/2026-11-22-technical-architecture-docs.md` |
 | 39 | Subagent session orchestration (unrestricted agents, live monitoring, recursive cancel) | `specs/2026-11-22-subagent-session-orchestration-design.md` | `plans/2026-11-22-subagent-session-orchestration.md` |
 | 40 | ACP client capabilities (fs read/write + terminal) | `specs/2026-11-22-acp-client-capabilities-design.md` | `plans/2026-11-22-acp-client-capabilities.md` |
+| 41 | LSP foundations (nearest root, stderr drain, versioned waiters, LRU, lifecycle) | `specs/2026-11-22-lsp-foundations-design.md` | `plans/2026-11-22-lsp-foundations.md` |
+| 42 | Non-blocking LSP diagnostics (background service, on-demand tool, reminders, About snapshots) | `specs/2026-11-22-lsp-nonblocking-diagnostics-design.md` | `plans/2026-11-22-lsp-nonblocking-diagnostics.md` |
 
 ## Technical documentation
 
@@ -239,7 +241,7 @@ than duplicating them.
 
 | ID | Issue | Priority | Status | Notes |
 |---|---|---|---|---|
-| KI-1 | `test_lsp_real.py::test_rust_analyzer` returns no diagnostics from real rust-analyzer on Windows (baseline failure observed 2026-11-22) | P1 | PLANNED | Reproduce with `uv run pytest packages/agentbox-harness/tests/test_lsp_real.py::test_rust_analyzer -q --timeout=20`; inspect quiescence/server-status handling and the installed rust-analyzer version. |
+| KI-1 | `test_lsp_real.py::test_rust_analyzer` returns no diagnostics from real rust-analyzer on Windows (baseline failure observed 2026-11-22) | P1 | DONE | Fixed by #41: stderr is drained, quiescence falls back safely, and the wait is generation-aware. The real Rust error and clean-write tests pass locally (2026-11-22). |
 
 ## Deferred backlog (future evolutions)
 

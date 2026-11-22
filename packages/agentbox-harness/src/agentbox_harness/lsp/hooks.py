@@ -1,3 +1,5 @@
+from loguru import logger
+
 from agentbox_harness.lsp.stacks import language_for
 from agentbox_harness.tools.registry import ToolHookContext
 
@@ -31,26 +33,23 @@ def make_lsp_hook(manager, session_id: str | None, project_root: str):
         path = ctx.args.get("path")
         if not path:
             return None
-        stack = next(
-            (
-                item
-                for item in manager.detected(project_root)
-                if language_for(item, path)
-            ),
-            None,
-        )
-        if stack is None:
+        resolved = await manager.server_for_path(project_root, path)
+        if resolved is None:
             return None
-        server = await manager.get_or_start(project_root, stack)
-        if server is None:
-            return None
+        stack, root, server = resolved
         language = language_for(stack, path)
-        await server.sync_document(path, language)
-        if stack.save:
-            await server.save_document(path)
+        if language is None:
+            return None
+        await server.sync_document(path, language, save=stack.save)
         diagnostics = await server.diagnostics(path)
+        logger.debug(
+            "lsp hook done stack={} path={} count={}",
+            stack.name,
+            path,
+            len(diagnostics),
+        )
         if session_id:
-            manager.record_active(session_id, project_root, stack, server)
+            manager.record_active(session_id, str(root), stack, server)
         return format_diagnostics(path, diagnostics)
 
     return hook
