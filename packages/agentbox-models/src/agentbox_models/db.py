@@ -3,9 +3,12 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import SQLModel
 
+from agentbox_models.config import normalize_async_url
+
 
 def create_engine_and_sessionmaker(database_url: str, echo: bool = False):
-    engine = create_async_engine(database_url, echo=echo)
+    database_url = normalize_async_url(database_url)
+    engine = create_async_engine(database_url, echo=echo, pool_pre_ping=True)
     if database_url.startswith("sqlite"):
 
         @event.listens_for(engine.sync_engine, "connect")

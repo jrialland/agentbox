@@ -18,3 +18,15 @@ async def test_create_tables_and_insert():
         row = result.scalars().first()
         assert row.value == "hello"
     await engine.dispose()
+
+async def test_engine_factory_normalizes_sync_url(tmp_path):
+    db = tmp_path / "sync.db"
+    engine, factory = create_engine_and_sessionmaker(f"sqlite:///{db.as_posix()}")
+    assert engine.url.drivername == "sqlite+aiosqlite"
+    await engine.dispose()
+
+
+async def test_engine_factory_keeps_async_url(tmp_path):
+    engine, _ = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
+    assert engine.url.drivername == "sqlite+aiosqlite"
+    await engine.dispose()
