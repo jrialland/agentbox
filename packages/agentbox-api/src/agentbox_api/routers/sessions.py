@@ -27,6 +27,7 @@ from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.repos.crud import SessionRepository
 from agentbox_models.repos.message_log import DatabaseMessageLogStore
+from agentbox_models.repos.project_roots import load_extra_roots
 from agentbox_models.tables.core import (
     Agent,
     PlanItem,
@@ -298,11 +299,14 @@ async def _agent_spec_and_root(request: Request, sid: str):
         if srow is None:
             raise HTTPException(status_code=404, detail="Session not found")
         project = await s.get(Project, srow.project_id)
+        extra_roots = (
+            await load_extra_roots(s, project.id) if project is not None else []
+        )
     spec = await _agent_spec(request, sid)
     return (
         spec,
         project.path if project is not None else "",
-        project.extra_roots if project is not None else [],
+        extra_roots,
     )
 
 
@@ -379,6 +383,9 @@ async def chat(
         project = (
             await s.execute(select(Project).where(Project.id == srow.project_id))
         ).scalars().first()
+        extra_roots = (
+            await load_extra_roots(s, project.id) if project is not None else []
+        )
 
     try:
         prepared = await prepare_agent(
@@ -392,7 +399,7 @@ async def chat(
             media_max_dimension=request.app.state.settings.media_max_dimension,
             media_max_bytes=request.app.state.settings.media_max_bytes,
             web_config=web_config_from_settings(request.app.state.settings),
-            extra_roots=project.extra_roots,
+            extra_roots=extra_roots,
             compaction=compaction_config_from_settings(request.app.state.settings),
         )
     except PromptTemplateError as exc:
@@ -408,7 +415,7 @@ async def chat(
         store=store,
         head_id=None,
         mode_name=body.mode or "agent",
-        extra_roots=project.extra_roots,
+        extra_roots=extra_roots,
     )
 
     record_user_turn = True

@@ -60,6 +60,7 @@ from agentbox_harness.tools.terminal import get_job_manager
 from agentbox_harness.usage import context_tokens_from_usage
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.repos.message_log import DatabaseMessageLogStore
+from agentbox_models.repos.project_roots import load_extra_roots
 from agentbox_models.tables.auth import User
 from agentbox_models.tables.core import (
     Project,
@@ -238,6 +239,9 @@ class AgentboxAcpAgent:
             project = (
                 await db.execute(select(Project).where(Project.path == cwd))
             ).scalars().first()
+            extra_roots = (
+                await load_extra_roots(db, project.id) if project is not None else []
+            )
         prepared = await prepare_agent(
             self._factory,
             self._agent_name,
@@ -248,7 +252,7 @@ class AgentboxAcpAgent:
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
             web_config=web_config_from_settings(self._settings),
-            extra_roots=project.extra_roots if project is not None else None,
+            extra_roots=extra_roots or None,
             compaction=compaction_config_from_settings(self._settings),
         )
         runtime = prepared.runtime
@@ -275,7 +279,7 @@ class AgentboxAcpAgent:
                 client=self._client,
                 session_id=session_id,
                 project_root=cwd,
-                extra_roots=project.extra_roots,
+                extra_roots=extra_roots,
                 capabilities=self._client_capabilities,
             )
             install_acp_client_tools(
@@ -286,7 +290,7 @@ class AgentboxAcpAgent:
         self._sessions[session_id] = AcpSession(
             session_id, cwd, project_id, runtime.agent_id, spec, runtime.model,
             prepared.registry, mode, prepared.subagent_session_runner,
-            extra_roots=project.extra_roots,
+            extra_roots=extra_roots,
             client_tools=client_tools,
         )
         logger.info("acp session new agent={} session={}", self._agent_name, session_id)
@@ -479,6 +483,9 @@ class AgentboxAcpAgent:
             project = (
                 await db.execute(select(Project).where(Project.id == row.project_id))
             ).scalars().first()
+            extra_roots = (
+                await load_extra_roots(db, project.id) if project is not None else []
+            )
         prepared = await prepare_agent(
             self._factory,
             self._agent_name,
@@ -489,7 +496,7 @@ class AgentboxAcpAgent:
             media_max_dimension=self._settings.media_max_dimension,
             media_max_bytes=self._settings.media_max_bytes,
             web_config=web_config_from_settings(self._settings),
-            extra_roots=project.extra_roots,
+            extra_roots=extra_roots,
             compaction=compaction_config_from_settings(self._settings),
         )
         if row.agent_id != prepared.runtime.agent_id:
@@ -503,7 +510,7 @@ class AgentboxAcpAgent:
                 client=self._client,
                 session_id=session_id,
                 project_root=project.path,
-                extra_roots=project.extra_roots,
+                extra_roots=extra_roots,
                 capabilities=self._client_capabilities,
             )
             install_acp_client_tools(
@@ -520,7 +527,7 @@ class AgentboxAcpAgent:
             prepared.registry,
             _default_mode(spec),
             prepared.subagent_session_runner,
-            extra_roots=project.extra_roots,
+            extra_roots=extra_roots,
             client_tools=client_tools,
         )
         self._sessions[session_id] = sess

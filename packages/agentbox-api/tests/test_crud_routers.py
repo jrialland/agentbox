@@ -5,7 +5,7 @@ from agentbox_api.config import Settings
 from agentbox_api.security import hash_password
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.tables.auth import Permission, Role, RolePermissionLink, User, UserRoleLink
-from agentbox_models.tables.core import Agent
+from agentbox_models.tables.core import Agent, Model, Project, Provider
 
 
 async def _seed_user(factory, user_id: str, username: str, perms: list[str]):
@@ -129,6 +129,11 @@ async def test_sessions_create_and_list():
     engine, client, factory = await _make_app(["sessions:create", "sessions:read"])
     try:
         async with factory() as s:
+            s.add(Provider(id="prov", name="prov", kind="test"))
+            await s.flush()
+            s.add(Model(id="m", provider_id="prov", name="test-model"))
+            s.add(Project(id="prj", name="p", path=".", owner_id="u1"))
+            await s.flush()
             s.add(
                 Agent(
                     id="agid",

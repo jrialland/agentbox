@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
@@ -9,6 +10,7 @@ from agentbox_api.deps import require_permission
 from agentbox_api.runtime import delete_session_data
 from agentbox_api.validation import checked_directory, checked_extra_roots, required_name
 from agentbox_models.repos.crud import ProjectRepository
+from agentbox_models.repos.project_roots import load_extra_roots, replace_extra_roots
 from agentbox_models.tables.core import Project, SessionRow
 
 router = APIRouter(prefix="/projects", tags=["projects"])
@@ -50,36 +52,73 @@ class ProjectUpdate(BaseModel):
         return checked_extra_roots(value) if value is not None else None
 
 
-@router.post("", response_model=Project)
+class ProjectRead(BaseModel):
+    id: str
+    name: str
+    path: str
+    owner_id: str
+    extra_roots: list[str]
+    created_at: datetime
+
+
+def _read(project: Project, extra_roots: list[str]) -> ProjectRead:
+    return ProjectRead(
+        id=project.id,
+        name=project.name,
+        path=project.path,
+        owner_id=project.owner_id,
+        extra_roots=extra_roots,
+        created_at=project.created_at,
+    )
+
+
+@router.post("", response_model=ProjectRead)
 async def create_project(
     body: ProjectCreate, request: Request, _=Depends(require_permission("projects:create"))
 ):
-    project = Project(
-        id=uuid.uuid4().hex,
-        name=body.name,
-        path=body.path,
-        owner_id=request.user.identity,
-        extra_roots=body.extra_roots,
-    )
-    project = await ProjectRepository(request.app.state.session_factory).create(project)
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        project = Project(
+            id=uuid.uuid4().hex,
+            name=body.name,
+            path=body.path,
+            owner_id=request.user.identity,
+        )
+        s.add(project)
+        await s.flush()
+        await replace_extra_roots(s, project.id, body.extra_roots)
+        await s.commit()
+        await s.refresh(project)
+        roots = await load_extra_roots(s, project.id)
     logger.info("project created project={}", project.id)
-    return project
+    return _read(project, roots)
 
 
-@router.get("", response_model=list[Project])
+@router.get("", response_model=list[ProjectRead])
 async def list_projects(request: Request, _=Depends(require_permission("projects:read"))):
-    return await ProjectRepository(request.app.state.session_factory).list()
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        projects = list((await s.execute(select(Project))).scalars().all())
+        return [
+            _read(project, await load_extra_roots(s, project.id))
+            for project in projects
+        ]
 
 
-@router.get("/{pid}", response_model=Project)
-async def get_project(pid: str, request: Request, _=Depends(require_permission("projects:read"))):
-    p = await ProjectRepository(request.app.state.session_factory).get(pid)
-    if p is None:
-        raise HTTPException(status_code=404, detail="Not found")
-    return p
+@router.get("/{pid}", response_model=ProjectRead)
+async def get_project(
+    pid: str, request: Request, _=Depends(require_permission("projects:read"))
+):
+    factory = request.app.state.session_factory
+    async with factory() as s:
+        project = await s.get(Project, pid)
+        if project is None:
+            raise HTTPException(status_code=404, detail="Not found")
+        roots = await load_extra_roots(s, project.id)
+    return _read(project, roots)
 
 
-@router.put("/{pid}", response_model=Project)
+@router.put("/{pid}", response_model=ProjectRead)
 async def update_project(
     pid: str,
     body: ProjectUpdate,
@@ -94,12 +133,13 @@ async def update_project(
         if body.name is not None:
             project.name = body.name
         if body.extra_roots is not None:
-            project.extra_roots = body.extra_roots
+            await replace_extra_roots(s, project.id, body.extra_roots)
         s.add(project)
         await s.commit()
         await s.refresh(project)
+        roots = await load_extra_roots(s, project.id)
     logger.info("project updated project={}", pid)
-    return project
+    return _read(project, roots)
 
 
 @router.delete("/{pid}")
