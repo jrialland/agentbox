@@ -7,6 +7,7 @@ dev = [
     "ty",
     "bandit>=1.7",
     "pytest-timeout>=2.3",
+    "testcontainers[postgres,mysql]>=4.8",
 ]
 
 [tool.ruff]

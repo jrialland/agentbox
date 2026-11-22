@@ -1,0 +1,35 @@
+# Copy to agentbox.toml to select a database vendor.
+# Environment variables override these values.
+
+[database]
+vendor = "sqlite"          # sqlite | postgresql | mysql | mariadb
+path = "./agentbox.db"     # sqlite only
+
+# PostgreSQL example:
+# vendor = "postgresql"
+# host = "localhost"
+# port = 5432
+# name = "agentbox"
+# user = "agentbox"
+# password = ""            # prefer DATABASE_PASSWORD in the environment
+# params = { ssl = "require" }
+
+# MySQL example:
+# vendor = "mysql"
+# host = "localhost"
+# port = 3306
+# name = "agentbox"
+# user = "agentbox"
+
+# MariaDB example:
+# vendor = "mariadb"
+# host = "localhost"
+# port = 3306
+# name = "agentbox"
+# user = "agentbox"
+
+# Full URL escape hatch:
+# url = "postgresql+asyncpg://agentbox:secret@localhost:5432/agentbox"
+
+[storage]
+media_dir = "./media"
