@@ -7,8 +7,9 @@ hackable, observable, and pleasant to operate locally.
 ## Intent
 
 Agentbox turns a local project folder into a workspace for tool-using LLM agents. An agent is
-a system prompt plus a set of tools, a model, optional modes, and optional sub-agents; a session
-binds that agent to one project folder and keeps its history in SQLite.
+a system prompt plus a set of tools, a model, and optional modes; a session binds that agent to
+one project folder and keeps its history in SQLite. Sessions can start subagent sessions using
+any agent configuration, then monitor, wait for, or cancel them.
 
 The guiding constraints are:
 
@@ -27,8 +28,7 @@ The guiding constraints are:
 
 ### Agents and tools
 
-- Agent definitions with name, description, system prompt, tool selection, model, modes, and
-  sub-agents.
+- Agent definitions with name, description, system prompt, tool selection, model, and modes.
 - Default RoboHash (set 1) avatars, with optional uploaded photos.
 - A reference filesystem toolset: read, write, tree, search, file info, media reads, guarded
   delete, plus bounded `grep`.
@@ -37,8 +37,8 @@ The guiding constraints are:
 - Skills discovery and explicit activation, with `/` autocomplete in the composer.
 - `AGENTS.md` project instructions and Jinja-based prompt templating.
 - Automatic LSP diagnostics across stacks, including Rust server-status quiescence.
-- Session plan tools (TODO-style), automatic context compaction, and background sub-agent
-  sessions with monitoring and cancellation.
+- Session plan tools (TODO-style), automatic context compaction, and background subagent
+  sessions with live output, wait all/any, and recursive cancellation.
 
 ### Chat and sessions
 

@@ -106,7 +106,7 @@ This keeps configuration and test construction explicit and avoids import-time s
 | Turn-chain persistence | History is an immutable parent-linked chain, which makes fork, retry, and compaction structural rather than ad hoc. | Reads must walk the chain; no ORM relationships or cascades. | [05](05-data-model.md) |
 | Session-scoped stdio MCP processes | Expensive servers start once per session and are reused across turns. | Bindings are captured when the toolset starts; edits do not affect a live session until it is closed or swept. | [07](07-protocols.md) |
 | Scope-based authorization | JWT users get role-derived scopes; API keys carry their own subset. One `require_permission` pattern covers HTTP and A2A. | Route access is enforced server-side only; the UI merely hides navigation. | [06](06-auth-and-security.md) |
-| JSON-text agent definitions | Tool bindings, modes, and sub-agent ids are stored flexibly without schema churn. | Validation and migration are application-level; columns are opaque to SQL. | [05](05-data-model.md) |
+| JSON-text agent definitions | Tool bindings and modes are stored flexibly without schema churn. | Validation and migration are application-level; columns are opaque to SQL. | [05](05-data-model.md) |
 | Async throughout | Streaming, MCP processes, LSP, and terminals are concurrent and cancellable. | Requires careful lifecycle and cleanup coupling. | [10](10-concurrency-and-lifecycle.md) |
 | Local-first single SQLite | Zero external infrastructure; simple backup and inspection. | One writer and process-local state; A2A tasks and some caches do not survive restart. | [05](05-data-model.md) |
 

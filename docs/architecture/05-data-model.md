@@ -100,7 +100,6 @@ An agent definition. Bindings and modes are JSON text.
 | `model_label` | Optional label preference overriding `model_id` at load time |
 | `tool_bindings` | JSON text list of native/MCP bindings |
 | `mode_definitions` | JSON text list of modes |
-| `sub_agent_ids` | JSON text list of agent ids |
 | `avatar_url` | Optional external avatar URL |
 | `avatar_data`, `avatar_media_type` | Uploaded normalized avatar bytes and MIME type |
 | `created_by` | References `user.id` |
@@ -131,7 +130,7 @@ A local folder that owns sessions.
 
 ### SessionRow
 
-Binds an agent to a project and holds session and sub-session state.
+Binds an agent to a project and holds session and subagent-session state.
 
 | Column | Notes |
 |---|---|
@@ -140,10 +139,10 @@ Binds an agent to a project and holds session and sub-session state.
 | `agent_id` | References `agent.id` |
 | `title` | Display title, auto-generated on first message |
 | `head_turn_id` | Legacy column; current code derives the leaf from turns |
-| `parent_session_id` | Self-reference for sub-sessions |
-| `sub_session_status` | `running`, `completed`, `failed`, `cancelled`, or null |
-| `sub_session_error`, `sub_session_output` | Sub-session result fields |
-| `sub_session_depth` | Nesting depth |
+| `parent_session_id` | Self-reference for subagent sessions |
+| `subagent_session_status` | `running`, `completed`, `failed`, `cancelled`, or null |
+| `subagent_session_error`, `subagent_session_output` | Subagent-session result fields |
+| `subagent_session_depth` | Nesting depth |
 | `created_at` | Creation timestamp |
 
 ### TurnRow
@@ -243,7 +242,7 @@ A TODO-style plan entry for a session.
 | Encoding | Columns | Notes |
 |---|---|---|
 | Real JSON | `Project.extra_roots`, `TurnRow.activity`, `TurnRow.attachments` | SQLite JSON column type; queryable by the application |
-| JSON-encoded text | `Agent.tool_bindings`, `Agent.mode_definitions`, `Agent.sub_agent_ids`, `AgentCard.card`, `ApiKey.scopes` | Parsed by repositories; opaque to SQL |
+| JSON-encoded text | `Agent.tool_bindings`, `Agent.mode_definitions`, `AgentCard.card`, `ApiKey.scopes` | Parsed by repositories; opaque to SQL |
 | Binary | `Agent.avatar_data`, `SessionAttachment.data` | Normalized image bytes and uploaded files |
 
 ## Turn chain and branching

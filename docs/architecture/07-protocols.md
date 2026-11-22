@@ -79,8 +79,8 @@ ACP lets an external IDE drive sessions over stdin/stdout JSON-RPC.
 - Prompt flow: build a harness `Session` from the latest leaf, run the harness, map events with
   `update_for_event` into `session/update` payloads, then append the assistant turn.
 - MCP: ACP clients may supply stdio MCP servers; `_with_servers` adds them to the spec.
-- Shutdown: `close_session` closes MCP toolsets, kills terminal jobs, cancels sub-sessions and
-  the active run.
+- Shutdown: `close_session` closes MCP toolsets, kills terminal jobs, recursively cancels
+  descendant subagent sessions, and cancels the active run.
 - Persistence: the same SQLite database as HTTP; the ACP process opens its own engine.
 
 *Figure 3 — ACP over stdio.*

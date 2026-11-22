@@ -27,23 +27,21 @@ class Harness:
         registry: ToolRegistry,
         model: Model,
         store_factory,
-        sub_agents: dict[str, AgentSpec] | None = None,
         middleware: list[RunMiddleware] | None = None,
         compaction: CompactionConfig | None = None,
-        sub_session_runner=None,
+        subagent_session_runner=None,
         mcp_manager: McpSessionManager | None = None,
     ):
         self.registry = registry
         self.model = model
         self.store_factory = store_factory
-        self.sub_agents = sub_agents or {}
         self.run_manager = RunManager()
         self.middleware = MiddlewarePipeline(
             middleware
             if middleware is not None
             else [CompactionMiddleware(compaction)]
         )
-        self.sub_session_runner = sub_session_runner
+        self.subagent_session_runner = subagent_session_runner
         self.mcp_manager = mcp_manager or get_mcp_session_manager()
 
     async def prepare_mcp(self, session: Session) -> SessionToolsets:
@@ -134,8 +132,7 @@ class Harness:
             mode,
             self.registry,
             self.model,
-            sub_agents=self.sub_agents,
-            sub_session_runner=self.sub_session_runner,
+            subagent_session_runner=self.subagent_session_runner,
             session_id=session.session_id,
             stdio_toolsets=session_tools.toolsets,
         )

@@ -38,9 +38,9 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
         import asyncio
         from contextlib import suppress
 
-        from agentbox_api.subsessions import (
-            reconcile_running_sub_sessions,
-            shutdown_sub_sessions,
+        from agentbox_api.subagent_sessions import (
+            reconcile_running_subagent_sessions,
+            shutdown_subagent_sessions,
         )
         from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
@@ -55,7 +55,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
                 await manager.sweep_idle(settings.mcp_idle_ttl_seconds)
 
         sweep_task = asyncio.create_task(sweep_loop())
-        await reconcile_running_sub_sessions(session_factory)
+        await reconcile_running_subagent_sessions(session_factory)
         logger.info("agentbox api starting")
         try:
             yield
@@ -67,7 +67,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
             await manager.close_all()
             await get_lsp_manager().shutdown()
             await get_job_manager().shutdown()
-            await shutdown_sub_sessions()
+            await shutdown_subagent_sessions()
             await engine.dispose()
 
     app = FastAPI(lifespan=lifespan)

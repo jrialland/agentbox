@@ -36,7 +36,6 @@ async def test_acp_stdio_end_to_end(tmp_path):
                 model_id="m",
                 tool_bindings="[]",
                 mode_definitions='[{"name":"ask","flags":{"write":false}},{"name":"agent","flags":{"write":true}}]',
-                sub_agent_ids="[]",
             )
         )
         await db.commit()
@@ -80,7 +79,7 @@ async def test_acp_close_session_stops_mcp_manager(monkeypatch):
         async def kill_session(self, session_id):
             return None
 
-    async def fake_cancel_sub_sessions(factory, session_id):
+    async def fake_cancel_subagent_sessions(factory, session_id):
         return None
 
     monkeypatch.setattr(McpSessionManager, "close_session", fake_close)
@@ -88,7 +87,7 @@ async def test_acp_close_session_stops_mcp_manager(monkeypatch):
         "agentbox_api.acp_server.get_job_manager", lambda: FakeJobs()
     )
     monkeypatch.setattr(
-        "agentbox_api.subsessions.cancel_sub_sessions", fake_cancel_sub_sessions
+        "agentbox_api.subagent_sessions.cancel_subagent_sessions", fake_cancel_subagent_sessions
     )
 
     from agentbox_api.acp_server import AgentboxAcpAgent

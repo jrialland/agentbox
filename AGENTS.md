@@ -8,6 +8,21 @@
 - Backend uses `loguru.logger` throughout; logging setup is in `agentbox_api/logging.py`.
 - There is no module-level FastAPI `app`; build it with `create_app(Settings(...))` or run `python -m agentbox_api.dev_server`.
 
+## Domain vocabulary (mandatory)
+
+Keep this distinction explicit in specs, plans, code identifiers, tool names, tests,
+and docs. Ambiguous wording here causes real implementation mistakes.
+
+- **Agent** — a configuration record (`Agent` row / `AgentSpec`): model, instructions, tools, modes. An agent is not a live unit and is not "spawned" or "impersonated".
+- **Session** (or **agent session**) — a live instance of an agent configuration: project, history, run, status. Sessions are what run, persist, and are monitored.
+- **Subagent** — the agent configuration selected by a parent session for a child session. It is a role, not a running thing.
+- **Subagent session** — a child session spawned by a parent session (`SessionRow.parent_session_id`) using a subagent configuration.
+- Prefer "start a subagent session using an agent configuration" over "spawn an agent" or "run a subagent".
+- Canonical tool names: `list_agents`, `start_subagent_session`, `list_subagent_sessions`, `get_subagent_session`, `cancel_subagent_session`, `wait_subagent_session`, `wait_subagent_sessions`.
+- Do not introduce `sub_session`, `start_sub_session`, or `delegate_*` vocabulary in new code or docs. Database columns use `subagent_session_*`; the old `sub_session_*` and `agent.sub_agent_ids` columns are removed by migration.
+- **Replace, don't layer.** When rewriting or renaming this area, delete the old modules, symbols, tool names, and tests and update every call site. Do not add aliases, re-exports, shims, or dual code paths; leave exactly one delegation mechanism.
+- When reviewing or editing this area, correct ambiguous wording instead of propagating it. See `docs/superpowers/specs/2026-11-22-subagent-session-orchestration-design.md`.
+
 ## Setup and local dev
 
 - Requires `uv` and `bun`. Run Python commands from the repo root; run frontend commands from `apps/web`.

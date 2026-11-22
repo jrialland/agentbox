@@ -11,6 +11,10 @@ import pytest_asyncio
 import uvicorn
 from mcp_app_server import build_server
 
+from agentbox_api.subagent_sessions import (
+    get_subagent_session_manager,
+    reset_subagent_session_manager,
+)
 from agentbox_harness.tools.mcp_session import (
     get_mcp_session_manager,
     reset_mcp_session_manager,
@@ -23,6 +27,14 @@ async def _reset_mcp_session_manager():
     yield
     await get_mcp_session_manager().close_all()
     reset_mcp_session_manager()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def _reset_subagent_session_manager():
+    reset_subagent_session_manager()
+    yield
+    await get_subagent_session_manager().shutdown()
+    reset_subagent_session_manager()
 
 
 def _free_port() -> int:

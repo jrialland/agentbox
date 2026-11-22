@@ -2,7 +2,7 @@
 
 **Scope:** `agentbox-harness` is the pure agent runtime. It knows nothing about HTTP or the
 database. This document covers its domain model, session and run mechanics, event bus,
-middleware, compaction, sub-agents, tool boxes, and LSP integration.
+middleware, compaction, subagent sessions, tool boxes, and LSP integration.
 
 ## Domain model
 
@@ -11,7 +11,7 @@ serializes it into database rows and back.
 
 | Type | Purpose |
 |---|---|
-| `AgentSpec` | Name, description, instructions, model binding, tool bindings, modes, sub-agent ids |
+| `AgentSpec` | Name, description, instructions, model binding, tool bindings, modes |
 | `ModelBinding` | The model selected for the agent |
 | `Mode` | A named behavior mode with flags such as `write` |
 | `NativeToolBinding` | A reference to a built-in tool by name |
@@ -20,8 +20,8 @@ serializes it into database rows and back.
 | `DEFAULT_MODES` | `ask` (read-only) and `agent` (write-enabled) |
 
 Modes are the primary capability switch. `ask` exposes read-only tools; `agent` additionally
-enables write tools, terminal access, and sub-session tools. Tool registry entries declare the
-flags they require, and `select_tools(mode, names)` filters accordingly.
+enables write tools, terminal access, and subagent-session tools. Tool registry entries declare
+the flags they require, and `select_tools(mode, names)` filters accordingly.
 
 ## Sessions and the turn chain
 
@@ -88,13 +88,11 @@ MCP session manager. Its main methods:
 flowchart TB
   spec["AgentSpec"] --> factory["build_agent"]
   factory --> native["Native tools selected by mode"]
-  factory --> subagents["Sub-agent tools"]
-  factory --> subsessions["Sub-session tools"]
+  factory --> subagents["Subagent session tools"]
   factory --> remote["Remote MCP toolsets"]
   factory --> stdio["Pre-started stdio MCP toolsets"]
   native --> agent["pydantic-ai Agent"]
   subagents --> agent
-  subsessions --> agent
   remote --> agent
   stdio --> agent
 ```
@@ -106,17 +104,18 @@ flowchart TB
 1. Resolve the active mode and its flags.
 2. Select native tool names from the spec and filter them through the `ToolRegistry`, which
    enforces required flags.
-3. Add delegated sub-agent tools when sub-agent ids are present, with a depth cap of 3.
-4. Add sub-session tools in write mode.
-5. Add remote MCP toolsets (rebuilt per agent build).
-6. Attach already-started stdio MCP toolsets from the session-scoped manager.
+3. Add the subagent-session tool bundle in write mode: `list_agents`,
+   `start_subagent_session`, `list_subagent_sessions`, `get_subagent_session`,
+   `cancel_subagent_session`, `wait_subagent_session`, and `wait_subagent_sessions`.
+4. Add remote MCP toolsets (rebuilt per agent build).
+5. Attach already-started stdio MCP toolsets from the session-scoped manager.
 
 *Figure 3 — Mode-based tool selection.*
 
 ```mermaid
 flowchart LR
   mode["Mode"] -->|"write = false"| ask["Ask: read-only tools"]
-  mode -->|"write = true"| agent["Agent: read and write, terminal, sub-sessions"]
+  mode -->|"write = true"| agent["Agent: read and write, terminal, subagent sessions"]
   registry["ToolRegistry.required_flags"] --> ask
   registry --> agent
 ```
@@ -136,16 +135,21 @@ compaction middleware is the main implementation:
 Compaction can run proactively before a turn or reactively during overflow recovery. After a
 successful recovery the run retries once.
 
-## Sub-agents and sub-sessions
+## Subagent sessions
 
-The harness supports two delegation models:
+There is one delegation model: a session starts another session.
 
-- **Sub-agents** are exposed to the model as ordinary tools. Each call runs an isolated agent run
-  in-process and returns its output. Depth is capped at 3.
-- **Sub-sessions** are background child sessions with their own persisted `SessionRow`, status,
-  and output. The model gets `start`, `list`, `get`, and `cancel` tools. The API layer provides a
-  `SubSessionRunner` implementation with concurrency and depth caps; see
-  [concurrency and lifecycle](10-concurrency-and-lifecycle.md).
+- An **agent** is a configuration; a **session** is a live instance; a **subagent** is the agent
+  configuration chosen for a child session; a **subagent session** is that child session.
+- Any agent configuration in the database may be used; there is no allow-list.
+- The model gets `list_agents`, `start_subagent_session`, `list_subagent_sessions`,
+  `get_subagent_session`, `cancel_subagent_session`, `wait_subagent_session`, and
+  `wait_subagent_sessions`.
+- Subagent sessions are background child sessions with their own persisted `SessionRow`, status,
+  live output, and final output. Depth is capped at 3 and a parent may run at most 5 direct
+  children.
+- The API layer provides `SubagentSessionManager` with live output, wait all/any, and recursive
+  cancellation; see [concurrency and lifecycle](10-concurrency-and-lifecycle.md).
 
 ## Toolboxes
 

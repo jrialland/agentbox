@@ -135,7 +135,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             model=prepared.runtime.model,
             store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
             compaction=compaction_config_from_settings(self._settings),
-            sub_session_runner=prepared.sub_session_runner,
+            subagent_session_runner=prepared.subagent_session_runner,
         )
         warnings = (await harness.prepare_mcp(session)).warnings
         for warning in warnings:

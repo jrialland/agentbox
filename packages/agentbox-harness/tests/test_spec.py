@@ -21,7 +21,6 @@ def test_agent_spec_round_trips_json():
         description="Writes code",
         instructions="You are a helpful coding assistant.",
         tool_bindings=[NativeToolBinding(name="read_text_file")],
-        sub_agent_ids=["sub"],
         mode_definitions=list(DEFAULT_MODES),
         model_binding=ModelBinding(model="gpt-x", provider="openai"),
     )

@@ -1,47 +1,36 @@
+import functools
+import inspect
 from collections.abc import Callable
 
 from loguru import logger
-from pydantic_ai import Agent
+from pydantic_ai import Agent, ModelRetry
 from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models import Model
 
 from agentbox_harness.spec import AgentSpec, McpToolBinding, Mode, NativeToolBinding
-from agentbox_harness.subagents import (
-    build_sub_session_tools,
-    build_subagent_tool,
-)
+from agentbox_harness.subagent_sessions import build_subagent_session_tools
 from agentbox_harness.tools.mcp import build_mcp_toolset
 from agentbox_harness.tools.registry import ToolRegistry
 
 
-def build_subagent_tools(
-    spec: AgentSpec,
-    sub_agents: dict[str, AgentSpec] | None,
-    registry: ToolRegistry,
-    model: Model,
-    depth: int = 0,
-    max_depth: int = 3,
-    stdio_toolsets: list[MCPToolset] | None = None,
-) -> list[Callable]:
-    tools: list[Callable] = []
-    if depth >= max_depth or not sub_agents:
-        return tools
-    for sub_id in spec.sub_agent_ids:
-        sub_spec = sub_agents.get(sub_id)
-        if sub_spec is None:
-            continue
-        sub_agent = build_agent(
-            sub_spec,
-            Mode(name="subagent", flags={}),
-            registry,
-            model,
-            sub_agents=sub_agents,
-            depth=depth + 1,
-            max_depth=max_depth,
-            stdio_toolsets=stdio_toolsets,
-        )
-        tools.append(build_subagent_tool(sub_agent))
-    return tools
+def _guard_tool(tool: Callable) -> Callable:
+    name = getattr(tool, "__name__", "tool")
+
+    @functools.wraps(tool)
+    async def guarded(*args, **kwargs):
+        try:
+            result = tool(*args, **kwargs)
+            if inspect.isawaitable(result):
+                result = await result
+            return result
+        except ModelRetry:
+            raise
+        except Exception as exc:
+            message = str(exc) or type(exc).__name__
+            logger.warning("tool failed name={} error={}", name, message)
+            raise ModelRetry(f"{name} failed: {message}") from exc
+
+    return guarded
 
 
 def build_agent(
@@ -49,10 +38,7 @@ def build_agent(
     mode: Mode,
     registry: ToolRegistry,
     model: Model,
-    sub_agents: dict[str, AgentSpec] | None = None,
-    depth: int = 0,
-    max_depth: int = 3,
-    sub_session_runner=None,
+    subagent_session_runner=None,
     session_id: str | None = None,
     stdio_toolsets: list[MCPToolset] | None = None,
 ) -> Agent:
@@ -66,19 +52,11 @@ def build_agent(
 
     tools = registry.select_tools(mode, names=native_names)
     tools.extend(
-        build_subagent_tools(
-            spec,
-            sub_agents,
-            registry,
-            model,
-            depth,
-            max_depth,
-            stdio_toolsets=stdio_toolsets,
+        build_subagent_session_tools(
+            mode, subagent_session_runner, session_id
         )
     )
-    tools.extend(
-        build_sub_session_tools(spec, mode, sub_session_runner, session_id)
-    )
+    tools = [_guard_tool(tool) for tool in tools]
     toolsets = [
         build_mcp_toolset(b)
         for b in mcp_bindings

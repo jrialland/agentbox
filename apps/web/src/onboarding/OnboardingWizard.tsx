@@ -145,7 +145,6 @@ export function OnboardingWizard({
           { name: "ask", flags: { write: false } },
           { name: "agent", flags: { write: true } },
         ],
-        sub_agent_ids: [],
       });
       setCreatedAgent(agent.name);
       setStep("session");

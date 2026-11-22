@@ -27,7 +27,6 @@ async def test_agent_and_turn_roundtrip():
                 model_id="m1",
                 tool_bindings='[{"name":"write_file"}]',
                 mode_definitions='[{"name":"agent","flags":{"write":true}}]',
-                sub_agent_ids="[]",
             )
         )
         s.add(TurnRow(id="t1", session_id="s1", role="user", content="hi", parent_id=None))

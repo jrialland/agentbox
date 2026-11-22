@@ -765,11 +765,6 @@ export interface components {
             mode_definitions: {
                 [key: string]: unknown;
             }[];
-            /**
-             * Sub Agent Ids
-             * @default []
-             */
-            sub_agent_ids: string[];
         };
         /** AgentSpec */
         AgentSpec: {
@@ -781,11 +776,6 @@ export interface components {
             instructions: string;
             /** Tool Bindings */
             tool_bindings: (components["schemas"]["NativeToolBinding"] | components["schemas"]["McpToolBinding"])[];
-            /**
-             * Sub Agent Ids
-             * @default []
-             */
-            sub_agent_ids: string[];
             /**
              * Mode Definitions
              * @default []
@@ -1331,17 +1321,17 @@ export interface components {
             head_turn_id?: string | null;
             /** Parent Session Id */
             parent_session_id?: string | null;
-            /** Sub Session Status */
-            sub_session_status?: string | null;
-            /** Sub Session Error */
-            sub_session_error?: string | null;
-            /** Sub Session Output */
-            sub_session_output?: string | null;
+            /** Subagent Session Status */
+            subagent_session_status?: string | null;
+            /** Subagent Session Error */
+            subagent_session_error?: string | null;
+            /** Subagent Session Output */
+            subagent_session_output?: string | null;
             /**
-             * Sub Session Depth
+             * Subagent Session Depth
              * @default 0
              */
-            sub_session_depth: number;
+            subagent_session_depth: number;
             /**
              * Created At
              * Format: date-time

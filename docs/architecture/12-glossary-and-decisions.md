@@ -7,7 +7,7 @@ lookup from a maintenance task to the files to start with.
 
 | Term | Definition | Where |
 |---|---|---|
-| Agent | A system prompt plus tools, a model, optional modes, and optional sub-agents | [04](04-harness-runtime.md) |
+| Agent | A configuration: system prompt, tools, model, and optional modes. Not a live unit | [04](04-harness-runtime.md) |
 | `AgentSpec` | The harness's canonical agent definition; persisted as an `Agent` row | [04](04-harness-runtime.md) |
 | Mode | A named capability set; `ask` is read-only, `agent` enables writes | [04](04-harness-runtime.md) |
 | Native tool | A built-in Python tool (filesystem, grep, terminal, web, plan) | [04](04-harness-runtime.md) |
@@ -17,8 +17,8 @@ lookup from a maintenance task to the files to start with.
 | Turn chain | The parent-linked list of turns that defines history and branches | [05](05-data-model.md) |
 | Branch / fork | A new turn whose parent is an earlier turn, leaving the old suffix unreachable | [09](09-chat-and-streaming.md) |
 | Retry | Re-running an assistant turn without duplicating its user turn | [09](09-chat-and-streaming.md) |
-| Sub-agent | An agent invoked as a tool inside a run, isolated per call | [04](04-harness-runtime.md) |
-| Sub-session | A background child session with its own row, status, and output | [10](10-concurrency-and-lifecycle.md) |
+| Subagent | The agent configuration selected by a parent session for a child session | [04](04-harness-runtime.md) |
+| Subagent session | A background child session with its own row, status, live output, and final output | [10](10-concurrency-and-lifecycle.md) |
 | Compaction | Summarizing older turns when context usage approaches the window | [04](04-harness-runtime.md) |
 | Summary turn | The turn that replaces a compacted prefix in the chain | [05](05-data-model.md) |
 | Run | One execution of an agent, owning a task and event stream | [04](04-harness-runtime.md) |

@@ -2,6 +2,8 @@
 
 Date: 2026-11-20
 Status: Approved (design), spec awaiting review.
+Superseded by: `2026-11-22-subagent-session-orchestration-design.md` for agent
+selection, monitoring, and tool vocabulary.
 
 ## Goal
 

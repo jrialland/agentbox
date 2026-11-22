@@ -20,7 +20,7 @@ from agentbox_harness.compaction import CompactionConfig
 from agentbox_harness.lsp.hooks import make_lsp_hook
 from agentbox_harness.lsp.manager import get_lsp_manager
 from agentbox_harness.spec import AgentSpec, NativeToolBinding
-from agentbox_harness.subagents import SubSessionRunner
+from agentbox_harness.subagent_sessions import SubagentSessionRunner
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_harness.tools.terminal import (
     TERMINAL_TOOL_NAMES,
@@ -145,7 +145,7 @@ class PreparedAgent:
     spec: AgentSpec
     registry: ToolRegistry
     skills: list[Skill]
-    sub_session_runner: SubSessionRunner | None = None
+    subagent_session_runner: SubagentSessionRunner | None = None
 
 
 def _resolve_extra_roots(
@@ -179,7 +179,7 @@ async def prepare_agent(
     web_config: WebToolConfig | None = None,
     extra_roots: list[str] | None = None,
     compaction: CompactionConfig | None = None,
-    sub_session_depth: int = 0,
+    subagent_session_depth: int = 0,
 ) -> PreparedAgent:
     runtime = await resolve_agent_runtime(factory, agent_name)
     resolved_extra = _resolve_extra_roots(project_root, extra_roots)
@@ -266,10 +266,13 @@ async def prepare_agent(
         for name, fn in terminal_tools.items():
             registry.register_native(name, fn, required_flags=("write",))
 
-    from agentbox_api.subsessions import ApiSubSessionRunner, SubSessionContext
+    from agentbox_api.subagent_sessions import (
+        ApiSubagentSessionRunner,
+        SubagentSessionContext,
+    )
 
-    sub_session_runner = ApiSubSessionRunner(
-        SubSessionContext(
+    subagent_session_runner = ApiSubagentSessionRunner(
+        SubagentSessionContext(
             factory=factory,
             project_root=project_root,
             skills_user_dir=user_dir,
@@ -278,7 +281,7 @@ async def prepare_agent(
             compaction=compaction or CompactionConfig(),
             media_max_dimension=media_max_dimension,
             media_max_bytes=media_max_bytes,
-            depth=sub_session_depth,
+            depth=subagent_session_depth,
         )
     )
-    return PreparedAgent(runtime, spec, registry, skills, sub_session_runner)
+    return PreparedAgent(runtime, spec, registry, skills, subagent_session_runner)

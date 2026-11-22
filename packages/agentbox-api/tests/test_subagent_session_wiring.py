@@ -3,7 +3,7 @@ from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.tables.core import Agent, Model, Provider
 
 
-async def test_prepare_agent_returns_sub_session_runner(tmp_path):
+async def test_prepare_agent_returns_subagent_session_runner(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     try:
@@ -17,7 +17,6 @@ async def test_prepare_agent_returns_sub_session_runner(tmp_path):
                     description="d",
                     instructions="i",
                     model_id="m1",
-                    sub_agent_ids='["child"]',
                 )
             )
             await s.commit()
@@ -28,6 +27,6 @@ async def test_prepare_agent_returns_sub_session_runner(tmp_path):
             str(tmp_path / "skills"),
             session_id="s1",
         )
-        assert prepared.sub_session_runner is not None
+        assert prepared.subagent_session_runner is not None
     finally:
         await engine.dispose()

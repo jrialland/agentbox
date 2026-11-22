@@ -46,12 +46,21 @@ export function buildToolBindings(tools: string[]) {
   );
 }
 
+type EditorState =
+  | { mode: "create" }
+  | { mode: "edit"; agent: Agent }
+  | null;
+
 export function AgentsPage() {
   const { data: agents, error, refetch } = useAgents();
-  const [editor, setEditor] = useState<
-    { mode: "create" } | { mode: "edit"; agent: Agent } | null
-  >(null);
+  const [editor, setEditor] = useState<EditorState>(null);
+  const [editorKey, setEditorKey] = useState(0);
   const agentList = agents ?? [];
+
+  function openEditor(next: Exclude<EditorState, null>) {
+    setEditor(next);
+    setEditorKey((key) => key + 1);
+  }
 
   if (error) {
     return (
@@ -70,7 +79,7 @@ export function AgentsPage() {
       actions={
         <Button
           leftSection={<RiAddLine size={16} />}
-          onClick={() => setEditor({ mode: "create" })}
+          onClick={() => openEditor({ mode: "create" })}
         >
           New agent
         </Button>
@@ -78,14 +87,14 @@ export function AgentsPage() {
     >
       <AgentList
         agents={agentList}
-        onNew={() => setEditor({ mode: "create" })}
-        onEdit={(agent) => setEditor({ mode: "edit", agent })}
+        onNew={() => openEditor({ mode: "create" })}
+        onEdit={(agent) => openEditor({ mode: "edit", agent })}
       />
       <AgentFormDrawer
+        key={editorKey}
         opened={editor !== null}
         onClose={() => setEditor(null)}
         agent={editor?.mode === "edit" ? editor.agent : undefined}
-        subAgentOptions={agentList.map((item) => item.name)}
       />
     </ListPage>
   );

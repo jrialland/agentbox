@@ -2901,14 +2901,6 @@
             "type": "array",
             "title": "Mode Definitions",
             "default": []
-          },
-          "sub_agent_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Sub Agent Ids",
-            "default": []
           }
         },
         "type": "object",
@@ -2944,14 +2936,6 @@
             },
             "type": "array",
             "title": "Tool Bindings"
-          },
-          "sub_agent_ids": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Sub Agent Ids",
-            "default": []
           },
           "mode_definitions": {
             "items": {
@@ -4465,7 +4449,7 @@
             ],
             "title": "Parent Session Id"
           },
-          "sub_session_status": {
+          "subagent_session_status": {
             "anyOf": [
               {
                 "type": "string"
@@ -4474,9 +4458,9 @@
                 "type": "null"
               }
             ],
-            "title": "Sub Session Status"
+            "title": "Subagent Session Status"
           },
-          "sub_session_error": {
+          "subagent_session_error": {
             "anyOf": [
               {
                 "type": "string"
@@ -4485,9 +4469,9 @@
                 "type": "null"
               }
             ],
-            "title": "Sub Session Error"
+            "title": "Subagent Session Error"
           },
-          "sub_session_output": {
+          "subagent_session_output": {
             "anyOf": [
               {
                 "type": "string"
@@ -4496,11 +4480,11 @@
                 "type": "null"
               }
             ],
-            "title": "Sub Session Output"
+            "title": "Subagent Session Output"
           },
-          "sub_session_depth": {
+          "subagent_session_depth": {
             "type": "integer",
-            "title": "Sub Session Depth",
+            "title": "Subagent Session Depth",
             "default": 0
           },
           "created_at": {

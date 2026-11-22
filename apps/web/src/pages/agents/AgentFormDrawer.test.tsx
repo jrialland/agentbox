@@ -33,7 +33,6 @@ const agent: Agent = {
     },
   ],
   mode_definitions: [{ name: "agent", flags: { write: true } }],
-  sub_agent_ids: [],
 };
 
 describe("AgentFormDrawer", () => {
@@ -43,7 +42,6 @@ describe("AgentFormDrawer", () => {
         <AgentFormDrawer
           opened
           onClose={() => undefined}
-          subAgentOptions={[]}
           agent={agent}
         />
       </MantineProvider>,

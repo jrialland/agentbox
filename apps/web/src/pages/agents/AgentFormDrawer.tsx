@@ -38,12 +38,10 @@ import { TemplatePreviewModal } from "./TemplatePreviewModal";
 export function AgentFormDrawer({
   opened,
   onClose,
-  subAgentOptions,
   agent,
 }: {
   opened: boolean;
   onClose: () => void;
-  subAgentOptions: string[];
   agent?: Agent;
 }) {
   const { data: models } = useModels();
@@ -84,9 +82,6 @@ export function AgentFormDrawer({
     agent?.tool_bindings
       ?.map((binding) => fromBinding(binding as Record<string, unknown>))
       .filter((draft): draft is McpServerDraft => draft !== null) ?? [],
-  );
-  const [subAgents, setSubAgents] = useState<string[]>(
-    agent?.sub_agent_ids ?? [],
   );
   const [modes, setModes] = useState<{ name: string; write: boolean }[]>(
     agent?.mode_definitions?.map((mode) => ({
@@ -157,7 +152,6 @@ export function AgentFormDrawer({
       model_label: isLabel ? modelRef.slice("label:".length) : undefined,
       tool_bindings,
       mode_definitions,
-      sub_agent_ids: subAgents,
     };
     try {
       const saved = editing
@@ -174,7 +168,6 @@ export function AgentFormDrawer({
         setErrors({});
         setTools([]);
         setMcpServers([]);
-        setSubAgents([]);
         setPhoto(null);
       }
       onClose();

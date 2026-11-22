@@ -4,7 +4,7 @@ from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.tables.core import SessionRow
 
 
-async def test_sub_session_fields_roundtrip():
+async def test_subagent_session_fields_roundtrip():
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     try:
@@ -22,9 +22,9 @@ async def test_sub_session_fields_roundtrip():
                     project_id="p",
                     agent_id="b",
                     parent_session_id="parent",
-                    sub_session_status="running",
-                    sub_session_error=None,
-                    sub_session_depth=1,
+                    subagent_session_status="running",
+                    subagent_session_error=None,
+                    subagent_session_depth=1,
                 )
             )
             await s.commit()
@@ -34,7 +34,7 @@ async def test_sub_session_fields_roundtrip():
             ).scalars().first()
         assert child is not None
         assert child.parent_session_id == "parent"
-        assert child.sub_session_status == "running"
-        assert child.sub_session_depth == 1
+        assert child.subagent_session_status == "running"
+        assert child.subagent_session_depth == 1
     finally:
         await engine.dispose()

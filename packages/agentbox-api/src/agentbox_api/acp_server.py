@@ -144,7 +144,7 @@ class AcpSession:
     model: PydanticModel
     registry: ToolRegistry
     mode: str
-    sub_session_runner: object | None = None
+    subagent_session_runner: object | None = None
     run: Run | None = None
     extra_roots: list[str] = field(default_factory=list)
 
@@ -259,7 +259,7 @@ class AgentboxAcpAgent:
         mode = _default_mode(spec)
         self._sessions[session_id] = AcpSession(
             session_id, cwd, project_id, runtime.agent_id, spec, runtime.model,
-            prepared.registry, mode, prepared.sub_session_runner,
+            prepared.registry, mode, prepared.subagent_session_runner,
             extra_roots=project.extra_roots,
         )
         logger.info("acp session new agent={} session={}", self._agent_name, session_id)
@@ -290,7 +290,7 @@ class AgentboxAcpAgent:
             model=sess.model,
             store_factory=lambda: SQLiteMessageLogStore(self._factory, session_id),
             compaction=compaction_config_from_settings(self._settings),
-            sub_session_runner=sess.sub_session_runner,
+            subagent_session_runner=sess.subagent_session_runner,
         )
         warnings = (await harness.prepare_mcp(session)).warnings
         for warning in warnings:
@@ -428,11 +428,11 @@ class AgentboxAcpAgent:
         return s.DeleteSessionResponse()
 
     async def close_session(self, session_id, **kwargs):
-        from agentbox_api.subsessions import cancel_sub_sessions
+        from agentbox_api.subagent_sessions import cancel_subagent_sessions
 
         await self.mcp_manager.close_session(session_id)
         await get_job_manager().kill_session(session_id)
-        await cancel_sub_sessions(self._factory, session_id)
+        await cancel_subagent_sessions(self._factory, session_id)
         sess = self._sessions.pop(session_id, None)
         if sess is not None and sess.run is not None:
             sess.run.cancel()
@@ -473,7 +473,7 @@ class AgentboxAcpAgent:
             prepared.runtime.model,
             prepared.registry,
             _default_mode(spec),
-            prepared.sub_session_runner,
+            prepared.subagent_session_runner,
             extra_roots=project.extra_roots,
         )
         self._sessions[session_id] = sess

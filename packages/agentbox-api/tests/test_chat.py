@@ -25,7 +25,6 @@ async def _seed(factory, tmp_path: pathlib.Path):
                 model_id="m",
                 tool_bindings="[]",
                 mode_definitions='[{"name": "agent", "flags": {}}]',
-                sub_agent_ids="[]",
             )
         )
         s.add(Project(id="prj", name="proj", path=str(tmp_path), owner_id="u1"))

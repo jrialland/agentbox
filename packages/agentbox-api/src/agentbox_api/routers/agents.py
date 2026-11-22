@@ -43,7 +43,6 @@ class AgentCreate(BaseModel):
     model_label: str | None = None
     tool_bindings: list[dict] = []
     mode_definitions: list[dict] = []
-    sub_agent_ids: list[str] = []
 
     @field_validator("name")
     @classmethod
@@ -98,7 +97,6 @@ def _to_spec(body: AgentCreate) -> AgentSpec:
         instructions=body.instructions,
         tool_bindings=bindings,
         mode_definitions=[Mode(**m) for m in body.mode_definitions],
-        sub_agent_ids=body.sub_agent_ids,
         model_binding=ModelBinding(model=body.model or "", provider=""),
         model_label=body.model_label,
     )

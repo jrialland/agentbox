@@ -208,7 +208,6 @@ export async function createAgent(body: {
   model_label?: string;
   tool_bindings: Record<string, unknown>[];
   mode_definitions: Record<string, unknown>[];
-  sub_agent_ids: string[];
 }): Promise<Agent> {
   const { data, error, response } = await api.POST("/agents", { body });
   if (error || !response.ok) throw toApiError(error, "Failed to create agent", response.status);
@@ -225,7 +224,6 @@ export async function updateAgent(
     model_label?: string;
     tool_bindings: Record<string, unknown>[];
     mode_definitions: Record<string, unknown>[];
-    sub_agent_ids: string[];
   },
 ): Promise<Agent> {
   const { data, error, response } = await api.PUT("/agents/{name}", {

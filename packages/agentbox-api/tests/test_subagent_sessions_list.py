@@ -32,8 +32,8 @@ async def test_session_list_hides_children():
                 project_id="p",
                 agent_id="b",
                 parent_session_id="parent",
-                sub_session_status="completed",
-                sub_session_depth=1,
+                subagent_session_status="completed",
+                subagent_session_depth=1,
             )
         )
         await s.commit()

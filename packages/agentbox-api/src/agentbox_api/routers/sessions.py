@@ -491,7 +491,7 @@ async def chat(
         model=resolved,
         store_factory=lambda: SQLiteMessageLogStore(factory, sid),
         compaction=compaction_config_from_settings(request.app.state.settings),
-        sub_session_runner=prepared.sub_session_runner,
+        subagent_session_runner=prepared.subagent_session_runner,
     )
     mcp_warnings = (await harness.prepare_mcp(session)).warnings
     bus = EventBus()

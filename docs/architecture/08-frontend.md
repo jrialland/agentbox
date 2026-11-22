@@ -153,7 +153,7 @@ tokens (CSS custom properties)
 |---|---|---|
 | `HomePage` | Dashboard, project/session overview, onboarding entry | `GET /projects`, `/sessions`, `/agents`, `/providers`, `/models`; onboarding creates provider, models, agent, project, session |
 | `SessionPage` | Chat surface, plan, about/LSP, attachments, MCP apps | `GET /sessions/{sid}`, `/messages`, `/lsp`, `/plan`; `PATCH /sessions/{sid}`; chat stream and cancel; attachments; files; skills; MCP relay; avatar |
-| `AgentsPage` | Agent CRUD, tools/modes/MCP/sub-agent editors, A2A card, prompt preview | `/agents`, avatar and card subroutes, `/prompts/preview`, `/models`, `/providers`, `/labels` |
+| `AgentsPage` | Agent CRUD, tools/modes/MCP editors, A2A card, prompt preview | `/agents`, avatar and card subroutes, `/prompts/preview`, `/models`, `/providers`, `/labels` |
 | `ProvidersPage` | Provider CRUD and connection test, model list and labels | `/providers`, `/providers/test`, `/providers/{id}/models/refresh`, `/models`, `/labels` |
 | `SkillsPage` | User skill browse/create/edit/delete | `/skills`, `/skills/{name}` |
 | `AdminPage` | Permissions, roles, users, assignments | `/permissions`, `/roles`, `/users`, assignment subroutes |

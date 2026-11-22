@@ -96,7 +96,6 @@ async def _seed_acp(factory):
                 model_id="m",
                 tool_bindings="[]",
                 mode_definitions='[{"name":"ask","flags":{"write":false}},{"name":"agent","flags":{"write":true}}]',
-                sub_agent_ids="[]",
             )
         )
         db.add(

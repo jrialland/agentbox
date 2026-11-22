@@ -36,8 +36,8 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 |---|---|---|
 | Agent = system prompt + tools | DONE | Harness + agents router + management UI. |
 | File tools (Codex / MCP FileSystem parity) | DONE | 17 native tools in `FilesystemToolbox` (read/write/tree/search/info/media/delete), guarded delete, post-tool hooks. |
-| Agent definition (name, description, prompt, tools, sub-agents, model) | DONE | `AgentSpec` + full agent create form. |
-| Sub-agents | DONE | Harness agents-as-tools (isolated runs). |
+| Agent definition (name, description, prompt, tools, model) | DONE | `AgentSpec` + full agent create form; subagents are selected at run time, not in the agent form. |
+| Subagent sessions | DONE | Any agent configuration can be started as a background subagent session; live monitoring, wait all/any, recursive cancellation, depth 3, five concurrent children. |
 | Agent avatar (attach photo) | DONE | `GET/PUT/DELETE /agents/{name}/avatar`; normalized 300×300 PNG upload; create-form picker + per-row change/remove. |
 | **RoboHash avatars (set #1) by default + copyright notices** | DONE | Local `robohash` lib (`roboset="set1"`), seeded by agent id; `NOTICE` + README credits (Zikri Kader, CC-BY). |
 
@@ -73,7 +73,7 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 
 | Requirement | Status | Notes |
 |---|---|---|
-| External IDE drives sessions via ACP (RPC over STDIO) | DONE | ACP v1 agent over stdio; full session lifecycle; image/audio/embedded + stdio MCP. |
+| External IDE drives sessions via ACP (RPC over STDIO) | DONE | ACP v1 agent over stdio; full session lifecycle; image/audio/embedded + stdio MCP. Client `fs/*`/`terminal/*` capabilities are not advertised yet (tracked as D23). |
 
 ## Use case 5 — A2A
 
@@ -212,7 +212,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 26 | Web search + URL fetch (keyless ddgs/SearXNG) | `specs/2026-11-20-web-search-design.md` | `plans/2026-11-20-web-search.md` |
 | 27 | Terminal management + project allowed roots | `specs/2026-11-20-terminal-design.md` | `plans/2026-11-20-terminal.md` |
 | 28 | Automatic compaction (usage-driven summaries + context-window recovery) | `specs/2026-11-20-compaction-design.md` | `plans/2026-11-20-compaction.md` |
-| 29 | Sub-agent sessions (background children, monitoring, cancellation) | `specs/2026-11-20-subagent-sessions-design.md` | `plans/2026-11-20-subagent-sessions.md` |
+| 29 | Subagent sessions (background children, monitoring, cancellation) | `specs/2026-11-20-subagent-sessions-design.md` | `plans/2026-11-20-subagent-sessions.md` |
 | 30 | UX-1 design system + command shell | `specs/2026-11-20-ux-1-design-system-design.md` | `plans/2026-11-20-ux-1-design-system.md` |
 | 31 | UX-2 chat surface + runtime UX | `specs/2026-11-21-ux-2-chat-surface-design.md` | `plans/2026-11-21-ux-2-chat-surface.md` |
 | 32 | UX-3 contextual help + structured editors | `specs/2026-11-21-ux-3-contextual-help-structured-editors-design.md` | `plans/2026-11-21-ux-3-contextual-help-structured-editors.md` |
@@ -222,6 +222,7 @@ The visual direction is **technical command center with hacker/computer-culture 
 | 36 | D19 Rust LSP quiescence readiness | `specs/2026-11-21-rust-lsp-quiescence-design.md` | `plans/2026-11-21-rust-lsp-quiescence.md` |
 | 37 | D22 stdio MCP servers (session lifecycle + create/edit UI) | `specs/2026-11-22-stdio-mcp-servers-design.md` | `plans/2026-11-22-stdio-mcp-servers.md` |
 | 38 | Technical architecture documentation set | `specs/2026-11-22-technical-architecture-docs-design.md` | `plans/2026-11-22-technical-architecture-docs.md` |
+| 39 | Subagent session orchestration (unrestricted agents, live monitoring, recursive cancel) | `specs/2026-11-22-subagent-session-orchestration-design.md` | `plans/2026-11-22-subagent-session-orchestration.md` |
 
 ## Technical documentation
 
@@ -252,3 +253,4 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D16 | **Telegram / WhatsApp interface** | Let a user create a channel binding (e.g. a Telegram bot) to manage an agent session from a phone: inbound messages start/continue sessions, replies stream back. |
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
+| D23 | **ACP client `fs/*` and `terminal/*` capabilities** | Today the ACP adapter advertises no client filesystem or terminal capabilities, so agent edits and commands run server-side against the project root instead of through the IDE (e.g. VS Code diff editor / integrated terminal). Add capability negotiation in `initialize`, implement `fs/read_text_file`/`fs/write_text_file` and `terminal/*` handlers with fallback to the current server-side tools, and cover them in `tests/test_acp.py`/`test_acp_stdio.py`. |

@@ -79,7 +79,6 @@ class AgentRepository:
             row.model_label = label
             row.tool_bindings = _serialize_bindings(spec.tool_bindings)
             row.mode_definitions = _serialize_modes(spec.mode_definitions)
-            row.sub_agent_ids = json.dumps(spec.sub_agent_ids)
             s.add(row)
             await s.commit()
             logger.info("agent saved name={}", spec.name)
@@ -115,7 +114,6 @@ class AgentRepository:
                 instructions=row.instructions,
                 tool_bindings=_parse_bindings(row.tool_bindings),
                 mode_definitions=_parse_modes(row.mode_definitions),
-                sub_agent_ids=json.loads(row.sub_agent_ids or "[]"),
                 model_binding=ModelBinding(model=model.name, provider=provider.name),
                 model_label=row.model_label,
             )

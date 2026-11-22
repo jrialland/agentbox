@@ -22,7 +22,7 @@ runtime itself is covered in [Harness and runtime](04-harness-runtime.md).
 | `project_instructions.py` | `AGENTS.md` discovery, instruction blocks, post-tool nested instructions |
 | `templating.py` | Sandboxed Jinja2 prompt rendering and preview |
 | `mcp_relay.py` | Backend proxy for MCP Apps resource reads and tool calls |
-| `subsessions.py` | Background child-session runner, caps, cancellation, restart reconciliation |
+| `subagent_sessions.py` | Subagent session manager: live output, wait, caps, recursive cancellation, restart reconciliation |
 | `sandbox.py` | MCP App proxy iframe HTML and CSP |
 | `avatars.py` | RoboHash defaults and uploaded-avatar normalization |
 | `logging.py` | loguru sinks and stdlib interception |
@@ -44,8 +44,8 @@ Startup, in order:
 2. Obtain the global `McpSessionManager` and set its start timeout.
 3. Start a background task that calls `manager.sweep_idle(...)` every
    `mcp_sweep_interval_seconds`.
-4. `reconcile_running_sub_sessions(session_factory)`: mark any child session left `running` by a
-   previous process as `failed`.
+4. `reconcile_running_subagent_sessions(session_factory)`: mark any subagent session left
+   `running` by a previous process as `failed`.
 
 Shutdown, in order:
 

@@ -45,7 +45,6 @@ class AgentSpec(BaseModel):
     description: str
     instructions: str
     tool_bindings: list[ToolBinding]
-    sub_agent_ids: list[str] = []
     mode_definitions: list[Mode] = []
     model_binding: ModelBinding
     model_label: str | None = None

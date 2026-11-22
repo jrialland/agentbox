@@ -36,9 +36,9 @@ sequenceDiagram
   L->>DB: dispose
 ```
 
-Reconciliation marks any `SessionRow` whose `sub_session_status` is `running` as `failed` with
-"interrupted by backend restart". This is the only durable signal that a child was abandoned; the
-child's turns and output remain readable.
+Reconciliation marks any `SessionRow` whose `subagent_session_status` is `running` as `failed`
+with "interrupted by backend restart". This is the durable signal that a subagent session was
+abandoned; its turns and output remain readable.
 
 ## Run model and cancellation
 
@@ -82,17 +82,22 @@ Two consumers share the same stream:
 MCP startup warnings are injected as custom events before the run events, using negative
 sequence numbers so they sort first.
 
-## Sub-sessions
+## Subagent sessions
 
-Sub-sessions are background child sessions started by an agent tool.
+Subagent sessions are background child sessions started by a session tool using any agent
+configuration.
 
-- Caps: at most 5 concurrent children per parent (`MAX_SUB_SESSIONS`) and depth 3
-  (`MAX_SUB_SESSION_DEPTH`).
-- Each child is a real `SessionRow` with `parent_session_id`, `sub_session_depth`, and a status.
-- The runner keeps active child tasks in a module-global map; status and output are persisted on
-  completion, failure, or cancellation.
+- Caps: at most 5 concurrent children per parent (`MAX_SUBAGENT_SESSIONS`) and depth 3
+  (`MAX_SUBAGENT_SESSION_DEPTH`).
+- Each child is a real `SessionRow` with `parent_session_id`, `subagent_session_depth`, and a
+  status.
+- `SubagentSessionManager` keeps active jobs in a process-global map. Each job subscribes to the
+  child `EventBus`, buffers a rolling live-output tail, and exposes wait/any/all and recursive
+  cancellation.
+- Status and final output are persisted on completion, failure, or cancellation. A stale
+  `running` row with no live job is marked failed.
 - Children are not registered in the HTTP `RunRegistry`; they are canceled through
-  `shutdown_sub_sessions` or the parent's cleanup.
+  `cancel_subagent_sessions`, `shutdown_subagent_sessions`, or the parent's cleanup.
 - On startup, orphaned `running` children are marked failed.
 
 ## MCP session lifecycle
@@ -144,7 +149,7 @@ All session teardown funnels through `runtime.delete_session_data`:
 1. Close the session's MCP toolsets.
 2. Clear project-instruction state.
 3. Kill terminal jobs for the session.
-4. Cancel active sub-sessions.
+4. Recursively cancel active subagent sessions.
 5. Recursively delete child sessions.
 6. Delete turns, attachments, plan items, and the session row.
 

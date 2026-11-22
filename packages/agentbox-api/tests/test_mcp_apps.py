@@ -43,7 +43,6 @@ async def _setup(tmp_path, mcp_url):
                 model_id="m",
                 tool_bindings=json.dumps([{"server_url": mcp_url, "id": "test-app"}]),
                 mode_definitions='[{"name":"ask","flags":{"write":false}},{"name":"agent","flags":{"write":true}}]',
-                sub_agent_ids="[]",
             )
         )
         s.add(Project(id="prj", name="p", path=str(tmp_path), owner_id="u1"))
