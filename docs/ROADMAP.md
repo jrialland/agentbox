@@ -260,3 +260,4 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D16 | **Telegram / WhatsApp interface** | Let a user create a channel binding (e.g. a Telegram bot) to manage an agent session from a phone: inbound messages start/continue sessions, replies stream back. |
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
+| D23 | **llms.txt** | fastapi should serve an llms.txt file, as explained at https://llmstxt.org/llms.txt should be a practical set of markdown explaining how to use the api, tailored for agents |
