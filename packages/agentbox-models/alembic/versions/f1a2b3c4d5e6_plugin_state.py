@@ -24,67 +24,85 @@ _PERMISSIONS = (
 )
 
 
-def upgrade() -> None:
-    op.create_table(
-        "pluginstate",
-        sa.Column("id", sa.String(length=160), nullable=False),
-        sa.Column("plugin_name", sa.String(length=64), nullable=False),
-        sa.Column("scope", sa.String(length=16), nullable=False),
-        sa.Column("project_id", sa.String(length=32), nullable=True),
-        sa.Column("enabled", sa.Boolean(), nullable=False),
-        sa.Column(
-            "created_at", sqlmodel.sql.sqltypes.UTCDateTime(), nullable=False
-        ),
-        sa.Column(
-            "updated_at", sqlmodel.sql.sqltypes.UTCDateTime(), nullable=False
-        ),
-        sa.ForeignKeyConstraint(
-            ["project_id"], ["project.id"], ondelete="CASCADE"
-        ),
-        sa.PrimaryKeyConstraint("id"),
-    )
-    op.create_index(
-        op.f("ix_pluginstate_project_id"),
-        "pluginstate",
-        ["project_id"],
-        unique=False,
-    )
-    op.create_table(
-        "agent_plugin_mcp_binding",
-        sa.Column("id", sa.String(length=32), nullable=False),
-        sa.Column("agent_id", sa.String(length=32), nullable=False),
-        sa.Column("position", sa.Integer(), nullable=False),
-        sa.Column("plugin", sa.String(length=64), nullable=False),
-        sa.Column("server", sa.String(length=255), nullable=False),
-        sa.Column("project_id", sa.String(length=32), nullable=True),
-        sa.Column("binding_id", sa.String(length=160), nullable=False),
-        sa.ForeignKeyConstraint(
-            ["agent_id"], ["agent.id"], ondelete="CASCADE"
-        ),
-        sa.ForeignKeyConstraint(
-            ["project_id"], ["project.id"], ondelete="CASCADE"
-        ),
-        sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "agent_id",
-            "position",
-            name="uq_agent_plugin_mcp_pos",
-        ),
-    )
-    op.create_index(
-        op.f("ix_agent_plugin_mcp_binding_agent_id"),
-        "agent_plugin_mcp_binding",
-        ["agent_id"],
-        unique=False,
-    )
-    op.create_index(
-        op.f("ix_agent_plugin_mcp_binding_project_id"),
-        "agent_plugin_mcp_binding",
-        ["project_id"],
-        unique=False,
-    )
+def _table_exists(bind, table: str) -> bool:
+    return table in sa.inspect(bind).get_table_names()
 
+
+def _index_exists(bind, table: str, name: str) -> bool:
+    return name in {
+        index["name"] for index in sa.inspect(bind).get_indexes(table)
+    }
+
+
+def upgrade() -> None:
     bind = op.get_bind()
+    if not _table_exists(bind, "pluginstate"):
+        op.create_table(
+            "pluginstate",
+            sa.Column("id", sa.String(length=160), nullable=False),
+            sa.Column("plugin_name", sa.String(length=64), nullable=False),
+            sa.Column("scope", sa.String(length=16), nullable=False),
+            sa.Column("project_id", sa.String(length=32), nullable=True),
+            sa.Column("enabled", sa.Boolean(), nullable=False),
+            sa.Column(
+                "created_at", sqlmodel.sql.sqltypes.UTCDateTime(), nullable=False
+            ),
+            sa.Column(
+                "updated_at", sqlmodel.sql.sqltypes.UTCDateTime(), nullable=False
+            ),
+            sa.ForeignKeyConstraint(
+                ["project_id"], ["project.id"], ondelete="CASCADE"
+            ),
+            sa.PrimaryKeyConstraint("id"),
+        )
+    pluginstate_index = op.f("ix_pluginstate_project_id")
+    if not _index_exists(bind, "pluginstate", pluginstate_index):
+        op.create_index(
+            pluginstate_index,
+            "pluginstate",
+            ["project_id"],
+            unique=False,
+        )
+    if not _table_exists(bind, "agent_plugin_mcp_binding"):
+        op.create_table(
+            "agent_plugin_mcp_binding",
+            sa.Column("id", sa.String(length=32), nullable=False),
+            sa.Column("agent_id", sa.String(length=32), nullable=False),
+            sa.Column("position", sa.Integer(), nullable=False),
+            sa.Column("plugin", sa.String(length=64), nullable=False),
+            sa.Column("server", sa.String(length=255), nullable=False),
+            sa.Column("project_id", sa.String(length=32), nullable=True),
+            sa.Column("binding_id", sa.String(length=160), nullable=False),
+            sa.ForeignKeyConstraint(
+                ["agent_id"], ["agent.id"], ondelete="CASCADE"
+            ),
+            sa.ForeignKeyConstraint(
+                ["project_id"], ["project.id"], ondelete="CASCADE"
+            ),
+            sa.PrimaryKeyConstraint("id"),
+            sa.UniqueConstraint(
+                "agent_id",
+                "position",
+                name="uq_agent_plugin_mcp_pos",
+            ),
+        )
+    agent_id_index = op.f("ix_agent_plugin_mcp_binding_agent_id")
+    if not _index_exists(bind, "agent_plugin_mcp_binding", agent_id_index):
+        op.create_index(
+            agent_id_index,
+            "agent_plugin_mcp_binding",
+            ["agent_id"],
+            unique=False,
+        )
+    project_id_index = op.f("ix_agent_plugin_mcp_binding_project_id")
+    if not _index_exists(bind, "agent_plugin_mcp_binding", project_id_index):
+        op.create_index(
+            project_id_index,
+            "agent_plugin_mcp_binding",
+            ["project_id"],
+            unique=False,
+        )
+
     for permission_id, name, description in _PERMISSIONS:
         existing_id = bind.execute(
             sa.text("SELECT id FROM permission WHERE name = :name"),
