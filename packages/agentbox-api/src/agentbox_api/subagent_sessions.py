@@ -23,6 +23,7 @@ from sqlmodel import select
 from agentbox_api.lsp_runtime import lsp_reminders
 from agentbox_api.skills import prepare_agent
 from agentbox_harness.compaction import CompactionConfig
+from agentbox_harness.context_editing import ContextEditingConfig
 from agentbox_harness.events import EventBus
 from agentbox_harness.harness import Harness
 from agentbox_harness.run import Run
@@ -48,6 +49,7 @@ class SubagentSessionContext:
     media_max_dimension: int
     media_max_bytes: int
     depth: int
+    context_editing: ContextEditingConfig | None = None
 
 
 @dataclass
@@ -339,6 +341,7 @@ class ApiSubagentSessionRunner:
                 media_max_bytes=self._context.media_max_bytes,
                 web_config=self._context.web_config,
                 extra_roots=self._context.extra_roots,
+                context_editing=self._context.context_editing,
                 compaction=self._context.compaction,
                 subagent_session_depth=self._context.depth + 1,
             )
@@ -395,6 +398,7 @@ class ApiSubagentSessionRunner:
             compaction=self._context.compaction,
             subagent_session_runner=prepared.subagent_session_runner,
             reminders=lsp_reminders(),
+            context_editing=self._context.context_editing,
         )
         bus = EventBus()
         subscription = bus.subscribe()

@@ -5,6 +5,7 @@ from pydantic_ai.models import Model
 
 from agentbox_harness.agent_factory import build_agent
 from agentbox_harness.compaction import CompactionConfig, CompactionMiddleware
+from agentbox_harness.context_editing import ContextEditingConfig
 from agentbox_harness.errors import RunOutcome
 from agentbox_harness.events import EventBus
 from agentbox_harness.messages import turns_to_messages
@@ -37,6 +38,7 @@ class Harness:
         subagent_session_runner=None,
         mcp_manager: McpSessionManager | None = None,
         reminders: list[SessionReminder] | None = None,
+        context_editing: ContextEditingConfig | None = None,
     ):
         self.registry = registry
         self.model = model
@@ -50,6 +52,7 @@ class Harness:
         self.subagent_session_runner = subagent_session_runner
         self.mcp_manager = mcp_manager or get_mcp_session_manager()
         self.reminders = list(reminders or [])
+        self.context_editing = context_editing
 
     async def prepare_mcp(self, session: Session) -> SessionToolsets:
         spec = session.agent_spec
@@ -159,6 +162,7 @@ class Harness:
             subagent_session_runner=self.subagent_session_runner,
             session_id=session.session_id,
             stdio_toolsets=session_tools.toolsets,
+            context_editing=self.context_editing,
         )
         return self.run_manager.start(
             agent,

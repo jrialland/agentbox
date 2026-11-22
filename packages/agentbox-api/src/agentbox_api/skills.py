@@ -18,6 +18,7 @@ from agentbox_api.project_instructions import (
 from agentbox_api.runtime import AgentRuntime, build_registry, resolve_agent_runtime
 from agentbox_api.templating import build_context, render_prompt
 from agentbox_harness.compaction import CompactionConfig
+from agentbox_harness.context_editing import ContextEditingConfig
 from agentbox_harness.lsp.diagnostics import (
     get_diagnostics_service,
     make_lsp_diagnostics_tool,
@@ -184,6 +185,7 @@ async def prepare_agent(
     web_config: WebToolConfig | None = None,
     extra_roots: list[str] | None = None,
     compaction: CompactionConfig | None = None,
+    context_editing: ContextEditingConfig | None = None,
     subagent_session_depth: int = 0,
 ) -> PreparedAgent:
     runtime = await resolve_agent_runtime(factory, agent_name)
@@ -294,6 +296,7 @@ async def prepare_agent(
             extra_roots=[str(path) for path in resolved_extra],
             web_config=web_config,
             compaction=compaction or CompactionConfig(),
+            context_editing=context_editing,
             media_max_dimension=media_max_dimension,
             media_max_bytes=media_max_bytes,
             depth=subagent_session_depth,

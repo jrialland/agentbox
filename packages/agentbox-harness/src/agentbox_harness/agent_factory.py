@@ -4,9 +4,14 @@ from collections.abc import Callable
 
 from loguru import logger
 from pydantic_ai import Agent, ModelRetry
+from pydantic_ai.capabilities import ProcessHistory
 from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models import Model
 
+from agentbox_harness.context_editing import (
+    ContextEditingConfig,
+    make_context_editing_processor,
+)
 from agentbox_harness.spec import AgentSpec, McpToolBinding, Mode, NativeToolBinding
 from agentbox_harness.subagent_sessions import build_subagent_session_tools
 from agentbox_harness.tools.mcp import build_mcp_toolset
@@ -41,6 +46,7 @@ def build_agent(
     subagent_session_runner=None,
     session_id: str | None = None,
     stdio_toolsets: list[MCPToolset] | None = None,
+    context_editing: ContextEditingConfig | None = None,
 ) -> Agent:
     native_names: set[str] = set()
     mcp_bindings: list[McpToolBinding] = []
@@ -63,11 +69,23 @@ def build_agent(
         if not b.command or stdio_toolsets is None
     ]
     toolsets.extend(stdio_toolsets or [])
-    logger.debug("agent built name={} tools={} toolsets={}", spec.name, len(tools), len(toolsets))
+    capabilities = []
+    if context_editing is not None and context_editing.enabled:
+        capabilities.append(
+            ProcessHistory(make_context_editing_processor(context_editing))
+        )
+    logger.debug(
+        "agent built name={} tools={} toolsets={} capabilities={}",
+        spec.name,
+        len(tools),
+        len(toolsets),
+        len(capabilities),
+    )
     return Agent(
         model=model,
         name=spec.name,
         instructions=spec.instructions,
         tools=tools,
         toolsets=toolsets,
+        capabilities=capabilities or None,
     )

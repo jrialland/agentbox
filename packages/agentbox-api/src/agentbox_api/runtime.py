@@ -7,6 +7,7 @@ from pydantic_ai.models import Model as PydanticModel
 from sqlmodel import select
 
 from agentbox_harness.compaction import CompactionConfig
+from agentbox_harness.context_editing import ContextEditingConfig
 from agentbox_harness.spec import AgentSpec
 from agentbox_harness.tools.filesystem import FilesystemToolbox
 from agentbox_harness.tools.registry import ToolRegistry
@@ -31,6 +32,33 @@ def compaction_config_from_settings(settings) -> CompactionConfig:
         keep_turns=settings.compaction_keep_turns,
         input_budget_tokens=settings.compaction_input_budget_tokens,
         max_summary_chars=settings.compaction_max_summary_chars,
+    )
+
+
+def context_editing_config_from_settings(settings) -> ContextEditingConfig:
+    excluded = tuple(
+        name.strip()
+        for name in (settings.context_editing_exclude_tools or "").split(",")
+        if name.strip()
+    )
+    return ContextEditingConfig(
+        enabled=settings.context_editing_enabled,
+        trigger_tokens=max(0, settings.context_editing_trigger_tokens),
+        trigger_ratio=min(
+            1.0, max(0.05, settings.context_editing_trigger_ratio)
+        ),
+        target_ratio=min(
+            1.0, max(0.05, settings.context_editing_target_ratio)
+        ),
+        keep_tool_results=max(0, settings.context_editing_keep_tool_results),
+        keep_recent_messages=max(
+            0, settings.context_editing_keep_recent_messages
+        ),
+        clear_tool_inputs=settings.context_editing_clear_tool_inputs,
+        clear_binary=settings.context_editing_clear_binary,
+        exclude_tools=excluded,
+        placeholder=settings.context_editing_placeholder,
+        binary_placeholder=settings.context_editing_binary_placeholder,
     )
 
 

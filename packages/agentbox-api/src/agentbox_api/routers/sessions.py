@@ -14,6 +14,7 @@ from agentbox_api.deps import require_permission
 from agentbox_api.lsp_runtime import lsp_reminders
 from agentbox_api.runtime import (
     compaction_config_from_settings,
+    context_editing_config_from_settings,
     delete_session_data,
     web_config_from_settings,
 )
@@ -437,6 +438,9 @@ async def chat(
             web_config=web_config_from_settings(request.app.state.settings),
             extra_roots=extra_roots,
             compaction=compaction_config_from_settings(request.app.state.settings),
+            context_editing=context_editing_config_from_settings(
+                request.app.state.settings
+            ),
         )
     except PromptTemplateError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -543,6 +547,9 @@ async def chat(
         compaction=compaction_config_from_settings(request.app.state.settings),
         subagent_session_runner=prepared.subagent_session_runner,
         reminders=lsp_reminders(),
+        context_editing=context_editing_config_from_settings(
+            request.app.state.settings
+        ),
     )
     mcp_warnings = (await harness.prepare_mcp(session)).warnings
     bus = EventBus()

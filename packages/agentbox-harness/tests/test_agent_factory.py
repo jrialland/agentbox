@@ -1,8 +1,10 @@
 from pydantic_ai import Agent
+from pydantic_ai.capabilities import ProcessHistory
 from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models.test import TestModel
 
 from agentbox_harness.agent_factory import build_agent
+from agentbox_harness.context_editing import ContextEditingConfig
 from agentbox_harness.spec import (
     AgentSpec,
     McpToolBinding,
@@ -47,6 +49,34 @@ def test_build_agent_attaches_mcp_toolsets():
 
     mcp = [t for t in agent.toolsets if isinstance(t, MCPToolset)]
     assert len(mcp) == 1
+
+def test_build_agent_attaches_context_editing_capability():
+    reg = ToolRegistry()
+    agent = build_agent(
+        _spec(),
+        Mode(name="agent", flags={"write": True}),
+        reg,
+        TestModel(),
+        context_editing=ContextEditingConfig(enabled=True),
+    )
+
+    capabilities = agent._root_capability.capabilities  # pyright: ignore[reportPrivateUsage,reportAttributeAccessIssue]
+    assert any(isinstance(cap, ProcessHistory) for cap in capabilities)
+
+
+def test_build_agent_skips_context_editing_when_disabled():
+    reg = ToolRegistry()
+    agent = build_agent(
+        _spec(),
+        Mode(name="agent", flags={"write": True}),
+        reg,
+        TestModel(),
+        context_editing=ContextEditingConfig(enabled=False),
+    )
+
+    capabilities = agent._root_capability.capabilities  # pyright: ignore[reportPrivateUsage,reportAttributeAccessIssue]
+    assert not any(isinstance(cap, ProcessHistory) for cap in capabilities)
+
 
 def test_build_agent_uses_provided_stdio_toolsets():
     from pydantic_ai.mcp import MCPToolset

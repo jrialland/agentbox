@@ -22,6 +22,7 @@ from agentbox_api.a2a_server import a2a_user
 from agentbox_api.lsp_runtime import lsp_reminders
 from agentbox_api.runtime import (
     compaction_config_from_settings,
+    context_editing_config_from_settings,
     web_config_from_settings,
 )
 from agentbox_api.skills import prepare_agent
@@ -105,6 +106,9 @@ class AgentboxA2AExecutor(AgentExecutor):
             web_config=web_config_from_settings(self._settings),
             extra_roots=extra_roots or None,
             compaction=compaction_config_from_settings(self._settings),
+            context_editing=context_editing_config_from_settings(
+                self._settings
+            ),
         )
         owner = await self._owner()
         async with self._factory() as s:
@@ -142,6 +146,9 @@ class AgentboxA2AExecutor(AgentExecutor):
             compaction=compaction_config_from_settings(self._settings),
             subagent_session_runner=prepared.subagent_session_runner,
             reminders=lsp_reminders(),
+            context_editing=context_editing_config_from_settings(
+                self._settings
+            ),
         )
         warnings = (await harness.prepare_mcp(session)).warnings
         for warning in warnings:

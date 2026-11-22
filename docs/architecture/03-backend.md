@@ -217,11 +217,18 @@ The shared resolver lives in `agentbox_models.config`; Alembic uses it too.
 | Web search | `web_search_provider`, `web_search_timeout`, `web_search_max_results`, `web_search_region`, `web_search_safesearch`, `web_search_ddgs_backend`, `searxng_url` |
 | Web fetch | `web_fetch_timeout`, `web_fetch_max_chars`, `web_fetch_max_bytes`, `web_fetch_user_agent` |
 | Compaction | `compaction_enabled`, `compaction_ratio`, `compaction_keep_turns`, `compaction_input_budget_tokens`, `compaction_max_summary_chars` |
+| Context editing | `context_editing_enabled`, `context_editing_trigger_tokens`, `context_editing_trigger_ratio`, `context_editing_target_ratio`, `context_editing_keep_tool_results`, `context_editing_keep_recent_messages`, `context_editing_clear_tool_inputs`, `context_editing_clear_binary`, `context_editing_exclude_tools`, `context_editing_placeholder`, `context_editing_binary_placeholder` |
 | MCP | `mcp_idle_ttl_seconds`, `mcp_start_timeout_seconds`, `mcp_sweep_interval_seconds` |
 
 `lsp_mode=auto` (default) analyses edited files in the background and delivers a compact
 next-run reminder; `on_demand` exposes only the `lsp_diagnostics` tool; `off` disables LSP servers,
 hooks, and the tool. `lsp_enabled=false` remains an alias for `off`.
+
+Context editing runs inside each agent run through pydantic-ai's `ProcessHistory` capability. When
+the estimated request exceeds `min(context_editing_trigger_tokens, trigger_ratio * context_window)`,
+it replaces old tool returns and binary attachments with placeholders until the estimate reaches
+`target_ratio`, keeping the last `keep_tool_results` tool returns and the last
+`keep_recent_messages` messages. Compaction remains the fallback for text-heavy histories.
 
 The app uses an async `database_url` and normalizes common sync URLs to async drivers. Alembic
 reads the same TOML/env resolver and runs through an async engine when the URL requires one.

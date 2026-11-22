@@ -46,6 +46,7 @@ from agentbox_api.lsp_runtime import lsp_reminders
 from agentbox_api.media import MediaStore
 from agentbox_api.runtime import (
     compaction_config_from_settings,
+    context_editing_config_from_settings,
     delete_session_data,
     resolve_agent_runtime,
     web_config_from_settings,
@@ -257,6 +258,9 @@ class AgentboxAcpAgent:
             web_config=web_config_from_settings(self._settings),
             extra_roots=extra_roots or None,
             compaction=compaction_config_from_settings(self._settings),
+            context_editing=context_editing_config_from_settings(
+                self._settings
+            ),
         )
         runtime = prepared.runtime
         owner = runtime.created_by or await self._admin_id()
@@ -326,6 +330,9 @@ class AgentboxAcpAgent:
             compaction=compaction_config_from_settings(self._settings),
             subagent_session_runner=sess.subagent_session_runner,
             reminders=lsp_reminders(),
+            context_editing=context_editing_config_from_settings(
+                self._settings
+            ),
         )
         warnings = (await harness.prepare_mcp(session)).warnings
         for warning in warnings:
@@ -502,6 +509,9 @@ class AgentboxAcpAgent:
             web_config=web_config_from_settings(self._settings),
             extra_roots=extra_roots,
             compaction=compaction_config_from_settings(self._settings),
+            context_editing=context_editing_config_from_settings(
+                self._settings
+            ),
         )
         if row.agent_id != prepared.runtime.agent_id:
             raise acp.RequestError(-32002, "unknown session")

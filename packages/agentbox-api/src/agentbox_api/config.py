@@ -53,6 +53,21 @@ class Settings(BaseSettings):
     compaction_keep_turns: int = 4
     compaction_input_budget_tokens: int = 16_000
     compaction_max_summary_chars: int = 8_000
+    context_editing_enabled: bool = True
+    context_editing_trigger_tokens: int = 100_000
+    context_editing_trigger_ratio: float = 0.8
+    context_editing_target_ratio: float = 0.6
+    context_editing_keep_tool_results: int = 3
+    context_editing_keep_recent_messages: int = 6
+    context_editing_clear_tool_inputs: bool = False
+    context_editing_clear_binary: bool = True
+    context_editing_exclude_tools: str = ""
+    context_editing_placeholder: str = (
+        "[tool result cleared to save context; re-run the tool if needed]"
+    )
+    context_editing_binary_placeholder: str = (
+        "[attachment omitted to save context]"
+    )
     mcp_idle_ttl_seconds: float = 1800
     mcp_start_timeout_seconds: float = 30
     mcp_sweep_interval_seconds: float = 60
