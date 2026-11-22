@@ -1,4 +1,3 @@
-import json
 import secrets
 import uuid
 from datetime import UTC, datetime
@@ -10,6 +9,7 @@ from sqlmodel import select
 
 from agentbox_api.deps import require_permission
 from agentbox_api.security import hash_api_key
+from agentbox_models.repos.api_key_scopes import load_scopes, replace_scopes
 from agentbox_models.tables.auth import ApiKey
 
 router = APIRouter(prefix="/api-keys", tags=["api-keys"])
@@ -32,10 +32,10 @@ class ApiKeyCreated(ApiKeyRead):
     key: str
 
 
-def _read(row: ApiKey) -> ApiKeyRead:
+def _read(row: ApiKey, scopes: list[str]) -> ApiKeyRead:
     return ApiKeyRead(
         id=row.id,
-        scopes=json.loads(row.scopes or "[]"),
+        scopes=scopes,
         expires_at=row.expires_at,
         revoked_at=row.revoked_at,
         created_at=row.created_at,
@@ -71,15 +71,16 @@ async def create_api_key(
         id=uuid.uuid4().hex,
         user_id=request.user.identity,
         key_hash=hash_api_key(raw),
-        scopes=json.dumps(scopes),
         expires_at=expires_at,
     )
     async with request.app.state.session_factory() as s:
         s.add(key)
+        await s.flush()
+        await replace_scopes(s, key.id, scopes)
         await s.commit()
         await s.refresh(key)
     logger.info("api key created key={}", key.id)
-    return ApiKeyCreated(key=raw, **_read(key).model_dump())
+    return ApiKeyCreated(key=raw, **_read(key, scopes).model_dump())
 
 
 @router.get("", response_model=list[ApiKeyRead])
@@ -92,7 +93,7 @@ async def list_api_keys(
                 select(ApiKey).where(ApiKey.user_id == request.user.identity)
             )
         ).scalars().all()
-    return [_read(r) for r in rows]
+        return [_read(row, await load_scopes(s, row.id)) for row in rows]
 
 
 @router.delete("/{kid}")
