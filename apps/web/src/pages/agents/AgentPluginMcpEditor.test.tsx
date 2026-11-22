@@ -21,6 +21,7 @@ const globalPlugin: PluginInfo = {
   keywords: [],
   skills: [],
   mcp_servers: [{ name: "local", transport: "stdio" }],
+  hooks: [],
   issues: [],
 };
 
@@ -65,6 +66,7 @@ test("project plugin servers are loaded for the selected project", () => {
             scope: "project",
             project_id: "p1",
             mcp_servers: [{ name: "project-local", transport: "stdio" }],
+            hooks: [],
           },
         ]}
         value={[]}

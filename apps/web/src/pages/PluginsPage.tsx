@@ -59,7 +59,7 @@ export function PluginsPage() {
   return (
     <ListPage
       title="Plugins"
-      subtitle="Portable packages that provide skills and MCP servers"
+      subtitle="Portable packages that provide skills, MCP servers, and lifecycle hooks"
     >
       <Panel>
         <Panel.Body>
@@ -131,7 +131,12 @@ export function PluginsPage() {
               key: "components",
               header: "Components",
               render: (plugin) =>
-                `${plugin.skills.length} skills · ${plugin.mcp_servers.length} MCP`,
+                `${plugin.skills.length} skills, ${plugin.mcp_servers.length} MCP`,
+            },
+            {
+              key: "hooks",
+              header: "Hooks",
+              render: (plugin) => String(plugin.hooks.length),
             },
             {
               key: "issues",
@@ -176,8 +181,8 @@ export function PluginsPage() {
         }
         description={
           pending?.enabled
-            ? "Disabling removes this plugin's skills and makes its MCP servers unselectable. Stale agent references will be skipped."
-            : "Only enable plugins you trust. Enabled plugins can contribute instructions and MCP servers, and MCP servers can run local commands when an agent selects them."
+            ? "Disabling removes this plugin's skills and hooks and makes its MCP servers unselectable. Stale agent references will be skipped."
+            : "Only enable plugins you trust. Enabled plugins can contribute skills and MCP servers, and can run hook commands or HTTP calls, mutate tool arguments, deny calls, and replace tool results."
         }
         confirmLabel={pending?.enabled ? "Disable" : "Enable and trust"}
         danger={Boolean(pending?.enabled)}
@@ -234,6 +239,28 @@ function PluginDetails({ plugin }: { plugin: PluginInfo }) {
           </ul>
         ) : (
           <p>No MCP servers.</p>
+        )}
+      </section>
+      <section>
+        <h4>Hooks</h4>
+        {plugin.hooks.length ? (
+          <ul>
+            {plugin.hooks.map((hook) => (
+              <li key={hook.id}>
+                <code>{hook.id}</code> - {hook.event}
+                {hook.tools.length ? ` - ${hook.tools.join(", ")}` : ""}
+                {` - ${hook.action}`}
+                {hook.command ? `: ${hook.command}` : ""}
+                {hook.url ? `: ${hook.url}` : ""}
+                {hook.timeout_ms ? ` (${hook.timeout_ms}ms)` : ""}
+                {hook.on_error !== "ignore"
+                  ? ` - on_error=${hook.on_error}`
+                  : ""}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>No hooks.</p>
         )}
       </section>
       <section>

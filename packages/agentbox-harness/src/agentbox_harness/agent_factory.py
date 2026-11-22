@@ -4,7 +4,7 @@ from collections.abc import Callable
 
 from loguru import logger
 from pydantic_ai import Agent, ModelRetry
-from pydantic_ai.capabilities import ProcessHistory
+from pydantic_ai.capabilities import AbstractCapability, ProcessHistory
 from pydantic_ai.mcp import MCPToolset
 from pydantic_ai.models import Model
 
@@ -47,6 +47,7 @@ def build_agent(
     session_id: str | None = None,
     stdio_toolsets: list[MCPToolset] | None = None,
     context_editing: ContextEditingConfig | None = None,
+    plugin_hooks: AbstractCapability | None = None,
 ) -> Agent:
     native_names: set[str] = set()
     mcp_bindings: list[McpToolBinding] = []
@@ -74,6 +75,8 @@ def build_agent(
         capabilities.append(
             ProcessHistory(make_context_editing_processor(context_editing))
         )
+    if plugin_hooks is not None:
+        capabilities.append(plugin_hooks)
     logger.debug(
         "agent built name={} tools={} toolsets={} capabilities={}",
         spec.name,

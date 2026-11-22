@@ -12,6 +12,7 @@ from agentbox_api.plugin_catalog import (
     PluginMcpServer,
     PluginSkill,
 )
+from agentbox_api.plugin_hook_config import PluginHook
 from agentbox_models.tables.core import PluginState, utcnow
 
 _ENV_PASSTHROUGH = (
@@ -87,6 +88,10 @@ class PluginView:
     @property
     def mcp_servers(self) -> tuple[PluginMcpServer, ...]:
         return self.loaded.mcp_servers
+
+    @property
+    def hooks(self) -> tuple[PluginHook, ...]:
+        return self.loaded.hooks
 
     @property
     def issues(self) -> tuple[PluginIssue, ...]:

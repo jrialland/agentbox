@@ -1,6 +1,7 @@
 import uuid
 
 from loguru import logger
+from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.models import Model
 
 from agentbox_harness.agent_factory import build_agent
@@ -39,6 +40,7 @@ class Harness:
         mcp_manager: McpSessionManager | None = None,
         reminders: list[SessionReminder] | None = None,
         context_editing: ContextEditingConfig | None = None,
+        plugin_hooks: AbstractCapability | None = None,
     ):
         self.registry = registry
         self.model = model
@@ -53,6 +55,7 @@ class Harness:
         self.mcp_manager = mcp_manager or get_mcp_session_manager()
         self.reminders = list(reminders or [])
         self.context_editing = context_editing
+        self.plugin_hooks = plugin_hooks
 
     async def prepare_mcp(self, session: Session) -> SessionToolsets:
         spec = session.agent_spec
@@ -163,6 +166,7 @@ class Harness:
             session_id=session.session_id,
             stdio_toolsets=session_tools.toolsets,
             context_editing=self.context_editing,
+            plugin_hooks=self.plugin_hooks,
         )
         return self.run_manager.start(
             agent,

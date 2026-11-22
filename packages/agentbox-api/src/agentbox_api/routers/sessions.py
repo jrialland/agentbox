@@ -580,6 +580,7 @@ async def chat(
         context_editing=context_editing_config_from_settings(
             request.app.state.settings
         ),
+        plugin_hooks=prepared.plugin_hooks,
     )
     mcp_warnings = (await harness.prepare_mcp(session)).warnings
     bus = EventBus()

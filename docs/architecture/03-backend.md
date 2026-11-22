@@ -231,6 +231,13 @@ contribute namespaced skills and MCP servers that agents select explicitly. Plug
 per scope in `pluginstate`; plugin MCP references live in `agent_plugin_mcp_binding` and resolve at
 `prepare_agent` time.
 
+Enabled plugins may also declare `com.agentbox/hooks/hooks.json` lifecycle hooks.
+Hooks map session/run/tool events to pydantic-ai capability hooks, execute
+commands or HTTP calls with timeouts and sanitized environments, and may inject
+context, mutate tool arguments/results, or deny a tool call. Hook failures are
+fail-open by default; `on_error: deny` makes a failed `before_tool` hook deny the
+call. `session_start`/`session_end` are process-scoped and best-effort.
+
 Context editing runs inside each agent run through pydantic-ai's `ProcessHistory` capability. When
 the estimated request exceeds `min(context_editing_trigger_tokens, trigger_ratio * context_window)`,
 it replaces old tool returns and binary attachments with placeholders until the estimate reaches

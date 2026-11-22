@@ -595,6 +595,16 @@ export type SkillDetail = SkillInfo & { body: string };
 
 export type PluginSkillInfo = { name: string; description: string };
 export type PluginMcpInfo = { name: string; transport: string };
+export type PluginHookInfo = {
+  id: string;
+  event: string;
+  tools: string[];
+  action: string;
+  command: string;
+  url: string;
+  timeout_ms: number;
+  on_error: string;
+};
 export type PluginIssue = {
   severity: string;
   component: string;
@@ -616,6 +626,7 @@ export type PluginInfo = {
   keywords: string[];
   skills: PluginSkillInfo[];
   mcp_servers: PluginMcpInfo[];
+  hooks: PluginHookInfo[];
   issues: PluginIssue[];
 };
 export type PluginStateUpdate = {

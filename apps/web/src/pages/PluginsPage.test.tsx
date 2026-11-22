@@ -24,6 +24,18 @@ vi.mock("../api/queries", () => ({
         keywords: [],
         skills: [{ name: "acme-tools:review", description: "Review" }],
         mcp_servers: [{ name: "local", transport: "stdio" }],
+        hooks: [
+          {
+            id: "format-check",
+            event: "after_tool",
+            tools: ["write_file"],
+            action: "command",
+            command: "./check.sh",
+            url: "",
+            timeout_ms: 1000,
+            on_error: "ignore",
+          },
+        ],
         issues: [],
       },
     ],
@@ -58,4 +70,18 @@ test("enables a plugin after the trust confirmation", async () => {
       enabled: true,
     }),
   );
+});
+
+test("shows plugin hooks in the details drawer", async () => {
+  render(
+    <MantineProvider>
+      <PluginsPage />
+    </MantineProvider>,
+  );
+
+  expect(await screen.findByText("acme-tools")).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Details" }));
+  expect(await screen.findByText("format-check")).toBeInTheDocument();
+  expect(screen.getByText(/after_tool/)).toBeInTheDocument();
+  expect(screen.getByText(/check\.sh/)).toBeInTheDocument();
 });

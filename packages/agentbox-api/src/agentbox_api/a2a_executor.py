@@ -153,6 +153,7 @@ class AgentboxA2AExecutor(AgentExecutor):
             context_editing=context_editing_config_from_settings(
                 self._settings
             ),
+            plugin_hooks=prepared.plugin_hooks,
         )
         warnings = (await harness.prepare_mcp(session)).warnings
         for warning in warnings:

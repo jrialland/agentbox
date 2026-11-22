@@ -66,6 +66,19 @@ def _serialize(view: PluginView) -> dict:
             {"name": server.name, "transport": server.transport}
             for server in view.mcp_servers
         ],
+        "hooks": [
+            {
+                "id": hook.id,
+                "event": hook.event,
+                "tools": list(hook.tools),
+                "action": hook.action.type,
+                "command": getattr(hook.action, "command", ""),
+                "url": getattr(hook.action, "url", ""),
+                "timeout_ms": getattr(hook.action, "timeout_ms", 0),
+                "on_error": hook.on_error,
+            }
+            for hook in view.hooks
+        ],
         "issues": [
             {
                 "severity": issue.severity,

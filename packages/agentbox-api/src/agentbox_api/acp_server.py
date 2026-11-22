@@ -20,6 +20,7 @@ import acp
 from acp import PROTOCOL_VERSION, run_agent
 from acp import schema as s
 from loguru import logger
+from pydantic_ai.capabilities import AbstractCapability
 from pydantic_ai.messages import (
     BinaryContent,
     FunctionToolCallEvent,
@@ -157,6 +158,7 @@ class AcpSession:
     run: Run | None = None
     extra_roots: list[str] = field(default_factory=list)
     plugin_roots: list[str] = field(default_factory=list)
+    plugin_hooks: AbstractCapability | None = None
     client_tools: AcpClientTools | None = None
 
 
@@ -303,6 +305,7 @@ class AgentboxAcpAgent:
             prepared.registry, mode, prepared.subagent_session_runner,
             extra_roots=extra_roots,
             plugin_roots=[str(path) for path in prepared.plugin_roots],
+            plugin_hooks=prepared.plugin_hooks,
             client_tools=client_tools,
         )
         logger.info("acp session new agent={} session={}", self._agent_name, session_id)
@@ -339,6 +342,7 @@ class AgentboxAcpAgent:
             context_editing=context_editing_config_from_settings(
                 self._settings
             ),
+            plugin_hooks=sess.plugin_hooks,
         )
         warnings = (await harness.prepare_mcp(session)).warnings
         for warning in warnings:
@@ -552,6 +556,7 @@ class AgentboxAcpAgent:
             prepared.subagent_session_runner,
             extra_roots=extra_roots,
             plugin_roots=[str(path) for path in prepared.plugin_roots],
+            plugin_hooks=prepared.plugin_hooks,
             client_tools=client_tools,
         )
         self._sessions[session_id] = sess

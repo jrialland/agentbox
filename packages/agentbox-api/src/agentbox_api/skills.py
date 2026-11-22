@@ -8,9 +8,15 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from loguru import logger
+from pydantic_ai.capabilities import AbstractCapability
 from skills_ref import read_properties, to_prompt
 
 from agentbox_api.plan_tools import PLAN_TOOL_NAMES, make_plan_tools
+from agentbox_api.plugin_hooks import (
+    PluginHookRef,
+    PluginHooks,
+    get_plugin_hook_runtime,
+)
 from agentbox_api.plugin_service import PluginService
 from agentbox_api.project_instructions import (
     build_system_instruction_block,
@@ -177,6 +183,7 @@ class PreparedAgent:
     skills: list[Skill]
     subagent_session_runner: SubagentSessionRunner | None = None
     plugin_roots: list[pathlib.Path] = field(default_factory=list)
+    plugin_hooks: AbstractCapability | None = None
 
 
 def _resolve_extra_roots(
@@ -220,10 +227,14 @@ async def prepare_agent(
     resolved_extra = _resolve_extra_roots(project_root, extra_roots)
     plugin_skills: list[Skill] = []
     plugin_roots: list[pathlib.Path] = []
+    plugin_hooks: AbstractCapability | None = None
     plugin_service: PluginService | None = None
     if plugins_user_dir and plugins_data_dir:
         plugin_service = PluginService(
             factory, plugins_user_dir, plugins_data_dir
+        )
+        enabled_plugins = await plugin_service.enabled_plugins(
+            project_id, project_root
         )
         plugin_skills = [
             Skill(
@@ -233,13 +244,30 @@ async def prepare_agent(
                 scope="plugin",
                 plugin=item.plugin_name,
             )
-            for item in await plugin_service.list_plugin_skills(
-                project_id, project_root
-            )
+            for plugin in enabled_plugins
+            for item in plugin.skills
         ]
-        plugin_roots = await plugin_service.plugin_roots(
-            project_id, project_root
-        )
+        plugin_roots = [plugin.root for plugin in enabled_plugins]
+        if session_id:
+            hook_refs = tuple(
+                PluginHookRef(
+                    plugin=plugin.manifest.name,
+                    root=plugin.root,
+                    data=plugin_service.catalog.data_dir / plugin.manifest.name,
+                    hook=hook,
+                )
+                for plugin in enabled_plugins
+                if plugin.manifest is not None
+                for hook in plugin.hooks
+            )
+            if hook_refs:
+                plugin_hooks = PluginHooks(
+                    get_plugin_hook_runtime(),
+                    session_id,
+                    project_id,
+                    project_root,
+                    hook_refs,
+                )
     skills = discover_skills(project_root, user_dir, plugin_skills)
     resolved_user = user_name
     if resolved_user is None and runtime.created_by:
@@ -416,4 +444,5 @@ async def prepare_agent(
         skills,
         subagent_session_runner,
         plugin_roots=plugin_roots,
+        plugin_hooks=plugin_hooks,
     )

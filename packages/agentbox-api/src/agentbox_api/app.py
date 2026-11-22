@@ -44,6 +44,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
         import asyncio
         from contextlib import suppress
 
+        from agentbox_api.plugin_hooks import get_plugin_hook_runtime
         from agentbox_api.subagent_sessions import (
             reconcile_running_subagent_sessions,
             shutdown_subagent_sessions,
@@ -76,6 +77,7 @@ def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI
             await get_lsp_manager().shutdown()
             await get_job_manager().shutdown()
             await shutdown_subagent_sessions()
+            await get_plugin_hook_runtime().end_all()
             await engine.dispose()
 
     app = FastAPI(lifespan=lifespan)

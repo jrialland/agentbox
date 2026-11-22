@@ -1,15 +1,22 @@
 from __future__ import annotations
 
-import ipaddress
 import json
 import pathlib
-import re
 from dataclasses import dataclass, field
 from typing import Any, Literal
-from urllib.parse import urlparse
 
 from jsonschema import Draft202012Validator
 from skills_ref import read_properties, validate
+
+from agentbox_api.plugin_hook_config import PluginHook, load_plugin_hooks
+from agentbox_api.plugin_validation import (
+    RESERVED_ENV,
+    ensure_inside,
+    expand,
+    resolve_cwd,
+    validate_headers,
+    validate_url,
+)
 
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
@@ -29,8 +36,7 @@ _KNOWN_MANIFEST_FIELDS = {
     "keywords",
     "extensions",
 }
-_RESERVED_ENV = {"PLUGIN_ROOT", "PLUGIN_DATA"}
-_HEADER_NAME = re.compile(r"^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$")
+_RESERVED_ENV = RESERVED_ENV
 
 
 def _schema_path(name: str) -> pathlib.Path:
@@ -119,15 +125,12 @@ class LoadedPlugin:
     project_id: str | None
     skills: tuple[PluginSkill, ...] = ()
     mcp_servers: tuple[PluginMcpServer, ...] = ()
+    hooks: tuple[PluginHook, ...] = ()
     issues: tuple[PluginIssue, ...] = ()
 
 
 def _ensure_inside(root: pathlib.Path, target: pathlib.Path) -> pathlib.Path:
-    resolved_root = root.resolve()
-    resolved = target.resolve()
-    if not resolved.is_relative_to(resolved_root):
-        raise ValueError(f"path escapes plugin root: {target}")
-    return resolved
+    return ensure_inside(root, target)
 
 
 def _load_manifest(
@@ -256,64 +259,21 @@ def _load_skills(
 
 
 def _expand(value: str, root: pathlib.Path, data_root: pathlib.Path) -> str:
-    return value.replace("${PLUGIN_ROOT}", str(root)).replace(
-        "${PLUGIN_DATA}", str(data_root)
-    )
+    return expand(value, root, data_root)
 
 
 def _resolve_cwd(
     value: str, root: pathlib.Path, data_root: pathlib.Path
 ) -> str:
-    if not value:
-        return str(root)
-    if value == "${PLUGIN_ROOT}" or value.startswith("${PLUGIN_ROOT}/"):
-        suffix = value[len("${PLUGIN_ROOT}") :].lstrip("/\\")
-        return str(_ensure_inside(root, root / suffix))
-    if value == "${PLUGIN_DATA}" or value.startswith("${PLUGIN_DATA}/"):
-        suffix = value[len("${PLUGIN_DATA}") :].lstrip("/\\")
-        return str(_ensure_inside(data_root, data_root / suffix))
-    if value.startswith("./"):
-        return str(_ensure_inside(root, root / value[2:]))
-    raise ValueError(
-        "cwd must start with ./, ${PLUGIN_ROOT}, or ${PLUGIN_DATA}"
-    )
-
-
-def _is_loopback(host: str | None) -> bool:
-    if not host:
-        return False
-    if host == "localhost":
-        return True
-    try:
-        return ipaddress.ip_address(host).is_loopback
-    except ValueError:
-        return False
+    return resolve_cwd(value, root, data_root)
 
 
 def _validate_url(url: str) -> None:
-    parsed = urlparse(url)
-    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise ValueError("url must be an absolute http(s) URL")
-    if parsed.username or parsed.password:
-        raise ValueError("url must not contain user information")
-    if parsed.fragment:
-        raise ValueError("url must not contain a fragment")
-    if parsed.scheme == "http" and not _is_loopback(parsed.hostname):
-        raise ValueError("non-loopback URLs must use https")
+    validate_url(url)
 
 
 def _validate_headers(headers: dict[str, Any]) -> dict[str, str]:
-    seen: set[str] = set()
-    result: dict[str, str] = {}
-    for name, value in headers.items():
-        if not _HEADER_NAME.match(name):
-            raise ValueError(f"invalid header name: {name!r}")
-        lowered = name.lower()
-        if lowered in seen:
-            raise ValueError(f"duplicate header name: {name!r}")
-        seen.add(lowered)
-        result[name] = str(value)
-    return result
+    return validate_headers(headers)
 
 
 def _build_mcp_server(
@@ -459,6 +419,11 @@ class PluginCatalog:
         data_root = self.data_dir / manifest.name
         skills = _load_skills(root, manifest.name, issues)
         mcp_servers = _load_mcp(root, data_root, issues)
+        hooks, hook_issues = load_plugin_hooks(root, data_root)
+        issues.extend(
+            PluginIssue(issue.severity, issue.component, issue.message)
+            for issue in hook_issues
+        )
         return LoadedPlugin(
             manifest=manifest,
             root=root,
@@ -466,5 +431,6 @@ class PluginCatalog:
             project_id=project_id,
             skills=skills,
             mcp_servers=mcp_servers,
+            hooks=hooks,
             issues=tuple(issues),
         )

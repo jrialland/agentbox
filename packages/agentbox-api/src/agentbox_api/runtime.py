@@ -169,10 +169,12 @@ async def resolve_agent_runtime(factory, agent_name: str) -> AgentRuntime:
 
 async def delete_session_data(factory, session_id: str, media_store) -> None:
     """Delete a session's rows, child sessions, and media files."""
+    from agentbox_api.plugin_hooks import get_plugin_hook_runtime
     from agentbox_api.project_instructions import clear_instruction_state
     from agentbox_api.subagent_sessions import cancel_subagent_sessions
     from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
+    await get_plugin_hook_runtime().end_session(session_id)
     await get_mcp_session_manager().close_session(session_id)
     clear_instruction_state(session_id)
     await get_job_manager().kill_session(session_id)

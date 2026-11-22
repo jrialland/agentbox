@@ -406,6 +406,7 @@ class ApiSubagentSessionRunner:
             subagent_session_runner=prepared.subagent_session_runner,
             reminders=lsp_reminders(),
             context_editing=self._context.context_editing,
+            plugin_hooks=prepared.plugin_hooks,
         )
         bus = EventBus()
         subscription = bus.subscribe()
