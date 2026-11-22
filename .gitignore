@@ -21,3 +21,4 @@ media/
 e2e-media/
 target/
 .worktrees/
+/reports/

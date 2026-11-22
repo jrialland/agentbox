@@ -34,6 +34,7 @@ and docs. Ambiguous wording here causes real implementation mistakes.
 - `just reset-db` deletes local DB/media artifacts and rebuilds schema v1.
 - Avatars, attachments, and A2A cards live under the configured media directory; back it up with the database.
 - Vendor conformance tests use testcontainers (`postgres:16`, `mysql:8.0`, `mariadb:11`) and skip when Docker is unavailable. Set `AGENTBOX_SKIP_CONTAINERS=1` to force-skip them.
+- `just security-report` writes `reports/security/latest.{html,pdf,json}` (gitignored). It runs PySentry, Bandit, Bun audit, and JS-X-Ray and degrades gracefully when a scanner is unavailable.
 
 ## Tests and checks
 
@@ -69,6 +70,7 @@ bun run e2e       # wipes e2e.db/e2e-skills and starts stub servers + backend + 
 
 - `bun run e2e` needs ports 5173, 8000, 9000, and 9999 free.
 - Use Bun, not npm/pnpm (`bun.lock`). No CI or pre-commit config; run the checks manually.
+- Security report tooling: `just test-security-report` runs the `scripts/security-report` Bun tests and TypeScript type-check.
 
 ## Generated API artifacts
 

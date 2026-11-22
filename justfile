@@ -11,6 +11,7 @@ default:
 setup:
     uv sync
     cd apps/web && bun install
+    bun install --cwd scripts/security-report
 
 # Show the installed tool versions.
 doctor:
@@ -70,6 +71,19 @@ preview-storybook:
 e2e:
     cd apps/web && bun run e2e
 
+# Install the security report tool dependencies.
+_security-report-deps:
+    bun install --cwd scripts/security-report --frozen-lockfile
+
+# Generate the security audit report (HTML + PDF + JSON).
+security-report *args: _security-report-deps
+    bun run scripts/security-report/src/main.ts {{args}}
+
+# Run security-report unit tests and type-check.
+test-security-report: _security-report-deps
+    bun run --cwd scripts/security-report test
+    bun run --cwd scripts/security-report typecheck
+
 # Prepare `.env` and any missing dependencies.
 _dev-prepare:
     @uv run python -m agentbox_api.dev_prepare
@@ -109,7 +123,7 @@ codegen:
     cd apps/web && bun run codegen
 
 # Run lint and all tests.
-check: lint test
+check: lint test test-security-report
 
 # Format, lint, test, and build everything.
 verify: fmt lint test build-web
