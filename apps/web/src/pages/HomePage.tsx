@@ -16,6 +16,7 @@ import { EmptyStatePanel } from "../design-system/patterns/EmptyStatePanel";
 import { ErrorState } from "../design-system/patterns/ErrorState";
 import { PageContainer } from "../design-system/shell/PageContainer";
 import { PageHeader } from "../design-system/primitives/PageHeader";
+import { Wordmark } from "../design-system/primitives/Wordmark";
 import { HomeChecklist } from "../onboarding/HomeChecklist";
 import { OnboardingWizard } from "../onboarding/OnboardingWizard";
 import {
@@ -116,7 +117,7 @@ export function HomePage() {
       />
 
       <section className={`${styles.hero} ab-scanlines`}>
-        <div className={styles.heroBrand}>[AGENTBOX]▮</div>
+        <Wordmark className={styles.heroBrand} />
         <p className={styles.heroKicker}>agentic work, under your control</p>
         <h2>Build, run, and supervise agents from one console.</h2>
         <div className={styles.heroActions}>

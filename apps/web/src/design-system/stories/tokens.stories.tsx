@@ -1,5 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
+import { Wordmark } from "../primitives/Wordmark";
+
 const colors = [
   "canvas",
   "surface",
@@ -19,7 +21,7 @@ function TokenReference() {
     <div style={{ display: "grid", gap: 32 }}>
       <section>
         <h1 style={{ fontFamily: "var(--ab-font-display)", fontSize: 24 }}>
-          [AGENTBOX]▮
+          <Wordmark />
         </h1>
         <p style={{ fontFamily: "var(--ab-font-body)" }}>
           Inter body text. The quick brown fox jumps over the lazy agent.

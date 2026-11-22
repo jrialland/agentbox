@@ -12,7 +12,7 @@ describe("page patterns", () => {
         <span>form</span>
       </AuthCard>,
     );
-    expect(screen.getByText("[AGENTBOX]▮")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "Agentbox" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Login" })).toBeInTheDocument();
     expect(screen.getByText("form")).toBeInTheDocument();
   });

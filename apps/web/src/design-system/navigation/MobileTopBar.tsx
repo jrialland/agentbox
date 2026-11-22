@@ -1,6 +1,7 @@
 import { RiFolderLine } from "@remixicon/react";
 
 import { IconButton } from "../icons/IconButton";
+import { Wordmark } from "../primitives/Wordmark";
 import styles from "./navigation.module.css";
 import { MobileNav } from "./MobileNav";
 import type { NavItem } from "./types";
@@ -19,7 +20,7 @@ export function MobileTopBar({
   return (
     <header className={styles.mobileTopBar}>
       <div className={styles.mobileTopRow}>
-        <span className={styles.mobileBrand}>[AGENTBOX]▮</span>
+        <Wordmark className={styles.mobileBrand} />
         <div className={styles.mobileActions}>
           <IconButton
             label="Projects"
