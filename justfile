@@ -1,6 +1,7 @@
 # Agentbox project tasks. Run `just` to list recipes.
 
-set windows-shell := ["pwsh.exe", "-NoProfile", "-Command"]
+[windows]
+set shell := ["pwsh.exe", "-NoProfile", "-Command"]
 
 # List available recipes.
 default:
@@ -82,7 +83,7 @@ dev-web:
     cd apps/web && bun run dev
 
 # Start backend and frontend together.
-dev: _dev-prepare
+dev: _dev-prepare migrate
     @just _dev-servers
 
 # Run the backend and frontend dev servers in parallel.
