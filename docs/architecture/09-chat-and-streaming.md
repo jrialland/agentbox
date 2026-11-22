@@ -121,9 +121,10 @@ segments. Live segments and app tabs are not reconstructed from history.
 menus.
 
 - **Mode:** sends `ask` or `agent`.
-- **Attachments:** files are uploaded immediately via `POST /sessions/{sid}/attachments`; only
-  ids are kept locally and sent with the turn. Persisted attachment chips download through an
-  authenticated raw fetch.
+- **Attachments:** files are uploaded immediately via `POST /sessions/{sid}/attachments`; the
+  bytes live under the media directory with metadata in `media_file`, and only ids are kept
+  locally and sent with the turn. Persisted attachment chips download through an authenticated raw
+  fetch. Deleting a session removes its attachment rows and files.
 - **File mentions:** a trailing `@word` triggers `GET /sessions/{sid}/files?q=...`; selecting a
   match replaces `@query` with `@relative/path `. No file content is uploaded.
 - **Skills:** a leading `/` opens the skill menu backed by `GET /skills`; selecting sends the

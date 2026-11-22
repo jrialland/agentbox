@@ -89,7 +89,7 @@ ACP lets an external IDE drive sessions over stdin/stdout JSON-RPC.
   delete; those tools remain server-side.
 - Shutdown: `close_session` closes MCP toolsets, kills terminal jobs, releases client
   terminals, recursively cancels descendant subagent sessions, and cancels the active run.
-- Persistence: the same SQLite database as HTTP; the ACP process opens its own engine.
+- Persistence: the same configured relational database as HTTP; the ACP process opens its own engine.
 
 *Figure 3 — ACP over stdio.*
 

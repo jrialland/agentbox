@@ -26,7 +26,11 @@ The backend is a Python 3.11 uv workspace with four packages.
 | Persistence | SQLModel | `>=0.0.14` | Table definitions |
 | ORM/driver | SQLAlchemy `[asyncio]` | `>=2.0` | Async engine and sessions |
 | SQLite driver | aiosqlite | `>=0.19` | Async SQLite |
-| Migrations | Alembic | `>=1.13` | Schema evolution |
+| PostgreSQL driver | asyncpg | `>=0.29` | Async PostgreSQL |
+| MySQL/MariaDB driver | aiomysql | `>=0.2` | Async MySQL and MariaDB |
+| Config file | python-dotenv + tomllib | stdlib | `agentbox.toml` and `.env` resolution |
+| Migrations | Alembic | `>=1.13` | Schema evolution, async-aware |
+| Vendor tests | testcontainers | `>=4.8` | PostgreSQL 16, MySQL 8, MariaDB 11 |
 | Logging | loguru | `>=0.7` | Structured backend logging and sinks |
 | Templating | Jinja2 | `>=3.1` | Sandboxed system-prompt templates |
 | Assets | Pillow, robohash | `>=9.1`, `>=2.0` | Avatar normalization and defaults |
@@ -87,8 +91,10 @@ Development tooling: Vitest 5 with jsdom, Testing Library, Playwright, Storybook
 | e2e MCP app server | 9000 | Test-only |
 
 The database defaults to `./agentbox.db` through `DATABASE_URL`
-(`sqlite+aiosqlite:///./agentbox.db`). `JWT_SECRET` must be at least 32 characters. The Vite
-proxy means the app calls `/api/...` in both dev and production.
+(`sqlite+aiosqlite:///./agentbox.db`). Copy `agentbox.example.toml` to `agentbox.toml` to select
+PostgreSQL 16, MySQL 8, or MariaDB 11; `DATABASE_URL`, `DATABASE_*`, and `MEDIA_DIR` override the
+file. `JWT_SECRET` must be at least 32 characters. The Vite proxy means the app calls `/api/...`
+in both dev and production.
 
 ## Generated artifacts
 

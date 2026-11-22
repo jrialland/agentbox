@@ -29,7 +29,11 @@ and docs. Ambiguous wording here causes real implementation mistakes.
 - `just dev` generates `.env` with a `JWT_SECRET` of at least 32 chars if missing, installs missing dependencies, and seeds `admin` / `admin`. To run the backend directly, set `JWT_SECRET` in `.env` or the environment first.
 - Backend: `uv run python -m agentbox_api.dev_server` (port 8000).
 - Frontend: `cd apps/web && bun install && bun run dev` (Vite on 5173; `/api` is proxied to 8000 and the prefix is stripped).
-- Database defaults to `./agentbox.db`. `dev_server` uses `SQLModel.create_all` plus seeding, so schema changes need an Alembic migration; existing DBs are not auto-altered. Apply with `uv run alembic -c packages/agentbox-models/alembic.ini upgrade head`.
+- Database defaults to SQLite at `./agentbox.db`. Copy `agentbox.example.toml` to `agentbox.toml` to select PostgreSQL 16, MySQL 8, or MariaDB 11. `DATABASE_URL`, `DATABASE_*`, and `MEDIA_DIR` override the TOML file.
+- `dev_server` uses `SQLModel.create_all` plus seeding, so schema changes need an Alembic migration; existing DBs are not auto-altered. Apply with `uv run alembic -c packages/agentbox-models/alembic.ini upgrade head`. `alembic` uses the same TOML/env resolver as the app.
+- `just reset-db` deletes local DB/media artifacts and rebuilds schema v1.
+- Avatars, attachments, and A2A cards live under the configured media directory; back it up with the database.
+- Vendor conformance tests use testcontainers (`postgres:16`, `mysql:8.0`, `mariadb:11`) and skip when Docker is unavailable. Set `AGENTBOX_SKIP_CONTAINERS=1` to force-skip them.
 
 ## Tests and checks
 

@@ -15,7 +15,7 @@ external MCP servers). Sessions bind an agent to a project folder and persist th
 in SQLite. The same harness is driven by four protocol surfaces: AG-UI for the web UI, ACP over
 stdio for IDEs, A2A over HTTP for other agents, and MCP for external tools and resources.
 Authentication is scope-based RBAC with JWT login and scoped API keys. Everything runs locally:
-one SQLite database, one backend process, one web app, and no hosted control plane.
+one relational database (SQLite by default), one backend process, one web app, and no hosted control plane.
 
 ## System context
 

@@ -8,7 +8,8 @@ hackable, observable, and pleasant to operate locally.
 
 Agentbox turns a local project folder into a workspace for tool-using LLM agents. An agent is
 a system prompt plus a set of tools, a model, and optional modes; a session binds that agent to
-one project folder and keeps its history in SQLite. Sessions can start subagent sessions using
+one project folder and keeps its history in a relational database (SQLite by default; PostgreSQL,
+MySQL, or MariaDB through configuration). Sessions can start subagent sessions using
 any agent configuration, then monitor, wait for, or cancel them.
 
 The guiding constraints are:
@@ -17,8 +18,9 @@ The guiding constraints are:
   (web streaming), ACP (IDE over stdio), A2A (agent-to-agent with agent cards), and MCP
   (external tools/resources). Where a standard exists, use the official SDK or the pydantic-ai
   adapter rather than inventing a wire format.
-- **Local-first and self-hosted.** One SQLite database, one backend, one web app. No hosted
-  control plane is required.
+- **Local-first and self-hosted.** One SQLite database by default, one backend, one web app.
+  PostgreSQL, MySQL, and MariaDB are supported through `agentbox.toml`. No hosted control plane
+  is required.
 - **Ambition in the UI.** The frontend is a deliberately composed product, not a form over an
   API: a design system, a real shell, precise components, and a typed event bus.
 - **Async where possible.** Backend work runs on async FastAPI, async SQLModel/SQLAlchemy, and
@@ -160,6 +162,13 @@ uv run alembic -c packages/agentbox-models/alembic.ini upgrade head
 
 Vite proxies `/api` to port 8000 and strips the prefix. The database defaults to
 `./agentbox.db`; `PORT` overrides the backend port.
+
+Copy `agentbox.example.toml` to `agentbox.toml` to select PostgreSQL 16, MySQL 8, or MariaDB 11.
+The driver mapping is `postgresql+asyncpg`, `mysql+aiomysql`, and `mariadb+aiomysql` (falling back
+to `mysql+aiomysql` when the MariaDB dialect is unavailable). `DATABASE_URL`, `DATABASE_*`, and
+`MEDIA_DIR` override the TOML file. Avatars, attachments, and A2A cards are stored under the
+configured media directory, so back up the database and media directory together. To discard a
+pre-v1 local database and rebuild schema v1, run `just reset-db`.
 
 ## Repository layout
 

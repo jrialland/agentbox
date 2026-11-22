@@ -30,7 +30,7 @@ A `Session` wraps a `MessageLogStore` and a head id. History is a parent-linked 
 `summary` turn or the root. This makes branching structural rather than a separate table.
 
 - `InMemoryMessageLogStore` is used in tests and ephemeral runs.
-- `SQLiteMessageLogStore` (in `agentbox-models`) persists turns as `TurnRow` rows.
+- `DatabaseMessageLogStore` (in `agentbox-models`) persists turns as `TurnRow` rows.
 - A `summary` turn replaces a prefix of the chain after compaction; later reads start there.
 - Forking reuses an earlier turn as the head; retry re-runs from a user turn without appending a
   duplicate user turn.

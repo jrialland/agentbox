@@ -12,7 +12,7 @@ observable. Four constraints drive most structural decisions.
 | Constraint | Consequence |
 |---|---|
 | Protocol compliance over homegrown plumbing | Wire formats come from official SDKs or pydantic-ai adapters: AG-UI for web streaming, ACP for IDEs, A2A for agent-to-agent, MCP for external tools. |
-| Local-first and self-hosted | One SQLite database, one backend process, one web app. No hosted control plane or external queue is required. |
+| Local-first and self-hosted | One database (SQLite by default; PostgreSQL, MySQL, or MariaDB through configuration), one backend process, one web app. No hosted control plane or external queue is required. |
 | Ambition in the UI | The frontend is a composed product: a design-system shell, a typed event bus, and dedicated chat rendering rather than a generic form over an API. |
 | Async where possible | FastAPI, SQLModel/SQLAlchemy, and pydantic-ai are driven asynchronously; long-running work is task-based and cancellable. |
 
@@ -25,7 +25,7 @@ translate events and lifecycle calls; they do not reimplement agent behavior.
 In local development the browser loads the Vite dev server on port 5173. Vite proxies requests
 under `/api` to the FastAPI/uvicorn backend on port 8000 and strips the prefix, so the web app
 uses the same relative API paths in development and production. MCP App iframes talk directly to
-the backend's `/sandbox` endpoint. The backend owns the SQLite file (`./agentbox.db` by default)
+the backend's `/sandbox` endpoint. The backend owns the configured relational database (SQLite `./agentbox.db` by default)
 and calls out to LLM providers and MCP servers over the network.
 
 Two additional entry points reuse the same harness and database:
@@ -42,7 +42,7 @@ flowchart LR
   vite -->|"proxy /api, strip prefix"| api["FastAPI / uvicorn :8000"]
   browser -->|"MCP App iframe"| sandbox["/sandbox"]
   sandbox --> api
-  api --> db[("SQLite ./agentbox.db")]
+  api --> db[("SQLite / PostgreSQL / MySQL / MariaDB")]
   api -->|"HTTPS"| llm["LLM provider"]
   api -->|"MCP"| mcp["MCP servers"]
   ide["IDE / ACP host"] -->|"stdio JSON-RPC"| acp["agentbox-acp process"]
@@ -108,7 +108,7 @@ This keeps configuration and test construction explicit and avoids import-time s
 | Scope-based authorization | JWT users get role-derived scopes; API keys carry their own subset. One `require_permission` pattern covers HTTP and A2A. | Route access is enforced server-side only; the UI merely hides navigation. | [06](06-auth-and-security.md) |
 | JSON-text agent definitions | Tool bindings and modes are stored flexibly without schema churn. | Validation and migration are application-level; columns are opaque to SQL. | [05](05-data-model.md) |
 | Async throughout | Streaming, MCP processes, LSP, and terminals are concurrent and cancellable. | Requires careful lifecycle and cleanup coupling. | [10](10-concurrency-and-lifecycle.md) |
-| Local-first single SQLite | Zero external infrastructure; simple backup and inspection. | One writer and process-local state; A2A tasks and some caches do not survive restart. | [05](05-data-model.md) |
+| Local-first relational database (SQLite default) | Zero external infrastructure; simple backup and inspection. | One writer and process-local state; A2A tasks and some caches do not survive restart. | [05](05-data-model.md) |
 
 ## Related
 

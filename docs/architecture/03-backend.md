@@ -157,7 +157,7 @@ A chat turn is `POST /sessions/{sid}/messages`, which returns an SSE stream.
    tools.
 3. Build the tool registry with native tools and post-tool hooks (LSP diagnostics, nested
    instructions), plus an API-backed subagent session runner.
-4. Construct a harness `Session` over `SQLiteMessageLogStore`. The starting head depends on the
+4. Construct a harness `Session` over `DatabaseMessageLogStore`. The starting head depends on the
    request: retry targets a user turn without re-recording it; fork starts from
    `fork_from_turn_id`; a normal turn starts from the last leaf.
 5. Convert attachment rows and the selected skill into the prompt prefix.
@@ -199,12 +199,14 @@ sequenceDiagram
 
 ## Configuration
 
-`Settings` is a pydantic-settings model reading `.env` and environment variables (uppercase field
-names). `jwt_secret` is required and must be at least 32 characters.
+`Settings` is a pydantic-settings model reading `agentbox.toml`, `.env`, and environment
+variables (uppercase field names). `jwt_secret` is required and must be at least 32 characters.
+The shared resolver lives in `agentbox_models.config`; Alembic uses it too.
 
 | Group | Fields |
 |---|---|
-| Database | `database_url` (default `sqlite+aiosqlite:///./agentbox.db`) |
+| Database | `database_url` resolved from `agentbox.toml`/`DATABASE_URL`/`DATABASE_*` (default `sqlite+aiosqlite:///./agentbox.db`) |
+| Storage | `media_dir` (default `./media`) |
 | JWT | `jwt_secret`, `jwt_algorithm` (default HS256), `jwt_expiry_seconds` (default 3600) |
 | CORS | `cors_origins` (default `["http://localhost:5173"]`) |
 | A2A | `a2a_workspace`, `a2a_public_url` |
@@ -217,9 +219,12 @@ names). `jwt_secret` is required and must be at least 32 characters.
 | Compaction | `compaction_enabled`, `compaction_ratio`, `compaction_keep_turns`, `compaction_input_budget_tokens`, `compaction_max_summary_chars` |
 | MCP | `mcp_idle_ttl_seconds`, `mcp_start_timeout_seconds`, `mcp_sweep_interval_seconds` |
 
-The app uses the async `database_url`. Alembic has its own sync URL in
-`packages/agentbox-models/alembic.ini`, so schema changes need a migration; the dev server's
-`create_all` does not alter existing databases.
+The app uses an async `database_url` and normalizes common sync URLs to async drivers. Alembic
+reads the same TOML/env resolver and runs through an async engine when the URL requires one.
+Schema changes need a migration; the dev server's `create_all` does not alter existing databases.
+Avatars, session attachments, and A2A cards are stored under `media_dir` with metadata in
+`media_file`; back up the database and media directory together. Foreign-key conflicts on delete
+return `409 Conflict`.
 
 ## Logging
 

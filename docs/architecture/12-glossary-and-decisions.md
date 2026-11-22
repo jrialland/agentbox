@@ -43,11 +43,11 @@ lookup from a maintenance task to the files to start with.
 |---|---|---|---|---|
 | AD-1 | Drive every protocol through one harness | Four protocol surfaces share agent behavior | Adapters stay thin but must map events and lifecycles | [07](07-protocols.md) |
 | AD-2 | Persist history as a parent-linked turn chain | Fork, retry, and compaction must be structural | Reads walk the chain; no ORM relationships or cascades | [05](05-data-model.md) |
-| AD-3 | Local-first, single SQLite database | Self-hosted operation with no control plane | One writer; process-local state does not survive restart | [01](01-system-overview.md) |
+| AD-3 | Local-first database with SQLite default and PostgreSQL/MySQL/MariaDB support | Self-hosted operation with no control plane; operators can choose a network database | Network databases need separate backup/operation; process-local state still does not survive restart | [01](01-system-overview.md) |
 | AD-4 | Async throughout | Streaming, MCP, LSP, and terminals are concurrent | Careful lifecycle and cleanup coupling is required | [10](10-concurrency-and-lifecycle.md) |
 | AD-5 | Session-scoped stdio MCP processes | Server startup is expensive | Bindings are captured at start; edits need a session restart or sweep | [07](07-protocols.md) |
 | AD-6 | Scope-based auth with JWT and API keys | Users and automation need different credentials | One permission check covers HTTP and A2A; UI is not a boundary | [06](06-auth-and-security.md) |
-| AD-7 | Store agent bindings and modes as JSON text | Agent shape evolves faster than the schema | Validation is application-level; columns are opaque to SQL | [05](05-data-model.md) |
+| AD-7 | Store agent bindings, modes, project roots, API-key scopes, and activity in normalized tables | Relational portability and FK integrity | Adding new binding/mode fields requires a migration | [05](05-data-model.md) |
 | AD-8 | Custom SSE parsing on the web | The AG-UI client abstraction did not fit the UI's segment model | The app owns framing and segment reduction | [09](09-chat-and-streaming.md) |
 | AD-9 | No route-level permission guards | The backend is the authorization boundary | Hidden nav items can still be reached by URL and are rejected server-side | [08](08-frontend.md) |
 | AD-10 | Explicit cascade deletion | No database cascades exist | All session-owned resources must be cleaned in `delete_session_data` | [10](10-concurrency-and-lifecycle.md) |

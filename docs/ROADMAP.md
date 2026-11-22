@@ -94,7 +94,9 @@ Maps every requirement from `docs/initial_spec.md` to its current status so noth
 | Requirement | Status | Notes |
 |---|---|---|
 | Python + Pydantic AI harness | DONE | `agentbox-harness`. |
-| Agents/models/settings in SQLite | DONE | `agentbox-models`. |
+| Agents/models/settings in a relational database | DONE | `agentbox-models`; SQLite default, PostgreSQL/MySQL/MariaDB via `agentbox.toml`. |
+| Schema v1 normalization + media storage | DONE | Normalized tables, FK cascades, file-backed avatars/attachments/cards, single initial migration. |
+| Cross-vendor conformance tests | DONE | Testcontainers matrix: PostgreSQL 16, MySQL 8, MariaDB 11. |
 | Async wherever possible | DONE | Async throughout. |
 | Backend: FastAPI, SQLModel, **loguru** | DONE | FastAPI + SQLModel; `loguru.logger` used across the API (sinks configured in #20). |
 | Monorepo via **Uv Workspaces** | DONE (Python) / DEVIATION (frontend) | Python packages are a Uv workspace; the React app is a separate Bun project in `apps/web`. |
