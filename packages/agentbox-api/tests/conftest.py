@@ -58,3 +58,9 @@ def mcp_server_url():
     yield f"http://127.0.0.1:{port}/mcp"
     server.should_exit = True
     thread.join(timeout=5)
+
+@pytest.fixture(params=["sqlite", "postgresql", "mysql", "mariadb"])
+def db_url(request):
+    if request.param == "sqlite":
+        return "sqlite+aiosqlite:///:memory:"
+    return request.getfixturevalue(f"{request.param}_url")
