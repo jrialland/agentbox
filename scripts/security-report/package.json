@@ -1,0 +1,19 @@
+{
+  "name": "agentbox-security-report",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "report": "bun run src/main.ts",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nodesecure/i18n": "4.1.1",
+    "@nodesecure/js-x-ray": "16.2.0",
+    "playwright": "1.65.1"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "5.9.3"
+  }
+}
