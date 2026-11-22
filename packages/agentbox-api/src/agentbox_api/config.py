@@ -1,10 +1,16 @@
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from agentbox_models.config import (
+    load_config_file,
+    resolve_database_url,
+    resolve_media_dir,
+)
 
 
 class Settings(BaseSettings):
-    database_url: str = "sqlite+aiosqlite:///./agentbox.db"
-    media_dir: str = "./media"
+    database_url: str | None = None
+    media_dir: str | None = None
     jwt_secret: SecretStr = Field(min_length=32)
     jwt_algorithm: str = "HS256"
     jwt_expiry_seconds: int = 3600
@@ -46,3 +52,12 @@ class Settings(BaseSettings):
     mcp_sweep_interval_seconds: float = 60
 
     model_config = SettingsConfigDict(env_file=".env")
+
+    @model_validator(mode="after")
+    def _resolve_paths(self):
+        config = load_config_file()
+        if not self.database_url:
+            self.database_url = resolve_database_url(config)
+        if not self.media_dir:
+            self.media_dir = resolve_media_dir(config)
+        return self
