@@ -1,7 +1,11 @@
+import pytest
 from sqlalchemy import JSON, LargeBinary, Text
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import SQLModel
 
 import agentbox_models.tables  # noqa: F401
+from agentbox_models.db import create_engine_and_sessionmaker, init_db
+from agentbox_models.tables.core import SessionRow
 
 
 def test_no_json_or_binary_columns():
@@ -55,3 +59,12 @@ def test_removed_columns_are_gone():
     assert "attachments" not in SQLModel.metadata.tables["turnrow"].columns
     assert "data" not in SQLModel.metadata.tables["session_attachment"].columns
     assert "scopes" not in SQLModel.metadata.tables["apikey"].columns
+
+async def test_sqlite_enforces_foreign_keys():
+    engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
+    await init_db(engine)
+    with pytest.raises(IntegrityError):
+        async with factory() as s:
+            s.add(SessionRow(id="s1", project_id="missing", agent_id="missing"))
+            await s.commit()
+    await engine.dispose()
