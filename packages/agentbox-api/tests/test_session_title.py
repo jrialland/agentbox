@@ -20,17 +20,25 @@ def test_derive_session_title_normalizes_and_truncates():
 
 async def _seed(factory, tmp_path: pathlib.Path):
     async with factory() as s:
+        s.add(
+            User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
+        )
         s.add(Provider(id="p", name="test", kind="generic", base_url="http://localhost:1"))
+        await s.flush()
         s.add(Model(id="m", provider_id="p", name="test-model"))
+        await s.flush()
         s.add(Agent(id="a", name="bot", description="", instructions="", model_id="m"))
         s.add(Project(id="prj", name="proj", path=str(tmp_path), owner_id="u1"))
+        await s.flush()
         s.add(SessionRow(id="s1", project_id="prj", agent_id="a"))
-        s.add(User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw")))
         s.add(Role(id="r1", name="role"))
         s.add(Permission(id="perm1", name="sessions:create"))
         s.add(Permission(id="perm2", name="sessions:read"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="perm1"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="perm2"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         await s.commit()
 

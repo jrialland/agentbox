@@ -1,9 +1,17 @@
+from agentbox_api.media import MediaStore
 from agentbox_api.runtime import delete_session_data
 from agentbox_api.skills import prepare_agent
-from agentbox_harness.spec import Mode
+from agentbox_harness.spec import (
+    DEFAULT_MODES,
+    AgentSpec,
+    Mode,
+    ModelBinding,
+    NativeToolBinding,
+)
 from agentbox_harness.tools.terminal import TERMINAL_TOOL_NAMES
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
-from agentbox_models.tables.core import Agent, Model, Provider
+from agentbox_models.repos.agents import AgentRepository
+from agentbox_models.tables.core import Model, Provider
 
 
 async def _prepared(tmp_path, session_id):
@@ -11,18 +19,19 @@ async def _prepared(tmp_path, session_id):
     await init_db(engine)
     async with factory() as s:
         s.add(Provider(id="prov", name="prov", kind="test"))
+        await s.flush()
         s.add(Model(id="m1", provider_id="prov", name="test-model"))
-        s.add(
-            Agent(
-                id="ag",
-                name="bot",
-                description="d",
-                instructions="i",
-                model_id="m1",
-                tool_bindings='[{"name": "run_command"}]',
-            )
-        )
         await s.commit()
+    await AgentRepository(factory).save(
+        AgentSpec(
+            name="bot",
+            description="d",
+            instructions="i",
+            tool_bindings=[NativeToolBinding(name="run_command")],
+            mode_definitions=list(DEFAULT_MODES),
+            model_binding=ModelBinding(model="test-model", provider=""),
+        )
+    )
     prepared = await prepare_agent(
         factory,
         "bot",
@@ -60,7 +69,7 @@ async def test_prepare_agent_registers_terminal_bundle(tmp_path):
         await engine.dispose()
 
 
-async def test_delete_session_data_kills_jobs(monkeypatch):
+async def test_delete_session_data_kills_jobs(monkeypatch, tmp_path):
     class FakeManager:
         def __init__(self):
             self.killed = []
@@ -73,12 +82,12 @@ async def test_delete_session_data_kills_jobs(monkeypatch):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     try:
-        await delete_session_data(factory, "s1")
+        await delete_session_data(factory, "s1", MediaStore(tmp_path / "media"))
         assert fake.killed == ["s1"]
     finally:
         await engine.dispose()
 
-async def test_delete_session_data_closes_mcp(monkeypatch):
+async def test_delete_session_data_closes_mcp(monkeypatch, tmp_path):
     from agentbox_harness.tools.mcp_session import McpSessionManager
 
     closed: list[str] = []
@@ -90,7 +99,7 @@ async def test_delete_session_data_closes_mcp(monkeypatch):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     try:
-        await delete_session_data(factory, "s1")
+        await delete_session_data(factory, "s1", MediaStore(tmp_path / "media"))
         assert "s1" in closed
     finally:
         await engine.dispose()

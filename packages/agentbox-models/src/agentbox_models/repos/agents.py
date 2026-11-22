@@ -31,7 +31,7 @@ from agentbox_models.tables.core import (
 
 async def _save_bindings(session, agent_id: str, bindings) -> None:
     await session.execute(
-        delete(AgentToolBinding).where(AgentToolBinding.agent_id == agent_id)
+        delete(AgentToolBinding).where(AgentToolBinding.agent_id == agent_id)  # ty: ignore[invalid-argument-type]
     )
     for position, binding in enumerate(bindings):
         binding_id = uuid.uuid4().hex
@@ -85,7 +85,7 @@ async def _load_bindings(session, agent_id: str):
         await session.execute(
             select(AgentToolBinding)
             .where(AgentToolBinding.agent_id == agent_id)
-            .order_by(AgentToolBinding.position)
+            .order_by(AgentToolBinding.position)  # ty: ignore[invalid-argument-type]
         )
     ).scalars().all()
     bindings = []
@@ -107,7 +107,7 @@ async def _load_bindings(session, agent_id: str):
             await session.execute(
                 select(AgentToolBindingArg.value)
                 .where(AgentToolBindingArg.binding_id == row.id)
-                .order_by(AgentToolBindingArg.position)
+                .order_by(AgentToolBindingArg.position)  # ty: ignore[invalid-argument-type]
             )
         ).scalars().all()
         env_rows = (
@@ -121,7 +121,7 @@ async def _load_bindings(session, agent_id: str):
             await session.execute(
                 select(AgentToolBindingEnvPassthrough.name)
                 .where(AgentToolBindingEnvPassthrough.binding_id == row.id)
-                .order_by(AgentToolBindingEnvPassthrough.position)
+                .order_by(AgentToolBindingEnvPassthrough.position)  # ty: ignore[invalid-argument-type]
             )
         ).scalars().all()
         bindings.append(
@@ -140,7 +140,7 @@ async def _load_bindings(session, agent_id: str):
 
 
 async def _save_modes(session, agent_id: str, modes) -> None:
-    await session.execute(delete(AgentMode).where(AgentMode.agent_id == agent_id))
+    await session.execute(delete(AgentMode).where(AgentMode.agent_id == agent_id))  # ty: ignore[invalid-argument-type]
     for position, mode in enumerate(modes):
         mode_id = uuid.uuid4().hex
         session.add(
@@ -162,7 +162,7 @@ async def _load_modes(session, agent_id: str) -> list[Mode]:
         await session.execute(
             select(AgentMode)
             .where(AgentMode.agent_id == agent_id)
-            .order_by(AgentMode.position)
+            .order_by(AgentMode.position)  # ty: ignore[invalid-argument-type]
         )
     ).scalars().all()
     modes = []

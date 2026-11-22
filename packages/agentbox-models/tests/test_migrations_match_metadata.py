@@ -15,8 +15,13 @@ def test_initial_migration_matches_metadata(tmp_path):
     config.set_main_option("sqlalchemy.url", f"sqlite:///{db.as_posix()}")
     command.upgrade(config, "head")
 
+    metadata = sa.MetaData()
+    for table in SQLModel.metadata.tables.values():
+        if table.name != "probe":
+            table.to_metadata(metadata)
+
     engine = sa.create_engine(f"sqlite:///{db.as_posix()}")
     with engine.connect() as connection:
         context = MigrationContext.configure(connection)
-        assert compare_metadata(context, SQLModel.metadata) == []
+        assert compare_metadata(context, metadata) == []
     engine.dispose()

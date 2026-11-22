@@ -18,13 +18,16 @@ async def _setup(perms=("roles:manage",)):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r1", name="admin"))
         for i, p in enumerate(perms):
             s.add(Permission(id=f"p{i}", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r1", permission_id=f"p{i}"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         await s.commit()
     app = create_app(
@@ -95,6 +98,7 @@ async def test_permission_delete_removes_role_links():
         r = await client.post("/permissions", json={"name": "z:z"}, headers=h)
         pid = r.json()["id"]
         async with factory() as s:
+            await s.flush()
             s.add(RolePermissionLink(role_id="r1", permission_id=pid))
             await s.commit()
         await client.delete(f"/permissions/{pid}", headers=h)

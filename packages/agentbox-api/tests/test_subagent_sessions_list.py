@@ -11,21 +11,34 @@ from agentbox_models.tables.auth import (
     User,
     UserRoleLink,
 )
-from agentbox_models.tables.core import SessionRow
+from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
 
 
 async def test_session_list_hides_children():
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r1", name="role"))
         s.add(Permission(id="perm", name="sessions:read"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="perm"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
+        await s.flush()
+        s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
+        s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
+        s.add(Agent(id="a", name="a", description="", instructions="", model_id="m"))
+        s.add(Agent(id="b", name="b", description="", instructions="", model_id="m"))
+        s.add(Project(id="p", name="p", path=".", owner_id="u1"))
+        await s.flush()
         s.add(SessionRow(id="parent", project_id="p", agent_id="a"))
+        await s.flush()
         s.add(
             SessionRow(
                 id="child",

@@ -11,7 +11,7 @@ async def load_extra_roots(session, project_id: str) -> list[str]:
         await session.execute(
             select(ProjectRoot)
             .where(ProjectRoot.project_id == project_id)
-            .order_by(ProjectRoot.position)
+            .order_by(ProjectRoot.position)  # ty: ignore[invalid-argument-type]
         )
     ).scalars().all()
     return [row.path for row in rows]
@@ -19,7 +19,7 @@ async def load_extra_roots(session, project_id: str) -> list[str]:
 
 async def replace_extra_roots(session, project_id: str, paths: list[str]) -> None:
     await session.execute(
-        delete(ProjectRoot).where(ProjectRoot.project_id == project_id)
+        delete(ProjectRoot).where(ProjectRoot.project_id == project_id)  # ty: ignore[invalid-argument-type]
     )
     for position, path in enumerate(paths):
         session.add(

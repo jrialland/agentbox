@@ -18,12 +18,15 @@ async def _setup():
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r1", name="admin"))
         s.add(Permission(id="perm1", name="roles:manage"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="perm1"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(Role(id="r2", name="viewer"))
         s.add(Permission(id="perm2", name="projects:read"))
@@ -77,7 +80,9 @@ async def test_delete_role_cleans_links():
     try:
         h = await _auth(client)
         async with factory() as s:
+            await s.flush()
             s.add(RolePermissionLink(role_id="r2", permission_id="perm2"))
+            await s.flush()
             s.add(UserRoleLink(user_id="u1", role_id="r2"))
             await s.commit()
         await client.delete("/roles/r2", headers=h)

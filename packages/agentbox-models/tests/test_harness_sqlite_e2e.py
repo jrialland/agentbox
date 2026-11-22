@@ -12,6 +12,8 @@ from agentbox_harness.spec import (
 from agentbox_harness.tools.registry import ToolRegistry
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.repos.message_log import DatabaseMessageLogStore
+from agentbox_models.tables.auth import User
+from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
 
 
 async def write_file(path: str, content: str) -> str:
@@ -21,6 +23,17 @@ async def write_file(path: str, content: str) -> str:
 async def test_harness_session_persists_turns():
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
+    async with factory() as s:
+        s.add(User(id="u1", username="u", email="u@x", password_hash="h"))
+        s.add(Provider(id="p1", name="test", kind="test"))
+        await s.flush()
+        s.add(Model(id="m1", provider_id="p1", name="test"))
+        await s.flush()
+        s.add(Agent(id="a1", name="coder", description="", instructions="", model_id="m1"))
+        s.add(Project(id="pr1", name="p", path=".", owner_id="u1"))
+        await s.flush()
+        s.add(SessionRow(id="sess1", project_id="pr1", agent_id="a1"))
+        await s.commit()
 
     spec = AgentSpec(
         name="coder",

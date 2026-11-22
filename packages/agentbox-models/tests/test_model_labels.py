@@ -21,10 +21,12 @@ async def test_resolve_model_label_priority_and_provider_tiebreak():
         async with factory() as s:
             s.add(Provider(id="p1", name="alpha", kind="test"))
             s.add(Provider(id="p2", name="beta", kind="test"))
+            await s.flush()
             s.add(Model(id="m1", provider_id="p1", name="slow"))
             s.add(Model(id="m2", provider_id="p2", name="cheap"))
             s.add(Model(id="m3", provider_id="p2", name="fast"))
             s.add(Label(id="l", name="fast"))
+            await s.flush()
             s.add(ModelLabelLink(model_id="m1", label_id="l", priority=0))
             s.add(ModelLabelLink(model_id="m2", label_id="l", priority=1))
             s.add(ModelLabelLink(model_id="m3", label_id="l", priority=1))

@@ -18,6 +18,7 @@ async def _setup():
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(
                 id="u1",
@@ -31,10 +32,14 @@ async def _setup():
             ("sessions:create", "sessions:read", "projects:create")
         ):
             s.add(Permission(id=f"p{i}", name=permission))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r1", permission_id=f"p{i}"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(Provider(id="prov", name="prov", kind="test"))
+        await s.flush()
         s.add(Model(id="m1", provider_id="prov", name="test-model"))
+        await s.flush()
         s.add(
             Agent(
                 id="ag",
@@ -77,7 +82,9 @@ async def test_plan_endpoint_orders_items(tmp_path):
         headers = await _auth(client)
         sid = await _session(client, headers, tmp_path)
         async with factory() as s:
+            await s.flush()
             s.add(PlanItem(id="b", session_id=sid, position=1, content="second"))
+            await s.flush()
             s.add(
                 PlanItem(
                     id="a",

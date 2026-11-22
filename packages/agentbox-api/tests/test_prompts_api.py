@@ -17,6 +17,7 @@ async def _client():
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(
                 id="u1",
@@ -27,7 +28,9 @@ async def _client():
         )
         s.add(Role(id="r1", name="role"))
         s.add(Permission(id="p0", name="agents:create"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="p0"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         await s.commit()
     app = create_app(

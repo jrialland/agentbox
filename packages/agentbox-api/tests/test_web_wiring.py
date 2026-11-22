@@ -41,7 +41,9 @@ async def test_prepare_agent_exposes_bound_web_tools(tmp_path):
     try:
         async with factory() as s:
             s.add(Provider(id="prov", name="prov", kind="test"))
+            await s.flush()
             s.add(Model(id="m1", provider_id="prov", name="test-model"))
+            await s.flush()
             s.add(
                 Agent(
                     id="ag",

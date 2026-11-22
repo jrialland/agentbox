@@ -1,3 +1,4 @@
+from agentbox_api.media import MediaStore
 from agentbox_api.runtime import delete_session_data
 from agentbox_api.subagent_sessions import (
     ApiSubagentSessionRunner,
@@ -9,15 +10,39 @@ from agentbox_api.subagent_sessions import (
 )
 from agentbox_harness.compaction import CompactionConfig
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
-from agentbox_models.tables.core import SessionRow
+from agentbox_models.tables.auth import User
+from agentbox_models.tables.core import (
+    Agent,
+    Model,
+    Project,
+    Provider,
+    SessionRow,
+)
+
+
+async def _seed(factory):
+    async with factory() as s:
+        s.add(User(id="u1", username="u", email="u@x", password_hash="h"))
+        s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
+        s.add(Model(id="m1", provider_id="prov", name="test-model"))
+        await s.flush()
+        s.add(Agent(id="a", name="a", description="", instructions="", model_id="m1"))
+        s.add(Agent(id="b", name="b", description="", instructions="", model_id="m1"))
+        s.add(Agent(id="c", name="c", description="", instructions="", model_id="m1"))
+        s.add(Project(id="p", name="p", path=".", owner_id="u1"))
+        await s.commit()
 
 
 async def test_parent_delete_removes_children(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
+    await _seed(factory)
     try:
         async with factory() as s:
+            await s.flush()
             s.add(SessionRow(id="parent", project_id="p", agent_id="a"))
+            await s.flush()
             s.add(
                 SessionRow(
                     id="child",
@@ -29,7 +54,7 @@ async def test_parent_delete_removes_children(tmp_path):
                 )
             )
             await s.commit()
-        await delete_session_data(factory, "parent")
+        await delete_session_data(factory, "parent", MediaStore(tmp_path / "media"))
         async with factory() as s:
             assert await s.get(SessionRow, "parent") is None
             assert await s.get(SessionRow, "child") is None
@@ -40,8 +65,11 @@ async def test_parent_delete_removes_children(tmp_path):
 async def test_cancel_and_reconcile_running_children(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
+    await _seed(factory)
     try:
         async with factory() as s:
+            s.add(SessionRow(id="parent", project_id="p", agent_id="a"))
+            await s.flush()
             s.add(
                 SessionRow(
                     id="child",
@@ -75,9 +103,12 @@ async def test_cancel_and_reconcile_running_children(tmp_path):
 async def test_cancel_recurses_through_grandchildren(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
+    await _seed(factory)
     try:
         async with factory() as s:
+            await s.flush()
             s.add(SessionRow(id="parent", project_id="p", agent_id="a"))
+            await s.flush()
             s.add(
                 SessionRow(
                     id="child",
@@ -88,6 +119,7 @@ async def test_cancel_recurses_through_grandchildren(tmp_path):
                     subagent_session_depth=1,
                 )
             )
+            await s.flush()
             s.add(
                 SessionRow(
                     id="grandchild",

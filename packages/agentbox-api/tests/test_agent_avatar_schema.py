@@ -8,7 +8,9 @@ async def test_agent_avatar_columns_roundtrip():
     async with factory() as s:
         s.add(Provider(id="p", name="t", kind="generic"))
         await s.flush()
+        await s.flush()
         s.add(Model(id="m", provider_id="p", name="mm"))
+        await s.flush()
         s.add(
             MediaFile(
                 id="f",
@@ -18,6 +20,7 @@ async def test_agent_avatar_columns_roundtrip():
                 sha256="0" * 64,
             )
         )
+        await s.flush()
         await s.flush()
         s.add(
             Agent(

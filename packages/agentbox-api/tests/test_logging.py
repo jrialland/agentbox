@@ -38,6 +38,7 @@ async def _app_with_user(username="alice", password="secret"):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(
                 id="u1",
@@ -93,15 +94,19 @@ async def _app_with_perms(perms: list[str]):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r_u1", name="role"))
         for i, p in enumerate(perms):
             s.add(Permission(id=f"p{i}_u1", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r_u1", permission_id=f"p{i}_u1"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r_u1"))
         s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="test-model"))
         await s.commit()
     app = create_app(

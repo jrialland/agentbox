@@ -24,6 +24,7 @@ async def _setup(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(
                 id="u1",
@@ -37,10 +38,14 @@ async def _setup(tmp_path):
             ["sessions:create", "sessions:read", "agents:create", "agents:read"]
         ):
             s.add(Permission(id=f"p{i}_u1", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r_u1", permission_id=f"p{i}_u1"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r_u1"))
         s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
         s.add(
             Agent(
                 id="ag",
@@ -52,7 +57,9 @@ async def _setup(tmp_path):
                 mode_definitions='[{"name":"agent","flags":{"write":true}}]',
             )
         )
+        await s.flush()
         s.add(Project(id="prj", name="p", path=str(tmp_path), owner_id="u1"))
+        await s.flush()
         s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
         await s.commit()
     app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)

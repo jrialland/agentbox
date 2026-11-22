@@ -10,6 +10,7 @@ from agentbox_models.tables.core import Agent, Model, Project, Provider
 
 async def _seed_user(factory, user_id: str, username: str, perms: list[str]):
     async with factory() as s:
+        await s.flush()
         s.add(
             User(
                 id=user_id,
@@ -21,7 +22,9 @@ async def _seed_user(factory, user_id: str, username: str, perms: list[str]):
         s.add(Role(id=f"r_{user_id}", name="role"))
         for i, p in enumerate(perms):
             s.add(Permission(id=f"p{i}_{user_id}", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id=f"r_{user_id}", permission_id=f"p{i}_{user_id}"))
+        await s.flush()
         s.add(UserRoleLink(user_id=user_id, role_id=f"r_{user_id}"))
         await s.commit()
 
@@ -131,8 +134,11 @@ async def test_sessions_create_and_list():
         async with factory() as s:
             s.add(Provider(id="prov", name="prov", kind="test"))
             await s.flush()
+            await s.flush()
             s.add(Model(id="m", provider_id="prov", name="test-model"))
+            await s.flush()
             s.add(Project(id="prj", name="p", path=".", owner_id="u1"))
+            await s.flush()
             await s.flush()
             s.add(
                 Agent(

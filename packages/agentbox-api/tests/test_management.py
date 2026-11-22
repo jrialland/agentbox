@@ -15,6 +15,7 @@ from agentbox_models.tables.auth import (
 
 async def _seed_user(factory, user_id: str, username: str, perms: list[str]):
     async with factory() as s:
+        await s.flush()
         s.add(
             User(
                 id=user_id,
@@ -26,11 +27,13 @@ async def _seed_user(factory, user_id: str, username: str, perms: list[str]):
         s.add(Role(id=f"r_{user_id}", name="role"))
         for i, p in enumerate(perms):
             s.add(Permission(id=f"p{i}_{user_id}", name=p))
+            await s.flush()
             s.add(
                 RolePermissionLink(
                     role_id=f"r_{user_id}", permission_id=f"p{i}_{user_id}"
                 )
             )
+        await s.flush()
         s.add(UserRoleLink(user_id=user_id, role_id=f"r_{user_id}"))
         await s.commit()
 

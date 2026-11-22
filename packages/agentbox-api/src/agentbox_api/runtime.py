@@ -176,7 +176,7 @@ async def delete_session_data(factory, session_id: str, media_store) -> None:
         media_rows = []
         if file_ids:
             media_rows = (
-                await s.execute(select(MediaFile).where(MediaFile.id.in_(file_ids)))
+                await s.execute(select(MediaFile).where(MediaFile.id.in_(file_ids)))  # ty: ignore[missing-attribute]
             ).scalars().all()
         paths = [media.storage_path for media in media_rows]
         for attachment in attachments:

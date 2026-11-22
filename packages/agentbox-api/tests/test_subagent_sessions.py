@@ -8,6 +8,7 @@ from agentbox_api.subagent_sessions import (
 )
 from agentbox_harness.compaction import CompactionConfig
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
+from agentbox_models.tables.auth import User
 from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
 
 
@@ -18,8 +19,11 @@ async def _setup(tmp_path):
     )
     await init_db(engine)
     async with factory() as s:
+        s.add(User(id="u1", username="u", email="u@x", password_hash="h"))
         s.add(Provider(id="prov", name="prov", kind="test"))
+        await s.flush()
         s.add(Model(id="m1", provider_id="prov", name="test-model"))
+        await s.flush()
         s.add(
             Agent(
                 id="parent-agent",
@@ -29,6 +33,7 @@ async def _setup(tmp_path):
                 model_id="m1",
             )
         )
+        await s.flush()
         s.add(
             Agent(
                 id="child-agent",
@@ -38,7 +43,9 @@ async def _setup(tmp_path):
                 model_id="m1",
             )
         )
+        await s.flush()
         s.add(Project(id="p1", name="p", path=str(tmp_path), owner_id="u1"))
+        await s.flush()
         s.add(
             SessionRow(
                 id="parent-session",
@@ -57,8 +64,11 @@ async def _slow_setup(tmp_path):
     )
     await init_db(engine)
     async with factory() as s:
+        s.add(User(id="u1", username="u", email="u@x", password_hash="h"))
         s.add(Provider(id="slow-prov", name="slow", kind="test_slow"))
+        await s.flush()
         s.add(Model(id="slow-model", provider_id="slow-prov", name="slow-model"))
+        await s.flush()
         s.add(
             Agent(
                 id="parent-agent",
@@ -68,6 +78,7 @@ async def _slow_setup(tmp_path):
                 model_id="slow-model",
             )
         )
+        await s.flush()
         s.add(
             Agent(
                 id="slow-child-agent",
@@ -77,7 +88,9 @@ async def _slow_setup(tmp_path):
                 model_id="slow-model",
             )
         )
+        await s.flush()
         s.add(Project(id="p1", name="p", path=str(tmp_path), owner_id="u1"))
+        await s.flush()
         s.add(
             SessionRow(
                 id="parent-session",

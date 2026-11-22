@@ -14,12 +14,15 @@ from agentbox_models.tables.core import Agent, Model, Project, Provider, Session
 
 async def _seed(factory, tmp_path: pathlib.Path):
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Provider(id="p", name="test", kind="generic", base_url="http://localhost:1"))
         await s.flush()
+        await s.flush()
         s.add(Model(id="m", provider_id="p", name="test-model"))
+        await s.flush()
         await s.flush()
         s.add(
             Agent(
@@ -30,12 +33,16 @@ async def _seed(factory, tmp_path: pathlib.Path):
                 model_id="m",
             )
         )
+        await s.flush()
         s.add(Project(id="prj", name="proj", path=str(tmp_path), owner_id="u1"))
+        await s.flush()
         await s.flush()
         s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
         s.add(Role(id="r1", name="role"))
         s.add(Permission(id="perm1", name="sessions:create"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="perm1"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         await s.commit()
 

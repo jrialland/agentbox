@@ -81,23 +81,16 @@ class _FakeConn:
 
 async def _seed_acp(factory):
     from agentbox_api.security import hash_password
+    from agentbox_harness.spec import DEFAULT_MODES, AgentSpec, ModelBinding
+    from agentbox_models.repos.agents import AgentRepository
     from agentbox_models.tables.auth import User
-    from agentbox_models.tables.core import Agent, Model, Provider
+    from agentbox_models.tables.core import Model, Provider
 
     async with factory() as db:
         db.add(Provider(id="p", name="test", kind="test"))
+        await db.flush()
         db.add(Model(id="m", provider_id="p", name="test-model"))
-        db.add(
-            Agent(
-                id="ag",
-                name="acp-test",
-                description="",
-                instructions="",
-                model_id="m",
-                tool_bindings="[]",
-                mode_definitions='[{"name":"ask","flags":{"write":false}},{"name":"agent","flags":{"write":true}}]',
-            )
-        )
+        await db.flush()
         db.add(
             User(
                 id="admin1",
@@ -107,6 +100,16 @@ async def _seed_acp(factory):
             )
         )
         await db.commit()
+    await AgentRepository(factory).save(
+        AgentSpec(
+            name="acp-test",
+            description="",
+            instructions="",
+            tool_bindings=[],
+            mode_definitions=list(DEFAULT_MODES),
+            model_binding=ModelBinding(model="test-model", provider=""),
+        )
+    )
 
 
 async def test_acp_lifecycle(tmp_path):

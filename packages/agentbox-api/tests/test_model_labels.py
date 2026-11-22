@@ -26,6 +26,7 @@ async def _setup():
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(
                 id="u1",
@@ -37,10 +38,14 @@ async def _setup():
         s.add(Role(id="r1", name="role"))
         for i, permission in enumerate(perms):
             s.add(Permission(id=f"p{i}", name=permission))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r1", permission_id=f"p{i}"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(Provider(id="prov", name="prov", kind="test"))
+        await s.flush()
         s.add(Model(id="m1", provider_id="prov", name="alpha"))
+        await s.flush()
         s.add(Model(id="m2", provider_id="prov", name="beta"))
         await s.commit()
     app = create_app(

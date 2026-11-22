@@ -23,7 +23,7 @@ async def _load_activity(session, turn_id: str) -> dict | None:
         await session.execute(
             select(TurnToolActivity)
             .where(TurnToolActivity.turn_id == turn_id)
-            .order_by(TurnToolActivity.position)
+            .order_by(TurnToolActivity.position)  # ty: ignore[invalid-argument-type]
         )
     ).scalars().all()
     error = None
@@ -53,11 +53,11 @@ async def _load_attachments(session, turn_id: str) -> list[dict] | None:
             select(TurnAttachment, SessionAttachment, MediaFile)
             .join(
                 SessionAttachment,
-                SessionAttachment.id == TurnAttachment.attachment_id,
+                SessionAttachment.id == TurnAttachment.attachment_id,  # ty: ignore[invalid-argument-type]
             )
-            .join(MediaFile, MediaFile.id == SessionAttachment.file_id)
+            .join(MediaFile, MediaFile.id == SessionAttachment.file_id)  # ty: ignore[invalid-argument-type]
             .where(TurnAttachment.turn_id == turn_id)
-            .order_by(TurnAttachment.position)
+            .order_by(TurnAttachment.position)  # ty: ignore[invalid-argument-type]
         )
     ).all()
     if not rows:
@@ -134,7 +134,7 @@ class DatabaseMessageLogStore:
                 await s.execute(
                     select(TurnRow)
                     .where(TurnRow.session_id == self._session_id)
-                    .order_by(TurnRow.created_at)
+                    .order_by(TurnRow.created_at)  # ty: ignore[invalid-argument-type]
                 )
             ).scalars().all()
             turns = []

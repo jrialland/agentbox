@@ -10,6 +10,7 @@ from agentbox_models.tables.core import Model, Provider
 
 async def _seed_user_with_perms(factory, user_id: str, username: str, perms: list[str]):
     async with factory() as s:
+        await s.flush()
         s.add(
             User(
                 id=user_id,
@@ -21,7 +22,9 @@ async def _seed_user_with_perms(factory, user_id: str, username: str, perms: lis
         s.add(Role(id=f"r_{user_id}", name="role"))
         for i, p in enumerate(perms):
             s.add(Permission(id=f"p{i}_{user_id}", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id=f"r_{user_id}", permission_id=f"p{i}_{user_id}"))
+        await s.flush()
         s.add(UserRoleLink(user_id=user_id, role_id=f"r_{user_id}"))
         await s.commit()
 
@@ -48,6 +51,7 @@ async def test_create_and_list_agent():
     await init_db(engine)
     async with factory() as s:
         s.add(Provider(id="p1", name="test", kind="generic"))
+        await s.flush()
         s.add(Model(id="m1", provider_id="p1", name="test-model"))
         await s.commit()
     await _seed_user_with_perms(factory, "u1", "alice", ["agents:create", "agents:read"])
@@ -73,6 +77,7 @@ async def _agent_client():
     await init_db(engine)
     async with factory() as s:
         s.add(Provider(id="p1", name="test", kind="generic"))
+        await s.flush()
         s.add(Model(id="m1", provider_id="p1", name="test-model"))
         await s.commit()
     await _seed_user_with_perms(factory, "u1", "alice", ["agents:create", "agents:read"])

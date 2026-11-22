@@ -194,7 +194,7 @@ class AgentboxAcpAgent:
         self._agent_name = agent_name
         self._factory = factory
         self._settings = settings
-        self._media_store = MediaStore(settings.media_dir)
+        self._media_store = MediaStore(settings.media_dir) if settings is not None else None
         self._client: acp.Client | None = None
         self._sessions: dict[str, AcpSession] = {}
         self._client_capabilities = AcpClientCapabilities()

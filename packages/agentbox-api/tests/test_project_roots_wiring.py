@@ -22,6 +22,7 @@ async def test_prepare_agent_grants_extra_write_root(tmp_path):
         async with factory() as s:
             s.add(Provider(id="prov", name="prov", kind="test"))
             await s.flush()
+            await s.flush()
             s.add(Model(id="m1", provider_id="prov", name="test-model"))
             await s.commit()
         await AgentRepository(factory).save(

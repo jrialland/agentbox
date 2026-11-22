@@ -2,14 +2,20 @@
 
 from __future__ import annotations
 
-import json
-
 import httpx
+from sqlmodel import select
 
 from agentbox_api.app import create_app
 from agentbox_api.config import Settings
 from agentbox_api.security import hash_password
+from agentbox_harness.spec import (
+    DEFAULT_MODES,
+    AgentSpec,
+    McpToolBinding,
+    ModelBinding,
+)
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
+from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.tables.auth import (
     Permission,
     Role,
@@ -24,29 +30,37 @@ async def _setup(tmp_path, mcp_url):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r_u1", name="role"))
         for i, p in enumerate(["sessions:create", "sessions:read"]):
             s.add(Permission(id=f"p{i}_u1", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r_u1", permission_id=f"p{i}_u1"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r_u1"))
         s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="test-model"))
-        s.add(
-            Agent(
-                id="ag",
-                name="agent",
-                description="d",
-                instructions="i",
-                model_id="m",
-                tool_bindings=json.dumps([{"server_url": mcp_url, "id": "test-app"}]),
-                mode_definitions='[{"name":"ask","flags":{"write":false}},{"name":"agent","flags":{"write":true}}]',
-            )
-        )
         s.add(Project(id="prj", name="p", path=str(tmp_path), owner_id="u1"))
-        s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
+        await s.commit()
+    await AgentRepository(factory).save(
+        AgentSpec(
+            name="agent",
+            description="d",
+            instructions="i",
+            tool_bindings=[McpToolBinding(server_url=mcp_url, id="test-app")],
+            mode_definitions=list(DEFAULT_MODES),
+            model_binding=ModelBinding(model="test-model", provider=""),
+        )
+    )
+    async with factory() as s:
+        agent = (
+            await s.execute(select(Agent).where(Agent.name == "agent"))
+        ).scalars().first()
+        s.add(SessionRow(id="s1", project_id="prj", agent_id=agent.id))
         await s.commit()
     app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)
     client = httpx.AsyncClient(

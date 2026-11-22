@@ -68,7 +68,9 @@ async def test_me_returns_user_and_permissions():
         s.add(User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw")))
         s.add(Role(id="r1", name="admin"))
         s.add(Permission(id="perm1", name="agents:read"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="perm1"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         await s.commit()
 

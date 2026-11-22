@@ -17,7 +17,7 @@ async def load_scopes(session, api_key_id: str) -> list[str]:
 
 async def replace_scopes(session, api_key_id: str, scopes: list[str]) -> None:
     await session.execute(
-        delete(ApiKeyScope).where(ApiKeyScope.api_key_id == api_key_id)
+        delete(ApiKeyScope).where(ApiKeyScope.api_key_id == api_key_id)  # ty: ignore[invalid-argument-type]
     )
     for scope in dict.fromkeys(scopes):
         session.add(ApiKeyScope(api_key_id=api_key_id, scope=scope))

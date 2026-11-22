@@ -20,13 +20,16 @@ async def _setup(perms=("api_keys:manage", "projects:read")):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r1", name="role"))
         for i, p in enumerate(perms):
             s.add(Permission(id=f"p{i}", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r1", permission_id=f"p{i}"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(User(id="u2", username="bob", email="b@x", password_hash=hash_password("pw")))
         await s.commit()
@@ -68,6 +71,7 @@ async def test_list_keys_has_no_hash_and_is_personal():
         h = await _auth(client)
         await client.post("/api-keys", json={"scopes": []}, headers=h)
         async with factory() as s:
+            await s.flush()
             s.add(ApiKey(id="other", user_id="u2", key_hash="h"))
             await s.commit()
         r = await client.get("/api-keys", headers=h)
@@ -157,6 +161,7 @@ async def test_cannot_revoke_others_key():
     try:
         h = await _auth(client)
         async with factory() as s:
+            await s.flush()
             s.add(ApiKey(id="other", user_id="u2", key_hash="h"))
             await s.commit()
         r = await client.delete("/api-keys/other", headers=h)

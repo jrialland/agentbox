@@ -17,7 +17,9 @@ async def _make_app(perms: list[str]):
         s.add(Role(id="r1", name="admin"))
         for i, perm in enumerate(perms):
             s.add(Permission(id=f"p{i}", name=perm))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r1", permission_id=f"p{i}"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         await s.commit()
     app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)

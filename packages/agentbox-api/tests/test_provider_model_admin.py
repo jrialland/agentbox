@@ -18,15 +18,19 @@ async def _setup(perms=("providers:create", "providers:read", "providers:delete"
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r1", name="role"))
         for i, p in enumerate(perms):
             s.add(Permission(id=f"p{i}", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r1", permission_id=f"p{i}"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(Provider(id="prov", name="old", kind="generic", api_key="secret"))
+        await s.flush()
         s.add(Model(id="m1", provider_id="prov", name="m"))
         await s.commit()
     app = create_app(
@@ -61,6 +65,7 @@ async def test_provider_delete_blocked_when_model_in_use():
     try:
         h = await _auth(client)
         async with factory() as s:
+            await s.flush()
             s.add(Agent(id="ag", name="a", description="", instructions="", model_id="m1"))
             await s.commit()
         r = await client.delete("/providers/prov", headers=h)
@@ -115,6 +120,7 @@ async def test_model_delete_blocked_when_in_use():
     try:
         h = await _auth(client)
         async with factory() as s:
+            await s.flush()
             s.add(Agent(id="ag", name="a", description="", instructions="", model_id="m1"))
             await s.commit()
         r = await client.delete("/models/m1", headers=h)

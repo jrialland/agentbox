@@ -32,22 +32,31 @@ async def test_session_delete_removes_everything(tmp_path):
         b"x", category="attachments", media_type="text/plain", suffix=".txt"
     )
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r1", name="role"))
         s.add(Permission(id="p0", name="sessions:create"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="p0"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(Provider(id="prov", name="test", kind="test"))
         await s.flush()
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="mm"))
         await s.flush()
+        await s.flush()
         s.add(Agent(id="ag", name="a", description="", instructions="", model_id="m"))
+        await s.flush()
         s.add(Project(id="prj", name="p", path=".", owner_id="u1"))
         await s.flush()
+        await s.flush()
         s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
+        await s.flush()
         s.add(TurnRow(id="t1", session_id="s1", role="user", content="hi"))
+        await s.flush()
         s.add(
             MediaFile(
                 id="f1",
@@ -57,6 +66,7 @@ async def test_session_delete_removes_everything(tmp_path):
                 sha256=stored.sha256,
             )
         )
+        await s.flush()
         await s.flush()
         s.add(
             SessionAttachment(
@@ -95,25 +105,36 @@ async def test_project_delete_removes_only_its_sessions(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r1", name="role"))
         s.add(Permission(id="p0", name="projects:delete"))
+        await s.flush()
         s.add(RolePermissionLink(role_id="r1", permission_id="p0"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(Provider(id="prov", name="test", kind="test"))
         await s.flush()
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="mm"))
         await s.flush()
+        await s.flush()
         s.add(Agent(id="ag", name="a", description="", instructions="", model_id="m"))
+        await s.flush()
         s.add(Project(id="keep", name="keep", path=".", owner_id="u1"))
+        await s.flush()
         s.add(Project(id="gone", name="gone", path=".", owner_id="u1"))
         await s.flush()
+        await s.flush()
         s.add(SessionRow(id="s-keep", project_id="keep", agent_id="ag"))
+        await s.flush()
         s.add(SessionRow(id="s-gone", project_id="gone", agent_id="ag"))
         await s.flush()
+        await s.flush()
         s.add(TurnRow(id="t-keep", session_id="s-keep", role="user", content="hi"))
+        await s.flush()
         s.add(TurnRow(id="t-gone", session_id="s-gone", role="user", content="bye"))
         await s.commit()
     app = create_app(

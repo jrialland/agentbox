@@ -4,6 +4,7 @@ import pytest
 
 from agentbox_api import project_instructions
 from agentbox_harness.tools.registry import ToolHookContext
+from agentbox_models.tables.auth import User
 
 
 def test_loads_project_root_file(tmp_path: pathlib.Path):
@@ -286,10 +287,15 @@ async def test_prepare_agent_injects_root_and_global(
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        s.add(User(id="u1", username="u", email="u@x", password_hash="h"))
         s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
         s.add(Agent(id="ag", name="bot", description="", instructions="base", model_id="m"))
+        await s.flush()
         s.add(Project(id="prj", name="p", path=str(project), owner_id="u1"))
+        await s.flush()
         s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
         await s.commit()
 
@@ -326,10 +332,15 @@ async def test_prepare_agent_registers_nested_hook(
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        s.add(User(id="u1", username="u", email="u@x", password_hash="h"))
         s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
         s.add(Agent(id="ag", name="bot", description="", instructions="base", model_id="m"))
+        await s.flush()
         s.add(Project(id="prj", name="p", path=str(project), owner_id="u1"))
+        await s.flush()
         s.add(SessionRow(id="s2", project_id="prj", agent_id="ag"))
         await s.commit()
 

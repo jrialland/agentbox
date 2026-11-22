@@ -490,7 +490,7 @@ async def chat(
             arows = (
                 await s.execute(
                     select(SessionAttachment, MediaFile)
-                    .join(MediaFile, MediaFile.id == SessionAttachment.file_id)
+                    .join(MediaFile, MediaFile.id == SessionAttachment.file_id)  # ty: ignore[invalid-argument-type]
                     .where(
                         SessionAttachment.id.in_(attachment_ids)  # ty: ignore[missing-attribute]
                     )

@@ -31,14 +31,18 @@ async def _setup(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
         s.add(Role(id="r1", name="role"))
         for i, p in enumerate(["agents:create", "agents:read"]):
             s.add(Permission(id=f"p{i}", name=p))
+            await s.flush()
             s.add(RolePermissionLink(role_id="r1", permission_id=f"p{i}"))
+        await s.flush()
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
+        await s.flush()
         await s.flush()
         s.add(
             ApiKey(
@@ -48,10 +52,13 @@ async def _setup(tmp_path):
             )
         )
         await s.flush()
+        await s.flush()
         s.add(ApiKeyScope(api_key_id="k1", scope="sessions:create"))
         s.add(Provider(id="prov", name="test", kind="test"))
         await s.flush()
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
         await s.flush()
         s.add(Agent(id="ag", name="bot", description="d", instructions="i", model_id="m"))
         await s.commit()
@@ -137,9 +144,11 @@ async def test_a2a_message_send_protocol(tmp_path):
     )
     media_id = uuid.uuid4().hex
     async with factory() as s:
+        await s.flush()
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
         )
+        await s.flush()
         await s.flush()
         s.add(
             ApiKey(
@@ -149,10 +158,13 @@ async def test_a2a_message_send_protocol(tmp_path):
             )
         )
         await s.flush()
+        await s.flush()
         s.add(ApiKeyScope(api_key_id="k1", scope="sessions:create"))
         s.add(Provider(id="prov", name="test", kind="test"))
         await s.flush()
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
         await s.flush()
         s.add(
             Agent(
@@ -163,6 +175,7 @@ async def test_a2a_message_send_protocol(tmp_path):
                 model_id="m",
             )
         )
+        await s.flush()
         s.add(
             MediaFile(
                 id=media_id,
@@ -172,6 +185,7 @@ async def test_a2a_message_send_protocol(tmp_path):
                 sha256=stored.sha256,
             )
         )
+        await s.flush()
         await s.flush()
         s.add(
             AgentCard(

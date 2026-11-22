@@ -4,8 +4,15 @@ import sys
 from acp import PROTOCOL_VERSION, Client, spawn_agent_process
 from acp import schema as s
 
+from agentbox_harness.spec import (
+    DEFAULT_MODES,
+    AgentSpec,
+    ModelBinding,
+    NativeToolBinding,
+)
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
-from agentbox_models.tables.core import Agent, Model, Provider
+from agentbox_models.repos.agents import AgentRepository
+from agentbox_models.tables.core import Model, Provider
 
 
 class CollectingClient(Client):
@@ -65,19 +72,19 @@ async def test_acp_stdio_end_to_end(tmp_path):
     await init_db(engine)
     async with factory() as db:
         db.add(Provider(id="prov", name="test", kind="test"))
+        await db.flush()
         db.add(Model(id="m", provider_id="prov", name="test-model"))
-        db.add(
-            Agent(
-                id="ag",
-                name="acp-test",
-                description="",
-                instructions="",
-                model_id="m",
-                tool_bindings="[]",
-                mode_definitions='[{"name":"ask","flags":{"write":false}},{"name":"agent","flags":{"write":true}}]',
-            )
-        )
         await db.commit()
+    await AgentRepository(factory).save(
+        AgentSpec(
+            name="acp-test",
+            description="",
+            instructions="",
+            tool_bindings=[],
+            mode_definitions=list(DEFAULT_MODES),
+            model_binding=ModelBinding(model="test-model", provider=""),
+        )
+    )
     await engine.dispose()
 
     client = CollectingClient()  # ty: ignore[abstract-class-instantiation]
@@ -142,19 +149,19 @@ async def test_acp_stdio_uses_client_filesystem(tmp_path):
     await init_db(engine)
     async with factory() as db:
         db.add(Provider(id="prov", name="test", kind="test_acp_fs"))
+        await db.flush()
         db.add(Model(id="m", provider_id="prov", name="test-model"))
-        db.add(
-            Agent(
-                id="ag",
-                name="acp-fs",
-                description="",
-                instructions="",
-                model_id="m",
-                tool_bindings='[{"name":"read_text_file"}]',
-                mode_definitions='[{"name":"agent","flags":{"write":true}}]',
-            )
-        )
         await db.commit()
+    await AgentRepository(factory).save(
+        AgentSpec(
+            name="acp-fs",
+            description="",
+            instructions="",
+            tool_bindings=[NativeToolBinding(name="read_text_file")],
+            mode_definitions=list(DEFAULT_MODES),
+            model_binding=ModelBinding(model="test-model", provider=""),
+        )
+    )
     await engine.dispose()
 
     client = CollectingClient()  # ty: ignore[abstract-class-instantiation]
@@ -192,19 +199,19 @@ async def test_acp_stdio_uses_client_terminal(tmp_path):
     await init_db(engine)
     async with factory() as db:
         db.add(Provider(id="prov", name="test", kind="test_acp_terminal"))
+        await db.flush()
         db.add(Model(id="m", provider_id="prov", name="test-model"))
-        db.add(
-            Agent(
-                id="ag",
-                name="acp-terminal",
-                description="",
-                instructions="",
-                model_id="m",
-                tool_bindings='[{"name":"run_command"}]',
-                mode_definitions='[{"name":"agent","flags":{"write":true}}]',
-            )
-        )
         await db.commit()
+    await AgentRepository(factory).save(
+        AgentSpec(
+            name="acp-terminal",
+            description="",
+            instructions="",
+            tool_bindings=[NativeToolBinding(name="run_command")],
+            mode_definitions=list(DEFAULT_MODES),
+            model_binding=ModelBinding(model="test-model", provider=""),
+        )
+    )
     await engine.dispose()
 
     client = CollectingClient()  # ty: ignore[abstract-class-instantiation]
