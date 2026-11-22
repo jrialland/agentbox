@@ -1,16 +1,26 @@
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
+export const devProxy = {
+  "^/api/": {
+    target: "http://localhost:8000",
+    changeOrigin: true,
+    rewrite: (p: string) => p.replace(/^\/api/, ""),
+  },
+  "^/llms\\.txt$": {
+    target: "http://localhost:8000",
+    changeOrigin: true,
+  },
+  "^/llms/": {
+    target: "http://localhost:8000",
+    changeOrigin: true,
+  },
+};
+
 export default defineConfig({
   plugins: [react()],
   server: {
-    proxy: {
-      "^/api/": {
-        target: "http://localhost:8000",
-        changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
-      },
-    },
+    proxy: devProxy,
   },
   test: {
     environment: "jsdom",
