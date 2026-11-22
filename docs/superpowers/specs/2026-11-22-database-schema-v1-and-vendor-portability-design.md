@@ -513,8 +513,9 @@ Existing `aiosqlite` support stays.
 
 ### 10.1 Container fixtures
 
-- Add root `conftest.py` with session-scoped `postgres_url`, `mysql_url`, and `mariadb_url`
-  fixtures.
+- Add session-scoped `postgres_url`, `mysql_url`, and `mariadb_url` fixtures in the
+  `agentbox-models` and `agentbox-api` test `conftest.py` files. Pytest roots at each package's
+  `pyproject.toml`, so a repo-root conftest is not loaded for package-scoped runs.
 - Images: `postgres:16`, `mysql:8.0`, `mariadb:11`.
 - Build async URLs from container host/port/credentials rather than relying on
   vendor-specific sync drivers.
