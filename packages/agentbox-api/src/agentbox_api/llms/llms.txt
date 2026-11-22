@@ -4,6 +4,25 @@
 
 Agentbox exposes a JSON HTTP API rooted at this server's origin. An **agent** is a configuration (model, instructions, tools, modes); a **session** is a live instance of that configuration on a project directory. Every path below is relative to this origin. Exact request and response schemas are in [openapi.json](/openapi.json).
 
+## Getting started
+
+- [Authentication](/llms/authentication.md): obtain a bearer token or API key, and understand 401/403 and scopes.
+- [Quickstart](/llms/quickstart.md): create a project, agent configuration, and session, then send the first message.
+
+## Core concepts
+
+- [Agents](/llms/agents.md): create and edit agent configurations, tools, modes, skills, and A2A cards.
+- [Sessions](/llms/sessions.md): session lifecycle, history, attachments, files, plan, and LSP state.
+- [Streaming](/llms/streaming.md): the AG-UI server-sent-event contract and cancellation.
+
+## Protocols
+
+- [Protocols](/llms/protocols.md): A2A over HTTP, ACP over stdio, and MCP tool binding.
+
+## Reference
+
+- [API reference](/llms/reference.md): every route with its permission and purpose, plus error handling.
+
 ## Optional
 
 - [OpenAPI document](/openapi.json): machine-readable schema for all documented endpoints.

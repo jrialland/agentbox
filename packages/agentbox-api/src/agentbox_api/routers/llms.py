@@ -19,6 +19,26 @@ def _markdown(name: str) -> Response:
     )
 
 
+SECTION_FILES = frozenset(
+    {
+        "authentication.md",
+        "quickstart.md",
+        "agents.md",
+        "sessions.md",
+        "streaming.md",
+        "protocols.md",
+        "reference.md",
+    }
+)
+
+
 @router.get("/llms.txt")
 async def llms_index() -> Response:
     return _markdown("llms.txt")
+
+
+@router.get("/llms/{filename}")
+async def llms_section(filename: str) -> Response:
+    if filename not in SECTION_FILES:
+        raise HTTPException(status_code=404, detail="Not found")
+    return _markdown(filename)
