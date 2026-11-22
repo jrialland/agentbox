@@ -158,7 +158,7 @@ async def delete_project(
             .all()
         )
     for sid in session_ids:
-        await delete_session_data(factory, sid)
+        await delete_session_data(factory, sid, request.app.state.media_store)
     await ProjectRepository(factory).delete(pid)
     logger.info("project deleted project={}", pid)
     return {"ok": True}

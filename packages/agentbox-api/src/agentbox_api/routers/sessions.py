@@ -30,6 +30,7 @@ from agentbox_models.repos.message_log import DatabaseMessageLogStore
 from agentbox_models.repos.project_roots import load_extra_roots
 from agentbox_models.tables.core import (
     Agent,
+    MediaFile,
     PlanItem,
     Project,
     SessionAttachment,
@@ -168,7 +169,7 @@ async def delete_session(
         ).scalars().first()
     if row is None:
         raise HTTPException(status_code=404, detail="Not found")
-    await delete_session_data(factory, sid)
+    await delete_session_data(factory, sid, request.app.state.media_store)
     return {"ok": True}
 
 
@@ -234,17 +235,44 @@ async def upload_attachment(
     _=Depends(require_permission("sessions:create")),
 ):
     data = await file.read()
-    row = SessionAttachment(
-        id=uuid.uuid4().hex,
-        session_id=sid,
-        media_type=file.content_type or "application/octet-stream",
-        filename=file.filename or "file",
-        data=data,
+    media_store = request.app.state.media_store
+    filename = file.filename or "file"
+    media_type = file.content_type or "application/octet-stream"
+    stored = media_store.save(
+        data,
+        category="attachments",
+        media_type=media_type,
+        suffix=pathlib.Path(filename).suffix[:16],
     )
-    async with request.app.state.session_factory() as s:
-        s.add(row)
-        await s.commit()
-    return AttachmentRead(id=row.id, media_type=row.media_type, filename=row.filename)
+    media_id = uuid.uuid4().hex
+    attachment_id = uuid.uuid4().hex
+    try:
+        async with request.app.state.session_factory() as s:
+            s.add(
+                MediaFile(
+                    id=media_id,
+                    storage_path=stored.storage_path,
+                    media_type=stored.media_type,
+                    size_bytes=stored.size_bytes,
+                    sha256=stored.sha256,
+                )
+            )
+            await s.flush()
+            s.add(
+                SessionAttachment(
+                    id=attachment_id,
+                    session_id=sid,
+                    file_id=media_id,
+                    filename=filename,
+                )
+            )
+            await s.commit()
+    except Exception:
+        media_store.delete(stored.storage_path)
+        raise
+    return AttachmentRead(
+        id=attachment_id, media_type=stored.media_type, filename=filename
+    )
 
 
 @router.get("/{sid}/attachments/{aid}")
@@ -256,11 +284,16 @@ async def download_attachment(
 ):
     async with request.app.state.session_factory() as s:
         row = await s.get(SessionAttachment, aid)
-    if row is None or row.session_id != sid:
+        media = await s.get(MediaFile, row.file_id) if row is not None else None
+    if row is None or row.session_id != sid or media is None:
         raise HTTPException(status_code=404, detail="Not found")
+    try:
+        data = request.app.state.media_store.read(media.storage_path)
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Not found") from None
     return Response(
-        content=row.data,
-        media_type=row.media_type,
+        content=data,
+        media_type=media.media_type,
         headers={"Content-Disposition": f'inline; filename="{row.filename}"'},
     )
 
@@ -455,20 +488,29 @@ async def chat(
         async with factory() as s:
             arows = (
                 await s.execute(
-                    select(SessionAttachment).where(
+                    select(SessionAttachment, MediaFile)
+                    .join(MediaFile, MediaFile.id == SessionAttachment.file_id)
+                    .where(
                         SessionAttachment.id.in_(attachment_ids)  # ty: ignore[missing-attribute]
                     )
                 )
-            ).scalars().all()
-        binary = [BinaryContent(data=a.data, media_type=a.media_type) for a in arows]
-        user_attachments = [
-            {
-                "id": attachment.id,
-                "filename": attachment.filename,
-                "media_type": attachment.media_type,
-            }
-            for attachment in arows
-        ]
+            ).all()
+        media_store = request.app.state.media_store
+        for attachment, media in arows:
+            try:
+                data = media_store.read(media.storage_path)
+            except FileNotFoundError:
+                raise HTTPException(
+                    status_code=404, detail="Attachment file missing"
+                ) from None
+            binary.append(BinaryContent(data=data, media_type=media.media_type))
+            user_attachments.append(
+                {
+                    "id": attachment.id,
+                    "filename": attachment.filename,
+                    "media_type": media.media_type,
+                }
+            )
 
     prefix = []
     if body.skill:

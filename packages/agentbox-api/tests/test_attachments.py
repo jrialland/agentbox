@@ -11,9 +11,10 @@ from agentbox_models.tables.auth import (
     User,
     UserRoleLink,
 )
+from agentbox_models.tables.core import Agent, Model, Project, Provider, SessionRow
 
 
-async def _make_app(perms: list[str]):
+async def _make_app(perms: list[str], tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
@@ -30,11 +31,24 @@ async def _make_app(perms: list[str]):
             s.add(Permission(id=f"p{i}_u1", name=p))
             s.add(RolePermissionLink(role_id="r_u1", permission_id=f"p{i}_u1"))
         s.add(UserRoleLink(user_id="u1", role_id="r_u1"))
+        s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
+        s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
+        s.add(Agent(id="ag", name="bot", description="", instructions="", model_id="m"))
+        s.add(Project(id="prj", name="p", path=".", owner_id="u1"))
+        await s.flush()
+        s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
         await s.commit()
-    app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)
+    media_dir = tmp_path / "media"
+    app = create_app(
+        Settings(jwt_secret="s" * 32, media_dir=str(media_dir)),
+        engine=engine,
+        session_factory=factory,
+    )
     transport = httpx.ASGITransport(app=app)
     client = httpx.AsyncClient(transport=transport, base_url="http://test")
-    return engine, client
+    return engine, client, media_dir
 
 
 async def _login(client) -> str:
@@ -42,8 +56,8 @@ async def _login(client) -> str:
     return r.json()["access_token"]
 
 
-async def test_upload_attachment():
-    engine, client = await _make_app(["sessions:create"])
+async def test_upload_attachment(tmp_path):
+    engine, client, media_dir = await _make_app(["sessions:create"], tmp_path)
     try:
         token = await _login(client)
         r = await client.post(
@@ -56,13 +70,16 @@ async def test_upload_attachment():
         assert body["id"]
         assert body["filename"] == "note.txt"
         assert body["media_type"] == "text/plain"
+        assert any((media_dir / "attachments").iterdir())
     finally:
         await client.aclose()
         await engine.dispose()
 
 
-async def test_download_attachment_returns_bytes_and_headers():
-    engine, client = await _make_app(["sessions:create", "sessions:read"])
+async def test_download_attachment_returns_bytes_and_headers(tmp_path):
+    engine, client, _media_dir = await _make_app(
+        ["sessions:create", "sessions:read"], tmp_path
+    )
     try:
         token = await _login(client)
         upload = await client.post(

@@ -15,12 +15,11 @@ from agentbox_harness.tools.web import WebToolbox, WebToolConfig
 from agentbox_models.repos.agents import AgentRepository
 from agentbox_models.tables.core import (
     Agent,
+    MediaFile,
     Model,
-    PlanItem,
     Provider,
     SessionAttachment,
     SessionRow,
-    TurnRow,
 )
 from agentbox_providers.resolver import resolve_model
 
@@ -140,8 +139,8 @@ async def resolve_agent_runtime(factory, agent_name: str) -> AgentRuntime:
     )
 
 
-async def delete_session_data(factory, session_id: str) -> None:
-    """Delete a session's turns, attachments, and row."""
+async def delete_session_data(factory, session_id: str, media_store) -> None:
+    """Delete a session's rows, child sessions, and media files."""
     from agentbox_api.project_instructions import clear_instruction_state
     from agentbox_api.subagent_sessions import cancel_subagent_sessions
     from agentbox_harness.tools.mcp_session import get_mcp_session_manager
@@ -162,29 +161,32 @@ async def delete_session_data(factory, session_id: str) -> None:
             ).scalars().all()
         ]
     for child_id in child_ids:
-        await delete_session_data(factory, child_id)
+        await delete_session_data(factory, child_id, media_store)
+
+    paths: list[str] = []
     async with factory() as s:
-        for turn in (
-            await s.execute(select(TurnRow).where(TurnRow.session_id == session_id))
-        ).scalars().all():
-            await s.delete(turn)
-        for attachment in (
+        attachments = (
             await s.execute(
                 select(SessionAttachment).where(
                     SessionAttachment.session_id == session_id
                 )
             )
-        ).scalars().all():
+        ).scalars().all()
+        file_ids = [attachment.file_id for attachment in attachments]
+        media_rows = []
+        if file_ids:
+            media_rows = (
+                await s.execute(select(MediaFile).where(MediaFile.id.in_(file_ids)))
+            ).scalars().all()
+        paths = [media.storage_path for media in media_rows]
+        for attachment in attachments:
             await s.delete(attachment)
-        for item in (
-            await s.execute(
-                select(PlanItem).where(PlanItem.session_id == session_id)
-            )
-        ).scalars().all():
-            await s.delete(item)
-        row = (
-            await s.execute(select(SessionRow).where(SessionRow.id == session_id))
-        ).scalars().first()
+        await s.flush()
+        for media in media_rows:
+            await s.delete(media)
+        row = await s.get(SessionRow, session_id)
         if row is not None:
             await s.delete(row)
         await s.commit()
+    for path in paths:
+        media_store.delete(path)

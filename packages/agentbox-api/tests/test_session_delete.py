@@ -2,6 +2,7 @@ import httpx
 
 from agentbox_api.app import create_app
 from agentbox_api.config import Settings
+from agentbox_api.media import MediaStore
 from agentbox_api.security import hash_password
 from agentbox_models.db import create_engine_and_sessionmaker, init_db
 from agentbox_models.tables.auth import (
@@ -13,6 +14,7 @@ from agentbox_models.tables.auth import (
 )
 from agentbox_models.tables.core import (
     Agent,
+    MediaFile,
     Model,
     Project,
     Provider,
@@ -22,9 +24,13 @@ from agentbox_models.tables.core import (
 )
 
 
-async def test_session_delete_removes_everything():
+async def test_session_delete_removes_everything(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
+    media_dir = tmp_path / "media"
+    stored = MediaStore(media_dir).save(
+        b"x", category="attachments", media_type="text/plain", suffix=".txt"
+    )
     async with factory() as s:
         s.add(
             User(id="u1", username="alice", email="a@x", password_hash=hash_password("pw"))
@@ -34,19 +40,34 @@ async def test_session_delete_removes_everything():
         s.add(RolePermissionLink(role_id="r1", permission_id="p0"))
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="mm"))
+        await s.flush()
         s.add(Agent(id="ag", name="a", description="", instructions="", model_id="m"))
         s.add(Project(id="prj", name="p", path=".", owner_id="u1"))
+        await s.flush()
         s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
         s.add(TurnRow(id="t1", session_id="s1", role="user", content="hi"))
         s.add(
+            MediaFile(
+                id="f1",
+                storage_path=stored.storage_path,
+                media_type=stored.media_type,
+                size_bytes=stored.size_bytes,
+                sha256=stored.sha256,
+            )
+        )
+        await s.flush()
+        s.add(
             SessionAttachment(
-                id="a1", session_id="s1", media_type="text/plain", filename="f", data=b"x"
+                id="a1", session_id="s1", file_id="f1", filename="f"
             )
         )
         await s.commit()
     app = create_app(
-        Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory
+        Settings(jwt_secret="s" * 32, media_dir=str(media_dir)),
+        engine=engine,
+        session_factory=factory,
     )
     client = httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
@@ -63,12 +84,14 @@ async def test_session_delete_removes_everything():
             assert await s.get(SessionRow, "s1") is None
             assert await s.get(TurnRow, "t1") is None
             assert await s.get(SessionAttachment, "a1") is None
+            assert await s.get(MediaFile, "f1") is None
+        assert not any((media_dir / "attachments").iterdir())
     finally:
         await client.aclose()
         await engine.dispose()
 
 
-async def test_project_delete_removes_only_its_sessions():
+async def test_project_delete_removes_only_its_sessions(tmp_path):
     engine, factory = create_engine_and_sessionmaker("sqlite+aiosqlite:///:memory:")
     await init_db(engine)
     async with factory() as s:
@@ -80,17 +103,23 @@ async def test_project_delete_removes_only_its_sessions():
         s.add(RolePermissionLink(role_id="r1", permission_id="p0"))
         s.add(UserRoleLink(user_id="u1", role_id="r1"))
         s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
         s.add(Model(id="m", provider_id="prov", name="mm"))
+        await s.flush()
         s.add(Agent(id="ag", name="a", description="", instructions="", model_id="m"))
         s.add(Project(id="keep", name="keep", path=".", owner_id="u1"))
         s.add(Project(id="gone", name="gone", path=".", owner_id="u1"))
+        await s.flush()
         s.add(SessionRow(id="s-keep", project_id="keep", agent_id="ag"))
         s.add(SessionRow(id="s-gone", project_id="gone", agent_id="ag"))
+        await s.flush()
         s.add(TurnRow(id="t-keep", session_id="s-keep", role="user", content="hi"))
         s.add(TurnRow(id="t-gone", session_id="s-gone", role="user", content="bye"))
         await s.commit()
     app = create_app(
-        Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory
+        Settings(jwt_secret="s" * 32, media_dir=str(tmp_path / "media")),
+        engine=engine,
+        session_factory=factory,
     )
     client = httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://test"
