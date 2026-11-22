@@ -46,7 +46,7 @@ export function renderCover(model: ReportModel): string {
 export function renderCoordinates(model: ReportModel): string {
   const git = model.project.git;
   const rows: Array<[string, string]> = [
-    ["Repository root", escapeHtml(git.root.replace(/^[A-Za-z]:\\Users\\[^\\]+/i, "~"))],
+    ["Repository root", escapeHtml(git.root.replace(/^[A-Za-z]:[\\/]Users[\\/][^\\/]+/i, "~"))],
     ["Remote", escapeHtml(git.remoteUrl ?? "none")],
     ["Branch", escapeHtml(git.branch)],
     ["HEAD", escapeHtml(git.headSha)],
@@ -227,7 +227,7 @@ function renderSection(
     <h2>${title}</h2>
     <p class="muted">${description}</p>
     ${banner}
-    <div class="card"><div class="summary">${renderDonut(SEVERITIES.map((severity) => ({ severity, count: summary.severityCounts[severity] })), { label: title })}${renderSeverityLegend(summary.severityCounts)}</div></div>
+    <div class="card"><div class="summary">${renderDonut(SEVERITIES.map((severity) => ({ severity, count: summary.severityCounts[severity] })), { label: section === "sca" ? "SCA" : "SAST" })}${renderSeverityLegend(summary.severityCounts)}</div></div>
     ${tools.map((tool) => renderToolBlock(tool, section)).join("")}
     ${section === "sca" ? renderMaintenance(model.tools) : ""}
     ${section === "sca" ? renderFixSuggestions(summary.findings) : ""}
