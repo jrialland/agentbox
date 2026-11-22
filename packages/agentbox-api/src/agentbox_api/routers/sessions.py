@@ -2,6 +2,7 @@ import asyncio
 import os
 import pathlib
 import uuid
+from datetime import UTC, datetime
 
 from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, UploadFile
 from loguru import logger
@@ -35,7 +36,6 @@ from agentbox_models.tables.core import (
     Project,
     SessionAttachment,
     SessionRow,
-    TurnRow,
 )
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
@@ -188,36 +188,37 @@ class MessageRead(BaseModel):
 async def list_messages(
     sid: str, request: Request, _=Depends(require_permission("sessions:read"))
 ):
-    async with request.app.state.session_factory() as s:
-        rows = (
-            await s.execute(select(TurnRow).where(TurnRow.session_id == sid))
-        ).scalars().all()
-    by_id = {r.id: r for r in rows}
-    parent_ids = {r.parent_id for r in rows if r.parent_id}
-    leaves = [r for r in rows if r.id not in parent_ids]
+    store = DatabaseMessageLogStore(request.app.state.session_factory, sid)
+    turns = await store.list_turns()
+    by_id = {turn.id: turn for turn in turns}
+    parent_ids = {turn.parent_id for turn in turns if turn.parent_id}
+    leaves = [turn for turn in turns if turn.id not in parent_ids]
     if not leaves:
         return []
-    leaf = max(leaves, key=lambda r: (r.created_at.isoformat() if r.created_at else ""))
+    leaf = max(
+        leaves,
+        key=lambda turn: turn.created_at or datetime.min.replace(tzinfo=UTC),
+    )
     chain = []
-    cur = leaf
-    while cur is not None:
-        chain.append(cur)
-        if cur.role == "summary" or cur.parent_id is None:
+    current = leaf
+    while current is not None:
+        chain.append(current)
+        if current.role == "summary" or current.parent_id is None:
             break
-        cur = by_id.get(cur.parent_id)
+        current = by_id.get(current.parent_id)
     chain.reverse()
     return [
         MessageRead(
-            id=r.id,
-            role=r.role,
-            content=r.content,
-            parent_id=r.parent_id,
-            created_at=r.created_at.isoformat() if r.created_at else "",
-            context_tokens=r.context_tokens,
-            activity=r.activity,
-            attachments=r.attachments,
+            id=turn.id,
+            role=turn.role,
+            content=turn.content,
+            parent_id=turn.parent_id,
+            created_at=turn.created_at.isoformat() if turn.created_at else "",
+            context_tokens=turn.context_tokens,
+            activity=turn.activity,
+            attachments=turn.attachments,
         )
-        for r in chain
+        for turn in chain
     ]
 
 

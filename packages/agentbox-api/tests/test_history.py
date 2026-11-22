@@ -13,7 +13,14 @@ from agentbox_models.tables.auth import (
     User,
     UserRoleLink,
 )
-from agentbox_models.tables.core import TurnRow
+from agentbox_models.tables.core import (
+    Agent,
+    Model,
+    Project,
+    Provider,
+    SessionRow,
+    TurnRow,
+)
 
 
 async def _make_app(perms: list[str]):
@@ -28,6 +35,14 @@ async def _make_app(perms: list[str]):
             s.add(Permission(id=f"p{i}_u1", name=p))
             s.add(RolePermissionLink(role_id="r_u1", permission_id=f"p{i}_u1"))
         s.add(UserRoleLink(user_id="u1", role_id="r_u1"))
+        s.add(Provider(id="prov", name="test", kind="test"))
+        await s.flush()
+        s.add(Model(id="m", provider_id="prov", name="test-model"))
+        await s.flush()
+        s.add(Agent(id="ag", name="bot", description="", instructions="", model_id="m"))
+        s.add(Project(id="prj", name="p", path=".", owner_id="u1"))
+        await s.flush()
+        s.add(SessionRow(id="s1", project_id="prj", agent_id="ag"))
         await s.commit()
     app = create_app(Settings(jwt_secret="s" * 32), engine=engine, session_factory=factory)
     transport = httpx.ASGITransport(app=app)
