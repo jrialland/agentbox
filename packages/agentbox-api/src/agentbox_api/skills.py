@@ -52,6 +52,12 @@ _BUILTIN = pathlib.Path(__file__).parent / "skills_builtin"
 
 @dataclass
 class Skill:
+    """A discovered Agent Skill and where it came from.
+
+    ``location`` points at the skill's ``SKILL.md`` and ``scope`` records which
+    layer supplied it (``builtin``, ``user``, ``project``, or ``plugin``).
+    """
+
     name: str
     description: str
     location: pathlib.Path
@@ -81,6 +87,20 @@ def discover_skills(
     user_dir: str,
     extra_skills: list[Skill] | None = None,
 ) -> list[Skill]:
+    """Discover skills from builtin, user, project, and plugin scopes.
+
+    Later scopes win: builtin, then user, then project, then explicitly supplied
+    plugin skills override earlier definitions with the same name. This fixed
+    precedence lets a project or plugin shadow a bundled skill.
+
+    Args:
+        project_root: Project directory containing ``.agents/skills``.
+        user_dir: User-level skills directory.
+        extra_skills: Plugin-provided skills applied last.
+
+    Returns:
+        The merged skills, one per name.
+    """
     scopes = {
         "builtin": _scan(_BUILTIN, "builtin"),
         "user": _scan(pathlib.Path(user_dir).expanduser(), "user"),
@@ -99,6 +119,18 @@ def discover_skills(
 
 
 def catalog_instructions(skills: list[Skill]) -> str:
+    """Render the system-prompt catalog describing available skills.
+
+    Regular skills are rendered from their directories by the skills library,
+    while plugin skills are listed by namespaced name so the model knows how to
+    activate them.
+
+    Args:
+        skills: Discovered skills to describe.
+
+    Returns:
+        The catalog text, or an empty string when there are no skills.
+    """
     if not skills:
         return ""
     regular = [s for s in skills if s.scope != "plugin"]
@@ -123,6 +155,15 @@ def catalog_instructions(skills: list[Skill]) -> str:
 
 
 def augment_spec(spec: AgentSpec, skills: list[Skill]) -> AgentSpec:
+    """Append the skill catalog and the ``activate_skill`` tool to a spec.
+
+    Args:
+        spec: Agent configuration to extend.
+        skills: Discovered skills; when empty the spec is returned unchanged.
+
+    Returns:
+        A copy of ``spec`` with catalog instructions and the activation tool.
+    """
     if not skills:
         return spec
     return spec.model_copy(
@@ -145,6 +186,14 @@ def _strip_frontmatter(text: str) -> str:
 
 
 def render_skill(skill: Skill) -> str:
+    """Render a skill's body plus its directory and resource listing.
+
+    Args:
+        skill: Skill to render.
+
+    Returns:
+        The ``<skill_content>`` block passed back to the model on activation.
+    """
     base = skill.location.parent
     body = _strip_frontmatter(skill.location.read_text(encoding="utf-8"))
     resources = sorted(
@@ -160,6 +209,14 @@ def render_skill(skill: Skill) -> str:
 
 
 def make_activate_tool(skills: list[Skill]) -> Callable:
+    """Build the ``activate_skill`` tool bound to the discovered skills.
+
+    Args:
+        skills: Skills the tool may activate, keyed by name.
+
+    Returns:
+        An async callable taking a skill name and returning its rendered body.
+    """
     by_name = {s.name: s for s in skills}
 
     async def activate_skill(name: str) -> str:
@@ -177,6 +234,13 @@ def make_activate_tool(skills: list[Skill]) -> Callable:
 
 @dataclass
 class PreparedAgent:
+    """Everything needed to run a session for an Agent configuration.
+
+    Bundles the resolved runtime, the augmented spec and registry, the
+    discovered skills, and the subagent/plugin wiring produced by
+    :func:`prepare_agent`.
+    """
+
     runtime: AgentRuntime
     spec: AgentSpec
     registry: ToolRegistry
@@ -223,6 +287,35 @@ async def prepare_agent(
     plugins_data_dir: str | None = None,
     subagent_session_depth: int = 0,
 ) -> PreparedAgent:
+    """Resolve and fully prepare an Agent configuration for a session.
+
+    Combines the resolved runtime with skills, rendered instructions, plugin
+    tools/hooks, plan and LSP tools, the tool registry, and a subagent-session
+    runner. Plugin skills are injected as the highest-precedence discovery
+    layer, so they override same-named builtin/user/project skills.
+
+    Args:
+        factory: Async session factory used for DB lookups.
+        agent_name: Agent configuration to prepare.
+        project_root: Project directory the session runs against.
+        user_dir: User-level skills directory.
+        user_name: Optional username override for templating.
+        session_id: Session id when preparing a live session.
+        session_mode: Mode name passed to prompt templating.
+        media_max_dimension: Maximum image dimension for media reads.
+        media_max_bytes: Maximum image size for media reads.
+        web_config: Web tool configuration.
+        extra_roots: Extra writable roots, resolved relative to the project.
+        compaction: Compaction config; defaults when omitted.
+        context_editing: Optional context-editing config.
+        project_id: Project id used to scope plugin resolution.
+        plugins_user_dir: User-level plugin directory.
+        plugins_data_dir: Plugin data directory.
+        subagent_session_depth: Current subagent nesting depth.
+
+    Returns:
+        The prepared :class:`PreparedAgent`.
+    """
     runtime = await resolve_agent_runtime(factory, agent_name)
     resolved_extra = _resolve_extra_roots(project_root, extra_roots)
     plugin_skills: list[Skill] = []

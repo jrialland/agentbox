@@ -1,3 +1,12 @@
+"""Persist agent configurations and their tool, plugin, and mode bindings.
+
+An agent configuration is stored as one ``Agent`` row plus child binding and
+mode rows. ``AgentRepository`` owns its transactions: each public method opens a
+session from the injected factory and commits its own writes. The private
+binding helpers instead operate on a caller-owned session so a save or load
+stays within a single transaction.
+"""
+
 import uuid
 
 from loguru import logger
@@ -220,10 +229,33 @@ async def _load_modes(session, agent_id: str) -> list[Mode]:
 
 
 class AgentRepository:
+    """Load and persist agent configurations and their binding rows.
+
+    Instances are bound to a session factory. Each public method opens a short
+    session, commits its own writes, and never leaves a transaction open for the
+    caller.
+    """
+
     def __init__(self, session_factory):
         self._factory = session_factory
 
     async def save(self, spec: AgentSpec) -> AgentSpec:
+        """Insert or update an agent configuration by name.
+
+        Resolves the model from ``spec.model_label`` when present, otherwise from
+        ``spec.model_binding.model``. An existing row with the same name is
+        updated in place, and its tool, plugin, and mode bindings are replaced
+        wholesale.
+
+        Args:
+            spec: Agent configuration to persist.
+
+        Returns:
+            A copy of ``spec`` with the resolved model binding and canonical label.
+
+        Raises:
+            ValueError: If the label or model name does not resolve to a model.
+        """
         async with self._factory() as s:
             label = canonical_label(spec.model_label) if spec.model_label else None
             if label:
@@ -259,6 +291,9 @@ class AgentRepository:
             row.model_id = model.id
             row.model_label = label
             s.add(row)
+            # Flush first so a newly created agent row has an id before the
+            # child binding and mode rows reference it. The commit below closes
+            # the transaction after every child row is written.
             await s.flush()
             await _save_bindings(s, row.id, spec.tool_bindings)
             await _save_plugin_bindings(
@@ -277,6 +312,21 @@ class AgentRepository:
         )
 
     async def load(self, name: str) -> AgentSpec | None:
+        """Load an agent configuration by name.
+
+        Prefers the row's model label when set and otherwise falls back to the
+        stored model id. Bindings and modes are reconstructed in their persisted
+        order.
+
+        Args:
+            name: Agent configuration name.
+
+        Returns:
+            The reconstructed spec, or ``None`` when no row matches.
+
+        Raises:
+            ValueError: If the row references a model that cannot be resolved.
+        """
         async with self._factory() as s:
             row = (
                 await s.execute(select(Agent).where(Agent.name == name))
@@ -311,6 +361,18 @@ class AgentRepository:
             )
 
     async def list(self) -> list[AgentSpec]:
+        """Return every agent configuration.
+
+        Each row is reloaded through :meth:`load`. Listing raises ``ValueError``
+        when an entry's model cannot be resolved; :meth:`load` returns ``None``
+        only when the row itself is missing.
+
+        Returns:
+            Agent configurations in unspecified order.
+
+        Raises:
+            ValueError: If an agent's model or label cannot be resolved.
+        """
         async with self._factory() as s:
             rows = (await s.execute(select(Agent))).scalars().all()
         specs: list[AgentSpec] = []
@@ -321,6 +383,20 @@ class AgentRepository:
         return specs
 
     async def delete(self, name: str) -> None:
+        """Delete an agent configuration by name.
+
+        Missing names are ignored. Tool, plugin, and mode binding rows and the
+        cached ``AgentCard`` row are removed by foreign-key cascade when the
+        commit lands. Deleting an agent still referenced by a session instead
+        raises ``IntegrityError`` because ``SessionRow.agent_id`` uses
+        ``RESTRICT``.
+
+        Args:
+            name: Agent configuration name.
+
+        Raises:
+            IntegrityError: If a session still references the agent.
+        """
         async with self._factory() as s:
             row = (
                 await s.execute(select(Agent).where(Agent.name == name))

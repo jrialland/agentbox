@@ -1,3 +1,12 @@
+"""Discover and load agent plugins from global and project directories.
+
+A plugin contributes a validated ``plugin.json`` manifest plus optional
+``skills``, ``mcp.json`` servers, and ``hooks.json`` hooks. Loaders are read-only
+and treat plugin content as untrusted: paths are confined to the plugin root,
+unknown manifest fields are ignored with warnings, and component failures are
+collected as issues instead of aborting discovery.
+"""
+
 from __future__ import annotations
 
 import json
@@ -73,6 +82,8 @@ _MCP_SERVER_VALIDATOR = Draft202012Validator(
 
 @dataclass(frozen=True)
 class PluginIssue:
+    """A problem encountered while loading a plugin component."""
+
     severity: IssueSeverity
     component: str
     message: str
@@ -80,6 +91,8 @@ class PluginIssue:
 
 @dataclass(frozen=True)
 class PluginManifest:
+    """Validated metadata from a plugin's ``plugin.json``."""
+
     schema: str
     name: str
     root: pathlib.Path
@@ -95,6 +108,8 @@ class PluginManifest:
 
 @dataclass(frozen=True)
 class PluginSkill:
+    """A validated skill shipped inside a plugin."""
+
     name: str
     description: str
     location: pathlib.Path
@@ -102,11 +117,14 @@ class PluginSkill:
 
     @property
     def scoped_name(self) -> str:
+        """Return the ``plugin:skill`` name used to avoid collisions."""
         return f"{self.plugin_name}:{self.name}"
 
 
 @dataclass(frozen=True)
 class PluginMcpServer:
+    """A normalized MCP server declaration from ``mcp.json``."""
+
     name: str
     transport: str
     command: str = ""
@@ -119,6 +137,12 @@ class PluginMcpServer:
 
 @dataclass(frozen=True)
 class LoadedPlugin:
+    """A discovered plugin with its parsed components and issues.
+
+    ``manifest`` is ``None`` when the manifest was missing or invalid; other
+    components may still carry issues while remaining usable.
+    """
+
     manifest: PluginManifest | None
     root: pathlib.Path
     scope: PluginScope
@@ -138,6 +162,7 @@ def _load_manifest(
 ) -> PluginManifest | None:
     path = root / "plugin.json"
     try:
+        # The manifest path is untrusted; confine it to the plugin root.
         _ensure_inside(root, path)
         raw = json.loads(path.read_text(encoding="utf-8"))
     except ValueError:
@@ -159,6 +184,8 @@ def _load_manifest(
 
     normalized: dict[str, Any] = {}
     for key, value in raw.items():
+        # Unknown fields are dropped rather than failing the plugin, so newer
+        # manifests remain loadable on older servers.
         if key not in _KNOWN_MANIFEST_FIELDS:
             issues.append(
                 PluginIssue("warning", "manifest", f"unknown field {key!r}")
@@ -217,6 +244,8 @@ def _load_skills(
         if not entry.is_dir() or not skill_md.is_file():
             continue
         try:
+            # Confirm the SKILL.md itself stays inside the plugin before
+            # handing the directory to the skills validator.
             _ensure_inside(root, skill_md)
             errors = validate(entry)
         except Exception as exc:
@@ -285,6 +314,8 @@ def _build_mcp_server(
     transport = entry["type"]
     if transport == "stdio":
         command = entry["command"]
+        # Only bare executables or plugin-relative ``./`` commands are allowed,
+        # keeping spawned processes tied to the plugin.
         if command.startswith("./"):
             command = str(_ensure_inside(root, root / command[2:]))
         elif "/" in command or "\\" in command:
@@ -297,6 +328,7 @@ def _build_mcp_server(
         env: dict[str, str] = {}
         for key, value in entry.get("env", {}).items():
             if key in _RESERVED_ENV:
+                # Runtime-provided variables must not be spoofed by plugins.
                 raise ValueError(f"reserved environment variable: {key}")
             env[key] = _expand(value, root, data_root)
         cwd = _resolve_cwd(entry.get("cwd", ""), root, data_root)
@@ -333,6 +365,7 @@ def _load_mcp(
         issues.append(PluginIssue("warning", "mcp", "mcp.json is not a file"))
         return ()
     try:
+        # mcp.json is untrusted; confine it to the plugin root.
         _ensure_inside(root, path)
     except ValueError:
         issues.append(
@@ -365,6 +398,12 @@ def _load_mcp(
 
 
 class PluginCatalog:
+    """Load plugins from a user-global directory and a project directory.
+
+    The catalog only reads and validates plugin content; enablement state lives
+    in :class:`~agentbox_api.plugin_service.PluginService`.
+    """
+
     def __init__(self, user_dir: str, data_dir: str):
         self.user_dir = pathlib.Path(user_dir).expanduser()
         self.data_dir = pathlib.Path(data_dir).expanduser()
@@ -372,6 +411,18 @@ class PluginCatalog:
     def discover(
         self, project_root: str, project_id: str | None
     ) -> list[LoadedPlugin]:
+        """Discover global and project plugins for a project.
+
+        Global plugins are listed first, then project plugins; the service layer
+        resolves same-name collisions by shadowing the global plugin.
+
+        Args:
+            project_root: Project root containing ``.agents/plugins``.
+            project_id: Project identifier recorded on project-scoped plugins.
+
+        Returns:
+            Plugins in stable scan order, including invalid ones with issues.
+        """
         project_root_path = pathlib.Path(project_root).expanduser().resolve()
         plugins = self._scan(self.user_dir, "global", None)
         plugins.extend(

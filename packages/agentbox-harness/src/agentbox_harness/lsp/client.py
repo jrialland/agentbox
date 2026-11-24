@@ -1,3 +1,11 @@
+"""Spawn and talk to a single language server over JSON-RPC.
+
+:class:`LspServer` owns the subprocess, the framed stdin/stdout transport, the
+initialize/shutdown handshake, document synchronization, and diagnostic waits.
+All network-facing methods are async; process spawning and shutdown are the
+operations that touch subprocesses directly.
+"""
+
 import asyncio
 import contextlib
 import json
@@ -32,12 +40,28 @@ def _exec_command(command):
 
 @dataclass(frozen=True)
 class WriteBaseline:
+    """Counters captured at a document write, used to ignore stale results.
+
+    Attributes:
+        generation: Diagnostic publish generation for the document.
+        busy_seq: Server-status busy counter when the write was recorded.
+        status_seq: Total server-status notification counter at write time.
+    """
+
     generation: int
     busy_seq: int
     status_seq: int
 
 
 class LspServer:
+    """A subprocess-backed language server speaking LSP over stdio.
+
+    The server starts lazily via :meth:`start`, keeps a bounded LRU of open
+    documents, and correlates JSON-RPC responses with pending requests by id.
+    Diagnostic waits combine a first-change timeout, a settle window, and
+    optional server-reported quiescence; see :meth:`wait_for_diagnostics`.
+    """
+
     def __init__(
         self,
         command,
@@ -95,9 +119,20 @@ class LspServer:
 
     @property
     def documents(self) -> int:
+        """Return the number of documents currently open on the server."""
         return len(self._versions)
 
     async def start(self):
+        """Spawn the server, perform initialization, and mark it ready.
+
+        This async method creates the subprocess and its reader tasks, sends
+        ``initialize`` with client capabilities, then sends ``initialized``.
+        Initialization is bounded by ``initialize_timeout``. On any failure the
+        process is terminated and the exception is re-raised.
+
+        Returns:
+            This server instance, now ready for document synchronization.
+        """
         self._state = "starting"
         try:
             self.process = await asyncio.create_subprocess_exec(
@@ -110,6 +145,8 @@ class LspServer:
             self._reader = asyncio.create_task(self._read_loop())
             self._stderr_reader = asyncio.create_task(self._stderr_loop())
             self._root_uri = self.root.as_uri().rstrip("/") + "/"
+            # Advertise push diagnostics always, pull diagnostics when enabled,
+            # and the experimental server-status extension for quiescence.
             capabilities: dict = {
                 "textDocument": {"publishDiagnostics": {}}
             }
@@ -144,6 +181,7 @@ class LspServer:
     async def _terminate(self):
         if self.process and self.process.returncode is None:
             with contextlib.suppress(ProcessLookupError):
+                # A missing process means it already exited; nothing to kill.
                 self.process.terminate()
         for task in (self._reader, self._stderr_reader):
             if task is not None:
@@ -154,6 +192,9 @@ class LspServer:
             raise RuntimeError("LSP server is not running")
         data = json.dumps(message).encode("utf-8")
         async with self._write_lock:
+            # LSP framing: a Content-Length header, a blank line, then the
+            # UTF-8 JSON body. The lock serializes concurrent writes so frames
+            # never interleave on stdin.
             self.process.stdin.write(
                 f"Content-Length: {len(data)}\r\n\r\n".encode() + data
             )
@@ -163,6 +204,8 @@ class LspServer:
         await self._send({"jsonrpc": "2.0", "method": method, "params": params})
 
     async def _request(self, method, params, timeout=None):
+        # Requests carry a unique id and register a future before sending, so a
+        # response arriving immediately in the reader loop can correlate back.
         self._next_id += 1
         rid = self._next_id
         future = asyncio.get_running_loop().create_future()
@@ -179,12 +222,15 @@ class LspServer:
                 future, timeout or self.max_wait
             )
         except TimeoutError:
+            # Drop the pending future so a late response is ignored.
             self._pending.pop(rid, None)
             raise
 
     async def _read_message(self):
         reader = self.process.stdout  # ty: ignore[missing-union-attribute]
         length = None
+        # Read header lines until the blank separator, then read exactly
+        # Content-Length bytes. EOF (an empty line) means the server exited.
         while True:
             line = await reader.readline()  # ty: ignore[missing-union-attribute]
             if not line:
@@ -198,10 +244,14 @@ class LspServer:
         if length is None:
             raise ValueError("Missing Content-Length")
         if length > MAX_MESSAGE_BYTES:
+            # Refuse oversized frames rather than allocating unbounded memory.
             raise ValueError(f"LSP message too large: {length}")
         return json.loads(await reader.readexactly(length))  # ty: ignore[missing-union-attribute]
 
     async def _handle_server_request(self, message):
+        # Server-initiated requests (configuration, workspace folders, edits,
+        # and progress) get lightweight stub responses; unknown methods return
+        # JSON-RPC "method not found" so the server is never left blocked.
         method = message.get("method")
         if method == "workspace/configuration":
             result = [{} for _ in message.get("params", {}).get("items", [])]
@@ -244,6 +294,8 @@ class LspServer:
                 event.set()
 
     def _record_publish(self, key: pathlib.Path, published: list) -> None:
+        # Each publish bumps the generation so waiters can distinguish results
+        # produced after their write baseline from stale earlier ones.
         self._diagnostics[key] = published
         self._publish_gen[key] = self._publish_gen.get(key, 0) + 1
         self._wake(key)
@@ -255,8 +307,12 @@ class LspServer:
                 if message is None:
                     break
                 if "id" in message and "method" in message:
+                    # id + method means a server-initiated request, not a
+                    # response to one of ours.
                     await self._handle_server_request(message)
                 elif "id" in message:
+                    # Correlate the response id with the future registered by
+                    # _request; a missing entry is a late reply after timeout.
                     future = self._pending.pop(message["id"], None)
                     if future and not future.done():
                         if "error" in message:
@@ -343,6 +399,8 @@ class LspServer:
         self._open_order[target] = None
 
     async def _enforce_doc_limit(self) -> None:
+        # _open_order is a least-recently-used queue: drop and close documents
+        # from the front once the configured limit is exceeded.
         while len(self._open_order) > self.doc_limit:
             target, _ = self._open_order.popitem(last=False)
             await self._notify(
@@ -361,6 +419,21 @@ class LspServer:
     async def sync_document(
         self, path: str, language: str, *, save: bool = False
     ) -> int:
+        """Push the current on-disk text of a document to the server.
+
+        Sends ``didOpen`` the first time a path is seen and ``didChange`` on
+        later synchronizations, always under a lock so versions increase
+        monotonically. The write baseline is recorded before notifying so later
+        diagnostic waits can ignore stale publishes.
+
+        Args:
+            path: File path to synchronize.
+            language: LSP language id for ``didOpen``.
+            save: When true, follow the change with a ``didSave`` notification.
+
+        Returns:
+            Diagnostic publish generation captured at the write baseline.
+        """
         target = pathlib.Path(path).resolve()
         async with self._sync_lock:
             text = target.read_text(encoding="utf-8")
@@ -398,6 +471,11 @@ class LspServer:
             return baseline.generation
 
     async def save_document(self, path: str):
+        """Send a ``didSave`` notification for an already open document.
+
+        Args:
+            path: File path to announce as saved.
+        """
         target = pathlib.Path(path).resolve()
         async with self._sync_lock:
             await self._notify(
@@ -406,6 +484,13 @@ class LspServer:
             )
 
     async def close_document(self, path: str):
+        """Close an open document and drop its cached diagnostic state.
+
+        Closing is a no-op for paths the server never opened.
+
+        Args:
+            path: File path to close.
+        """
         target = pathlib.Path(path).resolve()
         async with self._sync_lock:
             if target not in self._versions:
@@ -427,6 +512,28 @@ class LspServer:
         max_wait: float | None = None,
         quiescence: bool | None = None,
     ) -> list[dict]:
+        """Wait for diagnostics that reflect the latest write to a document.
+
+        When server-status quiescence is configured, the wait first learns the
+        server's baseline, then waits for a quiescent status that is also after
+        a new publish or busy transition. Otherwise it waits for the first
+        publish after ``since_gen`` and then for a settle window of silence.
+        Any path that times out returns the last cached diagnostics, so this
+        method is bounded by ``max_wait``.
+
+        Args:
+            path: Document path to await.
+            since_gen: Publish generation to treat as stale; defaults to the
+                last write baseline for the path.
+            first: Seconds to wait for the first diagnostic change.
+            settle: Seconds of quiet required before returned results are
+                considered stable.
+            max_wait: Overall deadline for the wait.
+            quiescence: Override whether to use server-status quiescence.
+
+        Returns:
+            The most recent diagnostics seen for the path, possibly cached.
+        """
         target = pathlib.Path(path).resolve()
         def cached():
             return self._diagnostics.get(target, [])
@@ -472,6 +579,9 @@ class LspServer:
         )
         try:
             if quiescence_configured and not use_quiescence:
+                # Before the first status notification arrives, briefly probe
+                # for quiescence support while still returning early on a new
+                # publish so notifications-only servers stay responsive.
                 status_deadline = min(deadline, loop.time() + first)
                 while loop.time() < status_deadline:
                     event.clear()
@@ -548,6 +658,9 @@ class LspServer:
                     await asyncio.wait_for(event.wait(), min(remaining, 0.05))
             last_gen = self._publish_gen.get(target, 0)
             stable_since = loop.time()
+            # Non-quiescence path: after the first publish, reset the stability
+            # clock on every new generation and return once it stays quiet for
+            # the settle window.
             while True:
                 event.clear()
                 gen = self._publish_gen.get(target, 0)
@@ -582,6 +695,19 @@ class LspServer:
             )
 
     async def diagnostics(self, path: str) -> list[dict]:
+        """Collect diagnostics for a path using pull or push as available.
+
+        Pull-capable servers are queried directly; an ``unchanged`` result
+        reuses the cached report. Otherwise the method waits for a publish
+        after the last write baseline and returns an empty list when no fresh
+        publish arrived, so stale results are not attributed to a new edit.
+
+        Args:
+            path: Document path to analyze.
+
+        Returns:
+            Raw LSP diagnostic dictionaries for the path.
+        """
         target = pathlib.Path(path).resolve()
         uri = target.as_uri()
         try:
@@ -602,6 +728,7 @@ class LspServer:
                 baseline is not None
                 and self._publish_gen.get(target, 0) <= baseline.generation
             ):
+                # No publish since the write: any cached report is stale.
                 return []
             return result
         except TimeoutError:
@@ -615,6 +742,7 @@ class LspServer:
             return self._diagnostics.get(target, [])
 
     def health(self) -> dict:
+        """Return a small status dictionary for managers and health endpoints."""
         return {
             "stack": self.stack_name,
             "state": self._state,
@@ -625,12 +753,21 @@ class LspServer:
         }
 
     async def stop(self):
+        """Shut the server down gracefully, then terminate it if needed.
+
+        The LSP shutdown order is a ``shutdown`` request, an ``exit``
+        notification, then a bounded wait for the process. If any step fails or
+        times out the process is terminated directly, and reader tasks are
+        always cancelled so no background task outlives the server.
+        """
         if self.process and self.process.returncode is None:
             try:
                 await self._request("shutdown", None, timeout=2.0)
                 await self._notify("exit", None)
                 await asyncio.wait_for(self.process.wait(), 2.0)
             except Exception:
+                # Graceful shutdown failed (timeout, closed pipe, crash); fall
+                # back to terminating the process.
                 with contextlib.suppress(ProcessLookupError):
                     self.process.terminate()
         for task in (self._reader, self._stderr_reader):

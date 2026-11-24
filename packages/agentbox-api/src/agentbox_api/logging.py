@@ -19,6 +19,15 @@ class InterceptHandler(logging.Handler):
     """Route stdlib logging records into loguru."""
 
     def emit(self, record: logging.LogRecord) -> None:
+        """Forward a stdlib log record to loguru at the matching level.
+
+        Unknown level names fall back to the numeric level, and the caller depth
+        is walked past the stdlib logging frames so loguru reports the original
+        source location.
+
+        Args:
+            record: The stdlib log record being emitted.
+        """
         try:
             level = logger.level(record.levelname).name
         except ValueError:

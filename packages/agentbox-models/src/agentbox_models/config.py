@@ -1,3 +1,13 @@
+"""Resolve database and storage settings for agentbox.
+
+Configuration is layered. Values loaded from ``.env`` are overridden by the real
+process environment; for database settings those environment values in turn
+override an optional ``agentbox.toml`` file. A connection string in
+``DATABASE_URL`` bypasses the individual database fields entirely. The public
+helpers are read-only and safe to call concurrently, and they convert supported
+synchronous SQLAlchemy URLs to async drivers for the runtime.
+"""
+
 from __future__ import annotations
 
 import os
@@ -44,6 +54,15 @@ _ASYNC_DRIVERS = {
 
 
 class DatabaseSettings(BaseModel):
+    """Per-vendor database connection fields.
+
+    Attributes:
+        path: SQLite database file path; ignored for server vendors.
+        url: Full SQLAlchemy URL. When set it takes precedence over the
+            individual fields and is normalized to an async driver.
+        params: Extra query-string parameters appended to a generated URL.
+    """
+
     vendor: DatabaseVendor = "sqlite"
     path: str | None = None
     host: str | None = None
@@ -56,15 +75,21 @@ class DatabaseSettings(BaseModel):
 
 
 class StorageSettings(BaseModel):
+    """Filesystem settings for stored media."""
+
     media_dir: str = DEFAULT_MEDIA_DIR
 
 
 class AgentboxConfig(BaseModel):
+    """Top-level contents of an ``agentbox.toml`` file."""
+
     database: DatabaseSettings = Field(default_factory=DatabaseSettings)
     storage: StorageSettings = Field(default_factory=StorageSettings)
 
 
 def _environ(environ: Mapping[str, str] | None = None) -> dict[str, str]:
+    # An explicit mapping is authoritative; otherwise ``.env`` values are
+    # overlaid by the real process environment so deployment variables win.
     if environ is not None:
         return {key: value for key, value in environ.items() if value is not None}
     values = {
@@ -75,6 +100,18 @@ def _environ(environ: Mapping[str, str] | None = None) -> dict[str, str]:
 
 
 def config_file_path(environ: Mapping[str, str] | None = None) -> Path | None:
+    """Return the TOML config path selected by the environment.
+
+    ``AGENTBOX_CONFIG`` wins when set; otherwise ``agentbox.toml`` is used if it
+    exists in the current working directory.
+
+    Args:
+        environ: Optional environment mapping. When omitted, the real process
+            environment values (including those loaded from ``.env``) are read.
+
+    Returns:
+        The selected path, or ``None`` when no config file is configured.
+    """
     env = _environ(environ)
     explicit = env.get("AGENTBOX_CONFIG")
     if explicit:
@@ -84,6 +121,17 @@ def config_file_path(environ: Mapping[str, str] | None = None) -> Path | None:
 
 
 def load_config_file(path: Path | str | None = None) -> AgentboxConfig:
+    """Load an :class:`AgentboxConfig` from a TOML file.
+
+    Missing files are not an error: when no path is given and none is
+    discovered, an empty config with default settings is returned.
+
+    Args:
+        path: Explicit TOML path. Defaults to :func:`config_file_path`.
+
+    Returns:
+        The parsed configuration, or defaults when no file is found.
+    """
     chosen = Path(path) if path is not None else config_file_path()
     if chosen is None:
         return AgentboxConfig()
@@ -95,6 +143,7 @@ def _apply_database_env(
     settings: DatabaseSettings, environ: Mapping[str, str]
 ) -> DatabaseSettings:
     updates: dict[str, object] = {}
+    # Only non-empty environment values override the TOML-backed settings.
     for env_name, field_name in {
         "DATABASE_VENDOR": "vendor",
         "DATABASE_HOST": "host",
@@ -116,6 +165,19 @@ def resolve_database_settings(
     config: AgentboxConfig | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> DatabaseSettings:
+    """Apply ``DATABASE_*`` environment overrides to database settings.
+
+    Environment values take precedence over the TOML-backed ``config``. This
+    helper is read-only.
+
+    Args:
+        config: Configuration to start from. Loaded from disk when omitted.
+        environ: Optional environment mapping; the real environment when
+            omitted.
+
+    Returns:
+        A copy of the database settings with overrides applied.
+    """
     env = _environ(environ)
     base = (config or load_config_file()).database
     return _apply_database_env(base, env)
@@ -124,6 +186,8 @@ def resolve_database_settings(
 def _mariadb_drivername() -> str:
     from sqlalchemy.dialects import registry
 
+    # The MariaDB async dialect is optional; fall back to the MySQL-compatible
+    # driver when it is not installed so MariaDB URLs still work.
     try:
         registry.load("mariadb+aiomysql")
     except Exception:
@@ -132,6 +196,19 @@ def _mariadb_drivername() -> str:
 
 
 def build_database_url(database: DatabaseSettings) -> str:
+    """Build an async SQLAlchemy URL from per-field database settings.
+
+    A ``database.url`` value short-circuits field-based construction and is only
+    normalized to an async driver. Otherwise the vendor selects the driver, and
+    omitted server fields fall back to localhost, the vendor's default port, and
+    database name ``agentbox``.
+
+    Args:
+        database: Database fields to render into a URL.
+
+    Returns:
+        A rendered SQLAlchemy URL with the password included.
+    """
     if database.url:
         return normalize_async_url(database.url)
     if database.vendor == "sqlite":
@@ -158,6 +235,19 @@ def resolve_database_url(
     config: AgentboxConfig | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> str:
+    """Resolve the final async database URL.
+
+    ``DATABASE_URL`` from the environment overrides all other database
+    settings. Otherwise the URL is built from :func:`resolve_database_settings`.
+
+    Args:
+        config: Base configuration. Loaded from disk when omitted.
+        environ: Optional environment mapping; the real environment when
+            omitted.
+
+    Returns:
+        The resolved SQLAlchemy URL using an async driver.
+    """
     env = _environ(environ)
     explicit = env.get("DATABASE_URL")
     if explicit:
@@ -169,6 +259,19 @@ def resolve_media_dir(
     config: AgentboxConfig | None = None,
     environ: Mapping[str, str] | None = None,
 ) -> str:
+    """Resolve the media directory path.
+
+    ``MEDIA_DIR`` from the environment overrides the configured storage
+    directory.
+
+    Args:
+        config: Base configuration. Loaded from disk when omitted.
+        environ: Optional environment mapping; the real environment when
+            omitted.
+
+    Returns:
+        The configured or overridden media directory path.
+    """
     env = _environ(environ)
     explicit = env.get("MEDIA_DIR")
     if explicit:
@@ -177,6 +280,18 @@ def resolve_media_dir(
 
 
 def normalize_async_url(database_url: str) -> str:
+    """Convert a synchronous SQLAlchemy URL to an async driver URL.
+
+    URLs that already use an async driver are returned unchanged, and unknown
+    drivers are left untouched so custom dialects keep working. Known sync
+    spellings are rewritten to the bundled async driver.
+
+    Args:
+        database_url: SQLAlchemy URL to normalize.
+
+    Returns:
+        The normalized URL, with the password preserved.
+    """
     parsed = make_url(database_url)
     driver = parsed.drivername.lower()
     if driver in _ASYNC_DRIVERS:

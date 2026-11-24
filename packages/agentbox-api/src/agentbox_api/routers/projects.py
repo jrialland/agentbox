@@ -1,3 +1,10 @@
+"""Project endpoints.
+
+A project names a workspace directory that sessions run against. Paths are
+validated against the server's filesystem, and deleting a project also removes
+its sessions and their stored data.
+"""
+
 import uuid
 from datetime import datetime
 
@@ -17,6 +24,12 @@ router = APIRouter(prefix="/projects", tags=["projects"])
 
 
 class ProjectCreate(BaseModel):
+    """Request body for creating a project.
+
+    ``path`` must be an existing directory on the server, and every
+    ``extra_roots`` entry must be an absolute existing directory.
+    """
+
     name: str
     path: str
     extra_roots: list[str] = []
@@ -38,6 +51,8 @@ class ProjectCreate(BaseModel):
 
 
 class ProjectUpdate(BaseModel):
+    """Request body that updates a project's name or extra roots."""
+
     name: str | None = None
     extra_roots: list[str] | None = None
 
@@ -53,6 +68,8 @@ class ProjectUpdate(BaseModel):
 
 
 class ProjectRead(BaseModel):
+    """A project and its workspace paths."""
+
     id: str
     name: str
     path: str
@@ -76,6 +93,14 @@ def _read(project: Project, extra_roots: list[str]) -> ProjectRead:
 async def create_project(
     body: ProjectCreate, request: Request, _=Depends(require_permission("projects:create"))
 ):
+    """Create a project owned by the caller.
+
+    Requires the ``projects:create`` permission. Invalid names or paths fail
+    validation with 422.
+
+    Returns:
+        The created project.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         project = Project(
@@ -96,6 +121,13 @@ async def create_project(
 
 @router.get("", response_model=list[ProjectRead])
 async def list_projects(request: Request, _=Depends(require_permission("projects:read"))):
+    """List all projects.
+
+    Requires the ``projects:read`` permission.
+
+    Returns:
+        Every project with its extra roots.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         projects = list((await s.execute(select(Project))).scalars().all())
@@ -109,6 +141,13 @@ async def list_projects(request: Request, _=Depends(require_permission("projects
 async def get_project(
     pid: str, request: Request, _=Depends(require_permission("projects:read"))
 ):
+    """Get one project by id.
+
+    Requires the ``projects:read`` permission.
+
+    Returns:
+        The project, or 404 when it does not exist.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         project = await s.get(Project, pid)
@@ -125,6 +164,14 @@ async def update_project(
     request: Request,
     _=Depends(require_permission("projects:create")),
 ):
+    """Update a project's name or extra roots.
+
+    Requires the ``projects:create`` permission. When ``extra_roots`` is sent it
+    replaces the existing set and is validated like creation.
+
+    Returns:
+        The updated project, or 404 when it does not exist.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         project = await s.get(Project, pid)
@@ -146,6 +193,14 @@ async def update_project(
 async def delete_project(
     pid: str, request: Request, _=Depends(require_permission("projects:delete"))
 ):
+    """Delete a project together with its sessions and stored data.
+
+    Requires the ``projects:delete`` permission. Deleting a missing project is a
+    no-op.
+
+    Returns:
+        ``{"ok": True}``.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         session_ids = list(

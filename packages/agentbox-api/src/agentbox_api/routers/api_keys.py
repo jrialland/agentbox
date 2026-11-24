@@ -1,3 +1,10 @@
+"""API-key management endpoints for the authenticated user.
+
+API keys authenticate programmatic clients and carry their own scope set. The
+plaintext secret is returned only once, at creation; later reads expose metadata
+but never the key itself.
+"""
+
 import secrets
 import uuid
 from datetime import UTC, datetime
@@ -16,11 +23,19 @@ router = APIRouter(prefix="/api-keys", tags=["api-keys"])
 
 
 class ApiKeyCreate(BaseModel):
+    """Request body for creating an API key.
+
+    ``scopes`` must be a subset of the caller's own scopes, and ``expires_at``
+    must be a future timestamp when set.
+    """
+
     scopes: list[str] = []
     expires_at: datetime | None = None
 
 
 class ApiKeyRead(BaseModel):
+    """Stored API-key metadata without the secret."""
+
     id: str
     scopes: list[str]
     expires_at: datetime | None = None
@@ -29,6 +44,11 @@ class ApiKeyRead(BaseModel):
 
 
 class ApiKeyCreated(ApiKeyRead):
+    """A newly created API key.
+
+    ``key`` is the plaintext secret and is returned only in this response.
+    """
+
     key: str
 
 
@@ -58,6 +78,15 @@ async def create_api_key(
     request: Request,
     _=Depends(require_permission("api_keys:manage")),
 ):
+    """Create an API key for the authenticated user.
+
+    Requires the ``api_keys:manage`` permission. Requested scopes are
+    deduplicated and must not exceed the caller's own scopes (400 otherwise);
+    an ``expires_at`` in the past is rejected with 400.
+
+    Returns:
+        The new key metadata together with its plaintext secret.
+    """
     scopes = list(dict.fromkeys(body.scopes))
     caller = set(request.auth.scopes) if request.auth is not None else set()
     disallowed = [s for s in scopes if s not in caller]
@@ -87,6 +116,14 @@ async def create_api_key(
 async def list_api_keys(
     request: Request, _=Depends(require_permission("api_keys:manage"))
 ):
+    """List the authenticated user's API keys.
+
+    Requires the ``api_keys:manage`` permission. Only keys owned by the caller
+    are returned, including revoked ones.
+
+    Returns:
+        Key metadata without secrets.
+    """
     async with request.app.state.session_factory() as s:
         rows = (
             await s.execute(
@@ -100,10 +137,20 @@ async def list_api_keys(
 async def revoke_api_key(
     kid: str, request: Request, _=Depends(require_permission("api_keys:manage"))
 ):
+    """Revoke one of the authenticated user's API keys.
+
+    Requires the ``api_keys:manage`` permission. Revoking an already-revoked key
+    is harmless. Keys owned by other users are reported as missing.
+
+    Returns:
+        ``{"ok": True}``, or 404 when the key does not belong to the caller.
+    """
     async with request.app.state.session_factory() as s:
         row = (
             await s.execute(select(ApiKey).where(ApiKey.id == kid))
         ).scalars().first()
+        # Ownership is enforced here; a foreign key looks missing rather than
+        # forbidden so callers cannot enumerate other users' keys.
         if row is None or row.user_id != request.user.identity:
             raise HTTPException(status_code=404, detail="Not found")
         if row.revoked_at is None:

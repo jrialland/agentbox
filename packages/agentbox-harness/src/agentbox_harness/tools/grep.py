@@ -1,3 +1,10 @@
+"""Grep implementation shared by the filesystem and grep tools.
+
+Walks a root without following symlinks, skips common build and version-control
+directories, and guards each file with byte-size and binary checks before
+matching.
+"""
+
 from __future__ import annotations
 
 import fnmatch
@@ -27,6 +34,12 @@ DEFAULT_EXCLUDED_DIRS = {
 
 @dataclass(frozen=True)
 class GrepOptions:
+    """Inputs for :func:`run_grep`, including match, filter, and size limits.
+
+    ``project_root`` is used only to render shorter display paths for matches
+    inside the project.
+    """
+
     pattern: str
     root: pathlib.Path
     project_root: pathlib.Path
@@ -42,10 +55,12 @@ class GrepOptions:
 
 
 def _clip(text: str, limit: int) -> str:
+    """Shorten a line to ``limit`` characters, adding an ellipsis."""
     return text if len(text) <= limit else text[: max(limit - 1, 0)] + "…"
 
 
 def _display_path(path: pathlib.Path, project_root: pathlib.Path) -> str:
+    """Return a path relative to the project root when possible."""
     try:
         return path.resolve().relative_to(project_root.resolve()).as_posix()
     except ValueError:
@@ -53,6 +68,7 @@ def _display_path(path: pathlib.Path, project_root: pathlib.Path) -> str:
 
 
 def _matches(rel: str, name: str, patterns: tuple[str, ...]) -> bool:
+    """Return whether a relative path or file name matches any glob pattern."""
     return any(
         fnmatch.fnmatch(rel, pattern) or fnmatch.fnmatch(name, pattern)
         for pattern in patterns
@@ -60,6 +76,7 @@ def _matches(rel: str, name: str, patterns: tuple[str, ...]) -> bool:
 
 
 def _selected(path: pathlib.Path, root: pathlib.Path, options: GrepOptions) -> bool:
+    """Apply include and exclude patterns to a candidate file."""
     rel = path.relative_to(root).as_posix()
     if options.include and not _matches(rel, path.name, options.include):
         return False
@@ -67,6 +84,7 @@ def _selected(path: pathlib.Path, root: pathlib.Path, options: GrepOptions) -> b
 
 
 def _iter_files(options: GrepOptions) -> tuple[list[pathlib.Path], bool]:
+    """Collect candidate files under the root and report walk truncation."""
     if options.root.is_file():
         return [options.root], False
     files: list[pathlib.Path] = []
@@ -74,6 +92,8 @@ def _iter_files(options: GrepOptions) -> tuple[list[pathlib.Path], bool]:
     for dirpath, dirnames, filenames in os.walk(
         options.root, followlinks=False
     ):
+        # Prune excluded directories before descending to avoid walking
+        # dependency and build trees.
         dirnames[:] = sorted(
             name
             for name in dirnames
@@ -101,10 +121,12 @@ def _iter_files(options: GrepOptions) -> tuple[list[pathlib.Path], bool]:
 def _read_lines(
     path: pathlib.Path, options: GrepOptions
 ) -> list[str] | None:
+    """Read a file as lines, or return ``None`` for large, binary, or unreadable files."""
     try:
         if path.stat().st_size > options.max_file_bytes:
             return None
         with path.open("rb") as handle:
+            # A NUL byte in the first chunk is treated as a binary-file signal.
             head = handle.read(8192)
             if b"\x00" in head:
                 return None
@@ -115,6 +137,22 @@ def _read_lines(
 
 
 def run_grep(options: GrepOptions) -> str:
+    """Search files under a root and return formatted match lines.
+
+    Matches are emitted as ``path:line:column:text`` and context lines as
+    ``path-line-text``. Truncation, skipped files, and empty results are
+    reported as trailing notes instead of raising.
+
+    Args:
+        options: Pattern, root, filters, and limits for the search.
+
+    Returns:
+        Newline-joined matches with explanatory notes, or ``No matches.``.
+
+    Raises:
+        ValueError: If the pattern is empty, the regex is invalid, or context
+            lines exceed the supported maximum.
+    """
     if not options.pattern.strip():
         raise ValueError("pattern must not be empty")
     if not 0 <= options.context_lines <= MAX_GREP_CONTEXT_LINES:

@@ -1,3 +1,9 @@
+"""Serve ``llms.txt`` guidance documents for LLM-facing API consumers.
+
+These routes are excluded from the OpenAPI schema. They return static Markdown
+bundled with the API package.
+"""
+
 import pathlib
 
 from fastapi import APIRouter, HTTPException, Response
@@ -34,11 +40,21 @@ SECTION_FILES = frozenset(
 
 @router.get("/llms.txt")
 async def llms_index() -> Response:
+    """Return the ``llms.txt`` index describing the API for LLM clients.
+
+    Returns:
+        The Markdown index, or 404 when the bundled file is missing.
+    """
     return _markdown("llms.txt")
 
 
 @router.get("/llms/{filename}")
 async def llms_section(filename: str) -> Response:
+    """Return one named ``llms.txt`` section.
+
+    Returns:
+        The Markdown section, or 404 for an unknown section name.
+    """
     if filename not in SECTION_FILES:
         raise HTTPException(status_code=404, detail="Not found")
     return _markdown(filename)

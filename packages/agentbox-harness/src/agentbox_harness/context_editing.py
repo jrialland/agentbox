@@ -1,3 +1,10 @@
+"""Clear stale tool results and attachments to reduce prompt tokens.
+
+Context editing runs as a history processor: once estimated tokens exceed a
+trigger budget, older tool results, optionally tool inputs, and binary
+attachments are replaced with placeholders until the target budget is met.
+"""
+
 from __future__ import annotations
 
 import json
@@ -21,6 +28,13 @@ CLEARED_MARKER = "context_editing"
 
 @dataclass(frozen=True)
 class ContextEditingConfig:
+    """Tunables for the context-editing history processor.
+
+    ``trigger_tokens`` is the absolute token budget and ``trigger_ratio`` caps
+    it against the model context window. Editing stops at ``target_ratio`` of
+    the trigger, always keeping the newest tool results and messages.
+    """
+
     enabled: bool = True
     trigger_tokens: int = 100_000
     trigger_ratio: float = 0.8
@@ -38,6 +52,8 @@ class ContextEditingConfig:
 
 @dataclass(frozen=True)
 class ContextEditingStats:
+    """Outcome counters from one context-editing pass."""
+
     triggered: bool
     before_tokens: int
     after_tokens: int
@@ -81,6 +97,17 @@ def _part_tokens(part: Any) -> int:
 
 
 def estimate_messages_tokens(messages: list[ModelMessage]) -> int:
+    """Estimate the token cost of model messages.
+
+    Counts a small per-message overhead plus per-part content, using roughly
+    four characters per token.
+
+    Args:
+        messages: Model messages to measure.
+
+    Returns:
+        Estimated token count.
+    """
     total = 0
     for message in messages:
         total += 4
@@ -219,6 +246,22 @@ def apply_context_edits(
     trigger_tokens: int,
     config: ContextEditingConfig,
 ) -> tuple[list[ModelMessage], ContextEditingStats]:
+    """Apply context edits when messages exceed the trigger budget.
+
+    Older tool results (and optionally their call arguments) are cleared first,
+    then binary attachments in older user prompts, stopping once estimated cost
+    reaches the target budget. The newest tool results and messages are always
+    retained.
+
+    Args:
+        messages: Model messages for the run.
+        trigger_tokens: Estimated token budget that triggers editing.
+        config: Editing configuration controlling retention and placeholders.
+
+    Returns:
+        The edited messages and stats describing what changed. The input list
+        is returned unchanged when it is under budget or nothing was cleared.
+    """
     before = estimate_messages_tokens(messages)
     if before <= trigger_tokens:
         return messages, ContextEditingStats(
@@ -229,6 +272,8 @@ def apply_context_edits(
         )
 
     edited = list(messages)
+    # Everything from ``recent_start`` onward is retained untouched; only older
+    # messages are eligible for clearing.
     recent_start = max(0, len(edited) - config.keep_recent_messages)
     excluded = set(config.exclude_tools)
     candidates: list[tuple[int, int, ToolReturnPart]] = []
@@ -243,7 +288,9 @@ def apply_context_edits(
             candidates.append((message_index, part_index, part))
 
     keep = max(0, config.keep_tool_results)
+    # The newest tool results are retained; older ones are clearable.
     clearable = candidates[:-keep] if keep else candidates
+    # Stop clearing once usage falls to this fraction of the trigger budget.
     target = max(0, int(trigger_tokens * min(config.target_ratio, 1.0)))
     call_index = _tool_call_index(edited)
     cleared_results = 0
@@ -266,6 +313,8 @@ def apply_context_edits(
             cleared_inputs += 1
         after = estimate_messages_tokens(edited)
 
+    # Binary attachments are cleared only when tool clearing alone did not
+    # reach the target.
     cleared_binary = 0
     if config.clear_binary and after > target:
         cleared_binary, after = _clear_binary_in_user_prompts(
@@ -285,11 +334,26 @@ def apply_context_edits(
 
 
 def make_context_editing_processor(config: ContextEditingConfig):
+    """Create a history processor that applies context editing.
+
+    The processor starts from the configured token budget and lowers it to
+    ``trigger_ratio`` of the model context window when the profile exposes
+    one. Editing failures are logged and the original messages returned.
+
+    Args:
+        config: Context-editing configuration bound to the processor.
+
+    Returns:
+        A callable suitable for pydantic-ai's ``ProcessHistory`` capability.
+    """
+
     def process(
         ctx: RunContext[Any], messages: list[ModelMessage]
     ) -> list[ModelMessage]:
         trigger = max(0, config.trigger_tokens)
         profile = getattr(ctx.model, "profile", None)
+        # Cap the absolute trigger at a fraction of the model window when the
+        # profile reports a window.
         if isinstance(profile, dict):
             window = profile.get("context_window")
             if window:

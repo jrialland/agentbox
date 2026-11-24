@@ -1,3 +1,11 @@
+"""Resolve plugin enablement and the plugin resources a project may use.
+
+Enablement is persisted per scope in ``PluginState`` rows. A project plugin with
+the same name shadows an enabled global plugin. The service also assembles
+enabled skills, roots, and resolved MCP server configuration, creating the
+per-plugin data directory on demand.
+"""
+
 from __future__ import annotations
 
 import pathlib
@@ -35,6 +43,12 @@ def _state_id(plugin_name: str, scope: str, project_id: str | None) -> str:
 
 @dataclass(frozen=True)
 class ResolvedPluginMcp:
+    """A fully resolved MCP server configuration for a plugin server.
+
+    For stdio transports the env includes ``PLUGIN_ROOT``/``PLUGIN_DATA`` and a
+    curated passthrough list; network transports instead carry a URL and headers.
+    """
+
     plugin: str
     server: str
     project_id: str | None
@@ -51,54 +65,72 @@ class ResolvedPluginMcp:
 
 @dataclass(frozen=True)
 class PluginView:
+    """A loaded plugin plus its effective enablement state.
+
+    ``shadowed`` marks a global plugin hidden by an enabled project plugin of
+    the same name; a shadowed plugin is never treated as enabled.
+    """
+
     loaded: LoadedPlugin
     enabled: bool
     shadowed: bool = False
 
     @property
     def name(self) -> str:
+        """Return the manifest name, or the directory name if invalid."""
         if self.loaded.manifest is not None:
             return self.loaded.manifest.name
         return self.loaded.root.name
 
     @property
     def valid(self) -> bool:
+        """Return whether the plugin has a valid manifest."""
         return self.loaded.manifest is not None
 
     @property
     def scope(self) -> str:
+        """Return ``global`` or ``project``."""
         return self.loaded.scope
 
     @property
     def project_id(self) -> str | None:
+        """Return the owning project id for project-scoped plugins."""
         return self.loaded.project_id
 
     @property
     def version(self) -> str:
+        """Return the manifest version, or an empty string if invalid."""
         return self.loaded.manifest.version if self.loaded.manifest else ""
 
     @property
     def description(self) -> str:
+        """Return the manifest description, or an empty string if invalid."""
         return self.loaded.manifest.description if self.loaded.manifest else ""
 
     @property
     def skills(self) -> tuple[PluginSkill, ...]:
+        """Return the plugin's validated skills."""
         return self.loaded.skills
 
     @property
     def mcp_servers(self) -> tuple[PluginMcpServer, ...]:
+        """Return the plugin's normalized MCP servers."""
         return self.loaded.mcp_servers
 
     @property
     def hooks(self) -> tuple[PluginHook, ...]:
+        """Return the plugin's validated hooks."""
         return self.loaded.hooks
 
     @property
     def issues(self) -> tuple[PluginIssue, ...]:
+        """Return issues found while loading the plugin."""
         return self.loaded.issues
 
 
 class PluginService:
+    """Expose discovered plugins with their persisted enablement state."""
+
     def __init__(self, factory, user_dir: str, data_dir: str):
         self.factory = factory
         self.catalog = PluginCatalog(user_dir, data_dir)
@@ -107,6 +139,15 @@ class PluginService:
     async def list_plugins(
         self, project_id: str | None, project_root: str
     ) -> list[PluginView]:
+        """List discovered plugins annotated with effective enablement.
+
+        Args:
+            project_id: Project whose scoped state and plugins apply.
+            project_root: Project root containing project plugins.
+
+        Returns:
+            One view per discovered plugin, including invalid ones.
+        """
         loaded = self.catalog.discover(project_root, project_id)
         state = await self._state_map()
         project_by_name = {
@@ -114,6 +155,8 @@ class PluginService:
             for item in loaded
             if item.scope == "project" and item.manifest is not None
         }
+        # An enabled project plugin shadows a same-name global plugin, so the
+        # global copy is reported as shadowed and never used.
         shadowed_names = {
             name
             for name, item in project_by_name.items()
@@ -150,6 +193,23 @@ class PluginService:
         enabled: bool,
         project_root: str,
     ) -> PluginView:
+        """Persist a plugin's enablement for a scope and return its new view.
+
+        Args:
+            plugin_name: Manifest name of the plugin to toggle.
+            scope: ``global`` or ``project``.
+            project_id: Project id; required for project scope, cleared for
+                global scope.
+            enabled: Desired enablement state.
+            project_root: Project root used to discover the plugin.
+
+        Returns:
+            The updated view for the plugin.
+
+        Raises:
+            ValueError: If the scope is invalid, a project id is missing for
+                project scope, or the plugin is not found or invalid.
+        """
         if scope not in {"global", "project"}:
             raise ValueError(f"invalid plugin scope: {scope}")
         if scope == "project" and not project_id:
@@ -193,6 +253,15 @@ class PluginService:
     async def enabled_plugins(
         self, project_id: str | None, project_root: str
     ) -> list[LoadedPlugin]:
+        """Return enabled, valid plugins after applying shadowing.
+
+        Args:
+            project_id: Project whose scoped state and plugins apply.
+            project_root: Project root containing project plugins.
+
+        Returns:
+            Loaded plugins that are enabled and have a valid manifest.
+        """
         return [
             view.loaded
             for view in await self.list_plugins(project_id, project_root)
@@ -202,6 +271,15 @@ class PluginService:
     async def list_plugin_skills(
         self, project_id: str | None, project_root: str
     ) -> list[PluginSkill]:
+        """Collect skills from all enabled plugins.
+
+        Args:
+            project_id: Project whose scoped state and plugins apply.
+            project_root: Project root containing project plugins.
+
+        Returns:
+            Concatenated skills in plugin discovery order.
+        """
         skills: list[PluginSkill] = []
         for plugin in await self.enabled_plugins(project_id, project_root):
             skills.extend(plugin.skills)
@@ -210,6 +288,15 @@ class PluginService:
     async def plugin_roots(
         self, project_id: str | None, project_root: str
     ) -> list[pathlib.Path]:
+        """Return the root directories of all enabled plugins.
+
+        Args:
+            project_id: Project whose scoped state and plugins apply.
+            project_root: Project root containing project plugins.
+
+        Returns:
+            Root paths in plugin discovery order.
+        """
         return [
             plugin.root
             for plugin in await self.enabled_plugins(project_id, project_root)
@@ -222,6 +309,18 @@ class PluginService:
         project_id: str | None,
         project_root: str,
     ) -> ResolvedPluginMcp | None:
+        """Resolve one enabled plugin's MCP server for use.
+
+        Args:
+            plugin_name: Manifest name of the plugin.
+            server_name: MCP server name declared by the plugin.
+            project_id: Project whose scoped state and plugins apply.
+            project_root: Project root containing project plugins.
+
+        Returns:
+            The resolved server, or ``None`` when the plugin or server is not
+            enabled/available for the project.
+        """
         plugins = await self.enabled_plugins(project_id, project_root)
         plugin = next(
             (
@@ -245,6 +344,8 @@ class PluginService:
         if server is None:
             return None
         data_root = self.data_dir / plugin_name
+        # The data directory is created lazily so disabled plugins leave no
+        # on-disk footprint.
         data_root.mkdir(parents=True, exist_ok=True)
         env = dict(server.env)
         if server.transport == "stdio":

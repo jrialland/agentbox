@@ -1,3 +1,12 @@
+"""Re-export the SQLModel table classes grouped by domain area.
+
+Tables live in the ``auth`` and ``core`` modules; re-exporting them here keeps
+the physical module layout an implementation detail for repositories, the API,
+and tests, which can import every table from ``agentbox_models.tables``.
+"""
+
+# Auth tables (users, roles, permissions, API keys); see ``tables.auth`` for the
+# cascade and UTC timestamp conventions that apply to these rows.
 from agentbox_models.tables.auth import (
     ApiKey,
     ApiKeyScope,
@@ -7,6 +16,9 @@ from agentbox_models.tables.auth import (
     User,
     UserRoleLink,
 )
+
+# Core domain tables (providers, models, Agent configurations, Projects,
+# Sessions, Turns, attachments, plans, and plugins); see ``tables.core``.
 from agentbox_models.tables.core import (
     Agent,
     AgentCard,

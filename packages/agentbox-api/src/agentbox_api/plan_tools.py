@@ -1,3 +1,10 @@
+"""Session-scoped TODO/plan tools backed by ``PlanItem`` rows.
+
+Each tool mutates or reads plan items for a single session, keeping persisted
+``position`` values contiguous and rejecting invalid transitions with
+``ModelRetry`` so the model can correct itself.
+"""
+
 import uuid
 from collections.abc import Callable
 
@@ -21,7 +28,19 @@ MARKS = {"pending": "[ ]", "in_progress": "[~]", "completed": "[x]"}
 
 
 def make_plan_tools(factory, session_id: str) -> dict[str, Callable]:
+    """Build the TODO tool functions bound to one session.
+
+    Args:
+        factory: Async session factory used for each tool call.
+        session_id: Session whose plan items the tools read and mutate.
+
+    Returns:
+        Mapping of tool name to its async implementation.
+    """
+
     async def _load(s):
+        # Position is the persisted ordering; ties are not expected because
+        # every mutation rewrites positions contiguously.
         return (
             await s.execute(
                 select(PlanItem)
@@ -46,6 +65,8 @@ def make_plan_tools(factory, session_id: str) -> dict[str, Callable]:
 
     async def _get(s, item_id: str) -> PlanItem:
         item = await s.get(PlanItem, item_id)
+        # Scope lookups to this session so a model cannot mutate another
+        # session's plan by guessing an id.
         if item is None or item.session_id != session_id:
             raise ModelRetry(f"Unknown TODO id: {item_id}")
         return item
@@ -54,6 +75,7 @@ def make_plan_tools(factory, session_id: str) -> dict[str, Callable]:
         text = _content(content)
         async with factory() as s:
             items = await _load(s)
+            # Append after the current tail so existing positions stay stable.
             position = max((item.position for item in items), default=-1) + 1
             item = PlanItem(
                 id=await _new_id(s),
@@ -97,6 +119,7 @@ def make_plan_tools(factory, session_id: str) -> dict[str, Callable]:
             item = await _get(s, item_id)
             await s.delete(item)
             await s.flush()
+            # Deleting leaves a gap; renumber the survivors contiguously.
             remaining = await _load(s)
             for position, entry in enumerate(remaining):
                 entry.position = position
@@ -109,6 +132,7 @@ def make_plan_tools(factory, session_id: str) -> dict[str, Callable]:
             raise ModelRetry("TODO reorder list contains duplicates.")
         async with factory() as s:
             items = await _load(s)
+            # Require a full permutation so no item silently drops out.
             if {item.id for item in items} != set(item_ids):
                 raise ModelRetry(
                     "TODO reorder must include every current id exactly once."

@@ -1,3 +1,11 @@
+"""Run Agentbox terminal jobs through an ACP client's terminal capability.
+
+This backs the terminal tools when the connected ACP client advertises terminal
+support: commands are created on the client, their output and exit status are
+polled through ACP, and results are translated into the terminal tool's plain
+text format.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -24,6 +32,8 @@ def _capped(text: str, limit: int) -> str:
 
 @dataclass
 class AcpTerminalJob:
+    """Bookkeeping for one command running on the ACP client terminal."""
+
     terminal_id: str
     command: str
     cwd: pathlib.Path
@@ -38,6 +48,8 @@ class AcpTerminalJob:
 
 
 class AcpTerminalTracker:
+    """Track and translate ACP client terminal jobs for the terminal tools."""
+
     def __init__(
         self,
         client,
@@ -63,6 +75,18 @@ class AcpTerminalTracker:
         timeout: int = DEFAULT_TIMEOUT,
         background: bool = False,
     ) -> str:
+        """Create a terminal on the ACP client and run a command.
+
+        Args:
+            command: Shell command line to execute.
+            cwd: Working directory, resolved inside the session sandbox.
+            timeout: Seconds to wait for exit when running in the foreground.
+            background: Return as soon as the terminal is created instead of
+                waiting for the command to exit.
+
+        Returns:
+            A plain-text result describing the job status, duration, and output.
+        """
         text = (command or "").strip()
         if not text:
             return "Command failed: command must not be empty."
@@ -99,6 +123,8 @@ class AcpTerminalTracker:
                 timeout=limit,
             )
         except TimeoutError:
+            # A foreground timeout kills the client terminal, then refreshes and
+            # releases it so no resources linger before reporting the timeout.
             job.timed_out = True
             with contextlib.suppress(Exception):
                 await self._client.kill_terminal(self._session_id, job.terminal_id)
@@ -121,6 +147,8 @@ class AcpTerminalTracker:
         job.signal = exit_response.signal
         await self._refresh(job)
         await self._release(job)
+        # Translate the ACP exit status into tool status: exit code 0 with no
+        # signal is success, anything else is a failure.
         if job.exit_code == 0 and job.signal is None:
             job.status = "completed"
         else:
@@ -174,6 +202,11 @@ class AcpTerminalTracker:
             await self._client.release_terminal(self._session_id, job.terminal_id)
 
     async def list_jobs(self) -> str:
+        """List tracked terminal jobs, refreshing each from the client.
+
+        Returns:
+            A plain-text job summary, newest first, or ``"No jobs."``.
+        """
         jobs = list(self._jobs.values())
         if not jobs:
             return "No jobs."
@@ -195,6 +228,16 @@ class AcpTerminalTracker:
     async def get_job_output(
         self, job_id: str, max_chars: int = DEFAULT_TAIL_CHARS
     ) -> str:
+        """Return a job's status and the trailing part of its output.
+
+        Args:
+            job_id: Terminal id of the job to read.
+            max_chars: Maximum trailing characters to include, clamped to the
+                supported tail range.
+
+        Returns:
+            A plain-text status and output excerpt, or a not-found message.
+        """
         job = self._jobs.get(job_id)
         if job is None:
             return f"Job {job_id} not found."
@@ -210,6 +253,15 @@ class AcpTerminalTracker:
         return "\n".join(lines)
 
     async def kill_job(self, job_id: str) -> str:
+        """Kill a running job on the client and release its terminal.
+
+        Args:
+            job_id: Terminal id of the job to kill.
+
+        Returns:
+            A plain-text confirmation, an already-finished message, or a
+            not-found message.
+        """
         job = self._jobs.get(job_id)
         if job is None:
             return f"Job {job_id} not found."
@@ -223,6 +275,9 @@ class AcpTerminalTracker:
         return f"Killed job {job.terminal_id}."
 
     async def close(self) -> None:
+        """Kill any running jobs and release every tracked terminal."""
+        # Iterate over a snapshot so mutating job state does not affect the loop,
+        # and release each terminal only after it has been killed.
         for job in list(self._jobs.values()):
             if job.status == "running":
                 with contextlib.suppress(Exception):

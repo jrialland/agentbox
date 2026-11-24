@@ -1,3 +1,10 @@
+"""Summarize old session turns when a run approaches the context window.
+
+:class:`CompactionMiddleware` watches the latest reported context usage and,
+once it crosses a configured ratio, replaces older turns with a summary turn
+while retaining the newest turns on the active branch.
+"""
+
 from __future__ import annotations
 
 import uuid
@@ -22,6 +29,13 @@ summary."""
 
 @dataclass(frozen=True)
 class CompactionConfig:
+    """Thresholds controlling when and how aggressively history is compacted.
+
+    ``ratio`` is the fraction of the model context window that triggers
+    compaction, and ``keep_turns`` is the number of newest turns never
+    summarized.
+    """
+
     enabled: bool = True
     ratio: float = 0.8
     keep_turns: int = 4
@@ -64,10 +78,26 @@ def _format_turn(turn: Turn) -> str:
 
 
 class CompactionMiddleware:
+    """Middleware that summarizes older turns to recover context budget.
+
+    ``before_run`` compacts proactively when usage crosses the configured
+    ratio; ``on_context_overflow`` compacts in response to a context-window
+    error.
+    """
+
     def __init__(self, config: CompactionConfig | None = None):
         self.config = config or CompactionConfig()
 
     async def before_run(self, ctx: RunContext) -> None:
+        """Compact before a run when usage is near the context window.
+
+        Compaction is skipped when disabled, when the model profile has no
+        context window, when no assistant turn reports usage, or when a
+        summary already postdates that usage.
+
+        Args:
+            ctx: Run context providing the session history and model.
+        """
         if not self.config.enabled:
             return
         window = ctx.model.profile.get("context_window")
@@ -86,13 +116,37 @@ class CompactionMiddleware:
     async def on_context_overflow(
         self, ctx: RunContext
     ) -> list[ModelMessage] | None:
+        """React to a context-window overflow by compacting history.
+
+        Args:
+            ctx: Run context providing the session history and model.
+
+        Returns:
+            Replacement model messages, or ``None`` when compaction was
+            disabled or produced nothing.
+        """
         if not self.config.enabled:
             return None
         return await self.compact(ctx)
 
     async def compact(self, ctx: RunContext) -> list[ModelMessage] | None:
+        """Summarize older turns and insert a summary turn at the cutoff.
+
+        The newest ``keep_turns`` turns are always retained. Older turns are
+        selected in order until the summarization input budget is exhausted,
+        so the cutoff is the last turn that fits. The summary replaces those
+        turns on the active branch.
+
+        Args:
+            ctx: Run context providing the session history and model.
+
+        Returns:
+            Rebuilt model messages, or ``None`` when there is nothing to
+            compact or summarization failed.
+        """
         history = await ctx.session.history()
         keep = max(0, self.config.keep_turns)
+        # Retain the newest turns; only older turns are summary candidates.
         candidates = history[:-keep] if keep else list(history)
         if not candidates:
             return None
@@ -102,6 +156,8 @@ class CompactionMiddleware:
         if window:
             budget = min(budget, max(1_000, window // 2))
 
+        # Select candidates in order until the summarization budget is spent;
+        # the last selected turn becomes the cutoff.
         selected: list[Turn] = []
         used = 0
         for turn in candidates:
@@ -116,6 +172,7 @@ class CompactionMiddleware:
         cutoff = selected[-1]
         retained_first = history[len(selected)] if len(history) > len(selected) else None
         text = "\n\n".join(_format_turn(turn) for turn in selected)
+        # Truncate oversized input so the summarizer stays within its budget.
         if len(text) > budget * 4:
             text = text[: budget * 4] + "\n\n[truncated]"
 
@@ -130,12 +187,19 @@ class CompactionMiddleware:
             parent_id=cutoff.id,
             created_at=datetime.now(UTC),
         )
+        # Insert the summary at the cutoff; the first retained turn is
+        # reparented under the summary so the branch stays reachable.
         await ctx.session.insert_summary(summary_turn, cutoff.id, retained_first)
         result = turns_to_messages(await ctx.session.history())
         ctx.message_history = result
         return result
 
     async def _summarize(self, model: Model, text: str) -> str | None:
+        """Summarize ``text`` with the compaction system prompt.
+
+        Returns ``None`` when the model returns no output or summarization
+        raises; failures are logged rather than propagated.
+        """
         try:
             agent = Agent(model, system_prompt=SUMMARY_SYSTEM_PROMPT)
             result = await agent.run(text)

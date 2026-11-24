@@ -1,3 +1,9 @@
+"""Seed the local development database with an ``admin`` user.
+
+Creates the user, an ``admin`` role, all permissions, and their links. Writes to
+the configured database through the supplied session factory.
+"""
+
 import uuid
 
 from loguru import logger
@@ -34,6 +40,14 @@ ALL_PERMISSIONS = [
 
 
 async def seed_admin(factory) -> None:
+    """Create the development ``admin`` user and its role when absent.
+
+    Idempotent: returns immediately when an ``admin`` user already exists, so
+    repeated dev-server starts do not duplicate users, roles, or permissions.
+
+    Args:
+        factory: Async session factory bound to the target database.
+    """
     async with factory() as s:
         existing = (
             await s.execute(select(User).where(User.username == "admin"))

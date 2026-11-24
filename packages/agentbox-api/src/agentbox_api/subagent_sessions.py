@@ -1,3 +1,14 @@
+"""Manage subagent sessions spawned by a parent session.
+
+A subagent session is a child session created from a selected Agent
+configuration (the subagent). This module owns the in-process job registry,
+the tool-facing runner that starts/lists/waits/cancels child sessions, and the
+reconciliation helpers used at startup and shutdown. Lifecycle boundaries are
+explicit: starting captures the task and records a running row, completion sets
+the job's ``done`` event, waits observe that event with a bounded timeout, and
+cancellation propagates to descendants before marking rows cancelled.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -40,6 +51,14 @@ OUTPUT_LIMIT = 200_000
 
 @dataclass(frozen=True)
 class SubagentSessionContext:
+    """Immutable configuration shared by every subagent session of a parent.
+
+    Captures the session factory, project and skill roots, model/tool config,
+    and plugin and media options so child sessions inherit the parent's runtime
+    environment. ``depth`` is the current nesting level; children run at
+    ``depth + 1``.
+    """
+
     factory: Any
     project_root: str
     skills_user_dir: str
@@ -57,6 +76,13 @@ class SubagentSessionContext:
 
 @dataclass
 class SubagentSessionJob:
+    """In-process state for one running or finished subagent session.
+
+    The job tracks status, timing, captured output, and the run/task handles
+    needed to cancel it. ``done`` signals job completion (success, failure, or
+    cancellation); setting it is idempotent and is what waiters block on.
+    """
+
     session_id: str
     parent_session_id: str
     subagent: str
@@ -74,6 +100,11 @@ class SubagentSessionJob:
     error: str | None = None
 
     def add_output(self, text: str) -> None:
+        """Append streamed output, trimming the oldest text past the limit.
+
+        Args:
+            text: Contiguous chunk of output text; empty chunks are ignored.
+        """
         if not text:
             return
         self.output.append(text)
@@ -90,6 +121,7 @@ class SubagentSessionJob:
         self.truncated = total >= OUTPUT_LIMIT
 
     def output_text(self) -> str:
+        """Return the currently buffered output joined into one string."""
         return "".join(self.output)
 
 
@@ -202,16 +234,44 @@ def _event_text(event) -> str | None:
 
 
 class SubagentSessionManager:
+    """Registry of live subagent-session jobs keyed by session id.
+
+    The registry is process-local and is the source of truth for cancellation
+    and waiting; persisted rows hold the durable status used after restarts.
+    """
+
     def __init__(self) -> None:
+        """Create an empty registry of subagent-session jobs."""
         self._jobs: dict[str, SubagentSessionJob] = {}
 
     def register(self, job: SubagentSessionJob) -> None:
+        """Register a newly started subagent-session job.
+
+        Args:
+            job: The job to track under its ``session_id``.
+        """
         self._jobs[job.session_id] = job
 
     def get(self, session_id: str) -> SubagentSessionJob | None:
+        """Return the tracked job for ``session_id``, if still registered.
+
+        Args:
+            session_id: Subagent session id to look up.
+
+        Returns:
+            The job, or ``None`` when it is not tracked in this process.
+        """
         return self._jobs.get(session_id)
 
     def children(self, parent_session_id: str) -> list[SubagentSessionJob]:
+        """Return the tracked direct children of ``parent_session_id``.
+
+        Args:
+            parent_session_id: Parent session id whose children to list.
+
+        Returns:
+            Jobs whose ``parent_session_id`` matches.
+        """
         return [
             job
             for job in self._jobs.values()
@@ -219,6 +279,15 @@ class SubagentSessionManager:
         ]
 
     async def wait(self, job: SubagentSessionJob, timeout: int) -> None:
+        """Wait up to ``timeout`` seconds for ``job`` to finish.
+
+        The timeout is clamped to ``[1, 600]`` seconds. A timeout is not an
+        error: the job keeps running and the caller inspects its current state.
+
+        Args:
+            job: Job to wait on.
+            timeout: Maximum seconds to wait, clamped to the allowed range.
+        """
         timeout = max(1, min(600, int(timeout)))
         with contextlib.suppress(TimeoutError):
             await asyncio.wait_for(job.done.wait(), timeout)
@@ -226,6 +295,14 @@ class SubagentSessionManager:
     async def wait_many(
         self, jobs: list[SubagentSessionJob], mode: str, timeout: int
     ) -> None:
+        """Wait for several jobs, either for all or for the first to finish.
+
+        Args:
+            jobs: Jobs to wait on; empty means return immediately.
+            mode: ``"any"`` to stop at the first completion, otherwise wait for
+                all.
+            timeout: Maximum seconds to wait, clamped to ``[1, 600]``.
+        """
         if not jobs:
             return
         timeout = max(1, min(600, int(timeout)))
@@ -236,6 +313,8 @@ class SubagentSessionManager:
                 timeout=timeout,
                 return_when=asyncio.FIRST_COMPLETED,
             )
+            # In "any" mode the remaining waiters are cancelled so their tasks
+            # do not linger after the first job completes.
             for task in pending:
                 task.cancel()
             await asyncio.gather(*pending, return_exceptions=True)
@@ -243,6 +322,15 @@ class SubagentSessionManager:
             await asyncio.gather(*waiters)
 
     def cancel(self, session_id: str) -> None:
+        """Cancel a subagent session and all of its descendants.
+
+        Cancellation is depth-first over tracked children. The job's run and
+        task are cancelled when present, its status becomes ``cancelled`` if it
+        was still running, and ``done`` is set so waiters unblock.
+
+        Args:
+            session_id: Subagent session to cancel; unknown ids are a no-op.
+        """
         job = self._jobs.get(session_id)
         if job is None:
             return
@@ -262,6 +350,7 @@ class SubagentSessionManager:
         job.done.set()
 
     async def shutdown(self) -> None:
+        """Cancel every tracked job and clear the registry."""
         for job in list(self._jobs.values()):
             self.cancel(job.session_id)
         self._jobs.clear()
@@ -271,6 +360,11 @@ _manager: SubagentSessionManager | None = None
 
 
 def get_subagent_session_manager() -> SubagentSessionManager:
+    """Return the process-wide subagent-session manager, creating it lazily.
+
+    Returns:
+        The shared :class:`SubagentSessionManager` singleton.
+    """
     global _manager
     if _manager is None:
         _manager = SubagentSessionManager()
@@ -278,16 +372,37 @@ def get_subagent_session_manager() -> SubagentSessionManager:
 
 
 def reset_subagent_session_manager() -> None:
+    """Drop the process-wide manager so the next lookup builds a fresh one.
+
+    Used by tests and by startup paths that need a clean registry.
+    """
     global _manager
     _manager = None
 
 
 class ApiSubagentSessionRunner:
+    """Tool-facing runner that starts and manages parent-owned child sessions.
+
+    Implements the harness subagent-session runner interface. Every method
+    treats ``parent_session_id`` as the ownership boundary: a child is only
+    visible, waited on, or cancelled through the parent that spawned it.
+    """
+
     def __init__(self, context: SubagentSessionContext):
+        """Bind the runner to a parent's context and the shared manager.
+
+        Args:
+            context: Parent-owned context child sessions inherit from.
+        """
         self._context = context
         self._manager = get_subagent_session_manager()
 
     async def list_agents(self) -> str:
+        """List the Agent configurations available as subagents.
+
+        Returns:
+            A newline-delimited listing, or ``"No agents."`` when none exist.
+        """
         async with self._context.factory() as s:
             rows = (
                 await s.execute(select(Agent).order_by(Agent.name))
@@ -306,6 +421,23 @@ class ApiSubagentSessionRunner:
         task: str,
         wait: bool,
     ) -> str:
+        """Start a subagent session using an Agent configuration.
+
+        Enforces the non-empty task, maximum nesting depth, and the limit on
+        concurrently running children. On success the child session row is
+        created and a task is dispatched; with ``wait`` the call blocks until
+        the job's ``done`` event is set and returns its summary, otherwise it
+        returns immediately with the new session id.
+
+        Args:
+            parent_session_id: Session that owns the new child session.
+            subagent: Name of the Agent configuration to run.
+            task: User message the child session runs with.
+            wait: Whether to block for completion before returning.
+
+        Returns:
+            A status or summary string suitable for returning to the model.
+        """
         text = (task or "").strip()
         if not text:
             return "Subagent session failed: task must not be empty."
@@ -485,6 +617,14 @@ class ApiSubagentSessionRunner:
                 job.add_output(text)
 
     async def list(self, parent_session_id: str) -> str:
+        """List the child sessions spawned by ``parent_session_id``.
+
+        Args:
+            parent_session_id: Parent session whose children to list.
+
+        Returns:
+            A newline-delimited listing, or ``"No subagent sessions."``.
+        """
         rows = await _child_rows(self._context.factory, parent_session_id)
         if not rows:
             return "No subagent sessions."
@@ -521,6 +661,19 @@ class ApiSubagentSessionRunner:
     async def get(
         self, parent_session_id: str, subagent_session_id: str, max_chars: int
     ) -> str:
+        """Return a bounded summary of one child session's output and status.
+
+        Ownership is checked by ``parent_session_id``; a child that does not
+        belong to the parent is reported as not found.
+
+        Args:
+            parent_session_id: Parent session used for the ownership check.
+            subagent_session_id: Child session to summarize.
+            max_chars: Maximum output characters to include (clamped).
+
+        Returns:
+            A formatted summary string.
+        """
         return await self._summary(parent_session_id, subagent_session_id, max_chars)
 
     async def _summary(
@@ -566,6 +719,19 @@ class ApiSubagentSessionRunner:
         return "\n".join(lines)
 
     async def cancel(self, parent_session_id: str, subagent_session_id: str) -> str:
+        """Cancel a child session and its descendants through ``parent_session_id``.
+
+        The child must belong to the parent and still be running. Cancellation
+        signals each tracked job, waits briefly for their tasks, then marks the
+        persisted rows cancelled so state survives the process.
+
+        Args:
+            parent_session_id: Parent session used for the ownership check.
+            subagent_session_id: Child session to cancel.
+
+        Returns:
+            A status string describing the outcome.
+        """
         async with self._context.factory() as s:
             row = await s.get(SessionRow, subagent_session_id)
         if row is None or row.parent_session_id != parent_session_id:
@@ -602,6 +768,20 @@ class ApiSubagentSessionRunner:
     async def wait(
         self, parent_session_id: str, subagent_session_id: str, timeout: int
     ) -> str:
+        """Wait for a single child session, bounded by ``timeout`` seconds.
+
+        Waiting observes the job's ``done`` event; if the job is not running or
+        is not tracked in this process, the current summary is returned
+        immediately.
+
+        Args:
+            parent_session_id: Parent session used for the ownership check.
+            subagent_session_id: Child session to wait on.
+            timeout: Maximum seconds to wait.
+
+        Returns:
+            The child session summary after waiting.
+        """
         async with self._context.factory() as s:
             row = await s.get(SessionRow, subagent_session_id)
         if row is None or row.parent_session_id != parent_session_id:
@@ -618,6 +798,20 @@ class ApiSubagentSessionRunner:
         mode: str,
         timeout: int,
     ) -> str:
+        """Wait for several child sessions and return a summary for each.
+
+        Only running jobs tracked in this process are waited on; the persisted
+        rows of untracked or finished sessions are summarized directly.
+
+        Args:
+            parent_session_id: Parent session used for the ownership check.
+            subagent_session_ids: Child sessions to wait on.
+            mode: ``"all"`` to wait for every job or ``"any"`` for the first.
+            timeout: Maximum seconds to wait.
+
+        Returns:
+            A double-newline separated block per child session.
+        """
         if not subagent_session_ids:
             return "No subagent sessions."
         if mode not in {"all", "any"}:
@@ -647,6 +841,15 @@ class ApiSubagentSessionRunner:
 
 
 async def cancel_subagent_sessions(factory, parent_session_id: str) -> None:
+    """Cancel every descendant subagent session of ``parent_session_id``.
+
+    Used when a parent session is deleted or stopped. Each descendant whose
+    tracked job is live is signalled, then running rows are marked cancelled.
+
+    Args:
+        factory: Async session factory for reading and updating rows.
+        parent_session_id: Root session whose descendants to cancel.
+    """
     manager = get_subagent_session_manager()
     ids = await _descendant_ids(factory, parent_session_id)
     for sid in ids:
@@ -661,10 +864,20 @@ async def cancel_subagent_sessions(factory, parent_session_id: str) -> None:
 
 
 async def shutdown_subagent_sessions() -> None:
+    """Cancel all tracked subagent sessions during application shutdown."""
     await get_subagent_session_manager().shutdown()
 
 
 async def reconcile_running_subagent_sessions(factory) -> None:
+    """Mark rows still recorded as running as failed after a restart.
+
+    In-process jobs do not survive a backend restart, so any persisted
+    ``running`` child status is stale and is reset to ``failed`` with a restart
+    reason.
+
+    Args:
+        factory: Async session factory used to read and update child rows.
+    """
     async with factory() as s:
         rows = (
             await s.execute(

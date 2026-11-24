@@ -1,3 +1,10 @@
+"""Proxy Agentbox filesystem and terminal tools through an ACP client.
+
+When an ACP client advertises filesystem or terminal capabilities, the native
+tools are overridden so reads, writes, and commands execute on the client side
+through the ACP connection instead of the server's local filesystem.
+"""
+
 from __future__ import annotations
 
 import pathlib
@@ -18,12 +25,23 @@ from agentbox_harness.tools.terminal import TERMINAL_TOOL_NAMES
 
 @dataclass(frozen=True)
 class AcpClientCapabilities:
+    """Filesystem and terminal capabilities advertised by an ACP client."""
+
     read_text_file: bool = False
     write_text_file: bool = False
     terminal: bool = False
 
     @classmethod
     def from_sdk(cls, caps: Any) -> AcpClientCapabilities:
+        """Normalize the SDK capability object into this dataclass.
+
+        Args:
+            caps: Client capability object from the ACP ``initialize`` request,
+                or ``None`` when the client sent none.
+
+        Returns:
+            Capabilities with missing or unset fields treated as unsupported.
+        """
         if caps is None:
             return cls()
         fs = getattr(caps, "fs", None)
@@ -36,6 +54,8 @@ class AcpClientCapabilities:
 
 @dataclass
 class AcpClientTools:
+    """Client-bound state used by the proxied filesystem and terminal tools."""
+
     client: acp.Client
     session_id: str
     project_root: str
@@ -44,11 +64,14 @@ class AcpClientTools:
     terminals: AcpTerminalTracker | None = None
 
     async def close(self) -> None:
+        """Release any terminal resources held for this ACP session."""
         if self.terminals is not None:
             await self.terminals.close()
 
 
 def _resolve(path: str, tools: AcpClientTools) -> pathlib.Path | None:
+    # Only paths inside the project or an approved extra root are proxied to the
+    # client; callers fall back to the native tool for anything outside.
     try:
         return resolve_project_path(path, tools.project_root, tools.extra_roots)
     except ValueError:
@@ -66,6 +89,7 @@ def _make_read_text_file(tools: AcpClientTools, original: Callable) -> Callable:
     async def read_text_file(
         path: str, head: int | None = None, tail: int | None = None
     ) -> str:
+        # Reject conflicting windowing arguments before touching the client.
         if head is not None and tail is not None:
             raise ValueError("head and tail are mutually exclusive")
         resolved = _resolve(path, tools)
@@ -191,6 +215,19 @@ def install_acp_client_tools(
     spec: AgentSpec,
     tools: AcpClientTools,
 ) -> None:
+    """Override native tools with ACP-client-backed implementations.
+
+    Only tools present in the agent spec and supported by the client's
+    advertised capabilities are overridden; everything else keeps its native
+    behavior. Read-only tools require the read capability, ``write_file``
+    requires write, append/edit/copy require read and write, and terminal tools
+    require the terminal capability.
+
+    Args:
+        registry: Registry whose native tools may be overridden in place.
+        spec: Parsed agent spec deciding which native tools are active.
+        tools: Client connection and sandbox roots used by the wrappers.
+    """
     names = {
         binding.name
         for binding in spec.tool_bindings

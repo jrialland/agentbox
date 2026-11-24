@@ -1,3 +1,10 @@
+"""Build pydantic-ai agents from an Agent configuration and mode.
+
+The factory resolves native and MCP tools, wraps every native or
+subagent-session tool with a retry guard, and attaches context-editing and
+plugin capabilities before the harness hands the agent to the run manager.
+"""
+
 import functools
 import inspect
 from collections.abc import Callable
@@ -49,6 +56,29 @@ def build_agent(
     context_editing: ContextEditingConfig | None = None,
     plugin_hooks: AbstractCapability | None = None,
 ) -> Agent:
+    """Build the pydantic-ai agent used for one session run.
+
+    Native tools come from the registry filtered by the mode, subagent-session
+    tools are added when the mode allows them, MCP bindings become toolsets,
+    and each tool is wrapped so failures surface to the model as retries.
+
+    Args:
+        spec: Agent configuration providing the name, instructions, and tool
+            bindings.
+        mode: Mode whose flags gate which native tools are eligible.
+        registry: Tool registry used to resolve native tool bindings.
+        model: Model the agent runs against.
+        subagent_session_runner: Optional runner backing the subagent-session
+            tools; tools are omitted when it is unset.
+        session_id: Parent session id exposed to the subagent-session tools.
+        stdio_toolsets: Pre-opened stdio MCP toolsets managed by the harness.
+        context_editing: Optional context-editing configuration; a disabled
+            configuration is ignored.
+        plugin_hooks: Optional capability added after context editing.
+
+    Returns:
+        A configured pydantic-ai :class:`~pydantic_ai.Agent`.
+    """
     native_names: set[str] = set()
     mcp_bindings: list[McpToolBinding] = []
     for binding in spec.tool_bindings:
@@ -63,7 +93,12 @@ def build_agent(
             mode, subagent_session_runner, session_id
         )
     )
+    # Wrap only after native and subagent-session tools are assembled so every
+    # tool shares the same retry guard rather than being wrapped piecemeal.
     tools = [_guard_tool(tool) for tool in tools]
+    # Command-less bindings are always built here. Command-based bindings are
+    # built here only when the caller supplies no managed stdio toolsets;
+    # otherwise they are opened by the caller and arrive via stdio_toolsets.
     toolsets = [
         build_mcp_toolset(b)
         for b in mcp_bindings
@@ -75,6 +110,8 @@ def build_agent(
         capabilities.append(
             ProcessHistory(make_context_editing_processor(context_editing))
         )
+    # Context editing is appended first; plugin hooks follow in registration
+    # order.
     if plugin_hooks is not None:
         capabilities.append(plugin_hooks)
     logger.debug(

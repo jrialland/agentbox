@@ -1,3 +1,13 @@
+"""Render Jinja2 prompt templates for agent and project configuration.
+
+Templates are trusted text authored by users or agent configurations and are
+rendered to plain prompt strings, never to HTML. Rendering uses a
+:class:`~jinja2.sandbox.SandboxedEnvironment`, which blocks unsafe attribute
+access, but autoescaping is disabled because the output is not HTML; callers
+must not inject rendered output into HTML without escaping it themselves.
+Missing variables are reported, not fatal.
+"""
+
 import pathlib
 from datetime import UTC, datetime
 
@@ -5,6 +15,8 @@ from jinja2 import ChainableUndefined, TemplateError, meta
 from jinja2.sandbox import SandboxedEnvironment
 from loguru import logger
 
+# Autoescape stays off: prompt text is not markup. The sandbox still restricts
+# what template authors can reach through the context.
 ENV = SandboxedEnvironment(undefined=ChainableUndefined, autoescape=False)
 
 PREVIEW_CONTEXT: dict[str, str] = {
@@ -29,6 +41,14 @@ VARIABLES = list(PREVIEW_CONTEXT)
 
 
 class PromptTemplateError(Exception):
+    """Raised when a prompt template cannot be parsed or rendered.
+
+    Attributes:
+        message: The underlying Jinja2 error text.
+        agent: Optional agent name the template belongs to, for reporting.
+        line: Optional template line number where the error occurred.
+    """
+
     def __init__(self, message, *, agent=None, line=None):
         super().__init__(message)
         self.message = message
@@ -73,6 +93,26 @@ def build_context(
     skills,
     now: datetime | None = None,
 ) -> dict:
+    """Build the template context for a session's prompt rendering.
+
+    Args:
+        agent_name: Agent configuration name.
+        agent_description: Agent configuration description.
+        project_root: Project root path; its basename becomes the project name.
+        user_name: Session user's username, or ``None`` to render empty.
+        session_id: Session id, or ``None`` to render empty.
+        session_mode: Session mode, or ``None`` to render empty.
+        model_name: Resolved model name.
+        model_provider: Provider of the resolved model.
+        skills: Iterable of skill objects exposing ``name`` and
+            ``description``; rendered as a list of mappings.
+        now: Timestamp used for date/time fields. Defaults to the current UTC
+            time.
+
+    Returns:
+        A nested context mapping matching the variables referenced by prompt
+        templates.
+    """
     moment = now or datetime.now(UTC)
     return {
         "agent": {"name": agent_name, "description": agent_description},
@@ -102,6 +142,23 @@ def _missing(template: str, context: dict) -> list[str]:
 
 
 def render_prompt(template: str, context: dict, *, agent: str | None = None) -> str:
+    """Render a prompt template, warning about undeclared variables first.
+
+    Undefined variables render through ``ChainableUndefined`` and are logged,
+    not raised; only parse or render errors become
+    :class:`PromptTemplateError`.
+
+    Args:
+        template: Jinja2 template source.
+        context: Variable mapping passed to the template.
+        agent: Optional agent name used in warnings and error reporting.
+
+    Returns:
+        The rendered prompt text.
+
+    Raises:
+        PromptTemplateError: If the template cannot be parsed or rendered.
+    """
     try:
         missing = _missing(template, context)
         if missing:
@@ -116,6 +173,21 @@ def render_prompt(template: str, context: dict, *, agent: str | None = None) -> 
 
 
 def preview_prompt(template: str, overrides: dict[str, str] | None = None) -> dict:
+    """Render a template against sample data for editor previews.
+
+    Unlike :func:`render_prompt`, template errors are captured into the result
+    instead of raised, so a half-written template still yields a response.
+    Overrides with keys outside the preview variables are ignored.
+
+    Args:
+        template: Jinja2 template source.
+        overrides: Optional flat values replacing entries in
+            :data:`PREVIEW_CONTEXT`.
+
+    Returns:
+        A mapping with the rendered text, missing variables, an error object or
+        ``None``, the flat context used, and the known variable names.
+    """
     flat = dict(PREVIEW_CONTEXT)
     flat.update(
         {key: value for key, value in (overrides or {}).items() if key in flat}

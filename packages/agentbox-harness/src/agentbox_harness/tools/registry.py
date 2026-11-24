@@ -1,3 +1,5 @@
+"""Registry of native tools, mode filtering, and tool result hooks."""
+
 import functools
 import inspect
 from collections.abc import Awaitable, Callable
@@ -10,6 +12,15 @@ from agentbox_harness.spec import Mode
 
 @dataclass
 class ToolHookContext:
+    """Context passed to a tool hook after a tool runs.
+
+    Attributes:
+        tool_name: Registered tool name.
+        args: Arguments bound from the tool signature when available.
+        root: Session root object supplied by the registry owner.
+        result: Raw value returned by the tool.
+    """
+
     tool_name: str
     args: dict
     root: object
@@ -27,6 +38,12 @@ class _Entry:
 
 
 class ToolRegistry:
+    """Store native tool callables and the hooks that post-process results.
+
+    Hooks run after each tool returns and may append extra text to string
+    results; a failing hook is logged and otherwise ignored.
+    """
+
     def __init__(self, hooks: list[ToolHook] | None = None, root=None) -> None:
         self._native: dict[str, _Entry] = {}
         self._hooks = list(hooks or [])
@@ -38,6 +55,17 @@ class ToolRegistry:
         callable: Callable,
         required_flags: tuple[str, ...] = (),
     ) -> None:
+        """Register a native tool callable under a name.
+
+        When hooks are configured the callable is wrapped so hooks can observe
+        the result and append extra text. The raw callable is kept so callers
+        can export it without hook wrapping.
+
+        Args:
+            name: Tool name exposed to the model.
+            callable: Async tool callable to register.
+            required_flags: Mode flags that must all be allowed for selection.
+        """
         raw = callable
         fn = callable
         if self._hooks:
@@ -47,6 +75,8 @@ class ToolRegistry:
             async def wrapped(*args, **kwargs):
                 result = await original(*args, **kwargs)
                 try:
+                    # Rebind the signature so hooks still receive named
+                    # arguments when the model calls the tool positionally.
                     bound = inspect.signature(original).bind(*args, **kwargs)
                     call_args = dict(bound.arguments)
                 except TypeError:
@@ -75,10 +105,21 @@ class ToolRegistry:
         self._native[name] = _Entry(fn, raw, required_flags)
 
     def get_native_raw(self, name: str) -> Callable | None:
+        """Return the unwrapped callable registered for a name, if any."""
         entry = self._native.get(name)
         return entry.raw if entry is not None else None
 
     def override_native(self, name: str, callable: Callable) -> bool:
+        """Replace a registered tool while preserving its required flags.
+
+        Args:
+            name: Tool name to replace.
+            callable: Replacement callable.
+
+        Returns:
+            ``True`` when a tool was replaced, ``False`` when the name is
+            unknown.
+        """
         entry = self._native.get(name)
         if entry is None:
             return False
@@ -88,6 +129,15 @@ class ToolRegistry:
     def select_tools(
         self, mode: Mode, names: set[str] | None = None
     ) -> list[Callable]:
+        """Return callables allowed by a mode, optionally filtered to names.
+
+        Args:
+            mode: Session mode whose flags gate tool availability.
+            names: Optional explicit allowlist of tool names.
+
+        Returns:
+            Registered callables whose required flags the mode allows.
+        """
         result = []
         for name, entry in self._native.items():
             if names is not None and name not in names:

@@ -1,3 +1,10 @@
+"""Agent runtime construction and session-data cleanup for the API.
+
+Resolves an Agent configuration and its model into an :class:`AgentRuntime`,
+assembles the per-session tool registry, and removes a session's rows,
+descendant sessions, and stored media.
+"""
+
 import pathlib
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -26,6 +33,14 @@ from agentbox_providers.resolver import resolve_model
 
 
 def compaction_config_from_settings(settings) -> CompactionConfig:
+    """Build the harness compaction config from API settings.
+
+    Args:
+        settings: Application settings carrying the ``compaction_*`` fields.
+
+    Returns:
+        The compaction configuration passed to the harness.
+    """
     return CompactionConfig(
         enabled=settings.compaction_enabled,
         ratio=settings.compaction_ratio,
@@ -36,6 +51,18 @@ def compaction_config_from_settings(settings) -> CompactionConfig:
 
 
 def context_editing_config_from_settings(settings) -> ContextEditingConfig:
+    """Build the harness context-editing config from API settings.
+
+    The comma-separated ``context_editing_exclude_tools`` value is split into a
+    tuple, and the trigger/target ratios are clamped to ``[0.05, 1.0]`` so the
+    harness never receives an out-of-range value.
+
+    Args:
+        settings: Application settings carrying the ``context_editing_*`` fields.
+
+    Returns:
+        The context-editing configuration passed to the harness.
+    """
     excluded = tuple(
         name.strip()
         for name in (settings.context_editing_exclude_tools or "").split(",")
@@ -63,6 +90,15 @@ def context_editing_config_from_settings(settings) -> ContextEditingConfig:
 
 
 def web_config_from_settings(settings) -> WebToolConfig:
+    """Build the harness web-tool config from API settings.
+
+    Args:
+        settings: Application settings carrying the ``web_*`` and ``searxng_*``
+            fields.
+
+    Returns:
+        The web search/fetch configuration passed to the harness toolbox.
+    """
     return WebToolConfig(
         search_provider=settings.web_search_provider,
         search_timeout=settings.web_search_timeout,
@@ -88,6 +124,26 @@ def build_registry(
     web_config: WebToolConfig | None = None,
     extra_write_roots: list[pathlib.Path] | None = None,
 ) -> ToolRegistry:
+    """Build a tool registry rooted at a project directory.
+
+    Registers the filesystem and web tools as read-only, the write tools as
+    write-requiring, and any caller-supplied extra tools. Read and write
+    toolboxes share the same sandbox roots, so ``extra_read_roots`` and
+    ``extra_write_roots`` define what tools may reach outside the project.
+
+    Args:
+        project_root: Directory the session's tools are sandboxed to.
+        extra_read_roots: Additional absolute paths read tools may access.
+        extra_tools: Native tools keyed by name to register as-is.
+        hooks: Harness tool hooks applied to native tool calls.
+        media_max_dimension: Maximum image dimension for media reads.
+        media_max_bytes: Maximum image size for media reads.
+        web_config: Web search/fetch configuration; defaults when omitted.
+        extra_write_roots: Additional absolute paths write tools may reach.
+
+    Returns:
+        The populated :class:`~agentbox_harness.tools.registry.ToolRegistry`.
+    """
     box = FilesystemToolbox(
         pathlib.Path(project_root),
         extra_read_roots=list(extra_read_roots or []),
@@ -136,6 +192,13 @@ def build_registry(
 
 @dataclass
 class AgentRuntime:
+    """A resolved Agent configuration together with its concrete model.
+
+    This is configuration, not a live session: it pairs the stored agent row's
+    identity with the parsed :class:`~agentbox_harness.spec.AgentSpec` and a
+    provider-backed model instance that sessions can run.
+    """
+
     agent_id: str
     created_by: str | None
     spec: AgentSpec
@@ -143,6 +206,19 @@ class AgentRuntime:
 
 
 async def resolve_agent_runtime(factory, agent_name: str) -> AgentRuntime:
+    """Load an Agent configuration and resolve its provider model.
+
+    Args:
+        factory: Async session factory used to read the agent, model, and
+            provider rows.
+        agent_name: Unique name of the Agent configuration to resolve.
+
+    Returns:
+        The resolved :class:`AgentRuntime`.
+
+    Raises:
+        KeyError: If the agent or its parsed spec does not exist.
+    """
     async with factory() as s:
         agent = (
             await s.execute(select(Agent).where(Agent.name == agent_name))

@@ -1,3 +1,9 @@
+"""Permission catalog endpoints.
+
+Permissions use ``resource:action`` names and are granted to roles. Modifying the
+catalog requires the ``roles:manage`` permission.
+"""
+
 import re
 import uuid
 
@@ -15,13 +21,19 @@ router = APIRouter(prefix="/permissions", tags=["permissions"])
 _NAME_RE = re.compile(r"[a-z0-9_]+:[a-z0-9_-]+")
 
 
+# Keep this docstring identical to the PermissionRead in routers/roles.py so
+# FastAPI's component names and the generated API types stay stable.
 class PermissionRead(BaseModel):
+    """A permission record."""
+
     id: str
     name: str
     description: str | None = None
 
 
 class PermissionCreate(BaseModel):
+    """Request body for creating a permission."""
+
     name: str
     description: str | None = None
 
@@ -32,6 +44,8 @@ class PermissionCreate(BaseModel):
 
 
 class PermissionUpdate(BaseModel):
+    """Request body that updates a permission's name or description."""
+
     name: str | None = None
     description: str | None = None
 
@@ -59,6 +73,13 @@ async def _get_or_404(session, pid: str) -> Permission:
 async def list_permissions(
     request: Request, _=Depends(require_permission("roles:manage"))
 ):
+    """List the permission catalog.
+
+    Requires the ``roles:manage`` permission.
+
+    Returns:
+        All permissions.
+    """
     async with request.app.state.session_factory() as s:
         rows = (await s.execute(select(Permission))).scalars().all()
     return rows
@@ -70,6 +91,14 @@ async def create_permission(
     request: Request,
     _=Depends(require_permission("roles:manage")),
 ):
+    """Add a permission to the catalog.
+
+    Requires the ``roles:manage`` permission. The name must match
+    ``resource:action`` (400 otherwise).
+
+    Returns:
+        The created permission, or 409 when the name already exists.
+    """
     _validate_name(body.name)
     async with request.app.state.session_factory() as s:
         existing = (
@@ -94,6 +123,15 @@ async def update_permission(
     request: Request,
     _=Depends(require_permission("roles:manage")),
 ):
+    """Update a permission's name or description.
+
+    Requires the ``roles:manage`` permission. A changed name is validated (400
+    on an invalid format).
+
+    Returns:
+        The updated permission, or 404 when missing and 409 when the new name is
+        already taken.
+    """
     async with request.app.state.session_factory() as s:
         perm = await _get_or_404(s, pid)
         if body.name is not None:
@@ -121,6 +159,13 @@ async def update_permission(
 async def delete_permission(
     pid: str, request: Request, _=Depends(require_permission("roles:manage"))
 ):
+    """Delete a permission and detach it from roles.
+
+    Requires the ``roles:manage`` permission.
+
+    Returns:
+        ``{"ok": True}``, or 404 when the permission does not exist.
+    """
     async with request.app.state.session_factory() as s:
         perm = await _get_or_404(s, pid)
         links = (

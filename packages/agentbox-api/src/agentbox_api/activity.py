@@ -1,3 +1,11 @@
+"""Aggregate harness events into a per-run activity summary.
+
+The collector consumes model part and tool events as they stream, tracking
+reasoning time/text, emitted text, and per-tool status. Durations are measured
+with :func:`time.monotonic` clocks, so they are suitable for elapsed-time
+reporting rather than wall-clock timestamps.
+"""
+
 import time
 from dataclasses import dataclass, field
 
@@ -17,12 +25,15 @@ _MAX_ACTIVITY_TEXT = 4_000
 
 
 def _preview(value: object) -> str:
+    """Render a truncated string preview for activity reporting."""
     text = value if isinstance(value, str) else str(value)
     return text[:_MAX_ACTIVITY_TEXT]
 
 
 @dataclass
 class ToolActivity:
+    """Accumulated timing and result for a single tool call."""
+
     name: str
     started_at: float
     status: str = "success"
@@ -33,6 +44,13 @@ class ToolActivity:
 
 @dataclass
 class RunActivityCollector:
+    """Accumulate streaming model and tool events into a run summary.
+
+    Events are expected to arrive in emission order. Reasoning time is the sum
+    of completed thinking-part intervals plus any still-open interval that
+    :meth:`summary` closes out.
+    """
+
     started_at: float = field(default_factory=time.monotonic)
     reasoning_started_at: float | None = None
     reasoning_ms: int = 0
@@ -41,6 +59,15 @@ class RunActivityCollector:
     text: str = ""
 
     def observe(self, event: object) -> None:
+        """Record one streaming event into the accumulator.
+
+        Part start/delta/end events extend reasoning or text; tool call events
+        open a :class:`ToolActivity` and matching result events close it with a
+        status. Unknown events are ignored.
+
+        Args:
+            event: A harness or pydantic-ai streaming event.
+        """
         now = time.monotonic()
         if (
             isinstance(event, PartStartEvent)
@@ -85,6 +112,18 @@ class RunActivityCollector:
                 tool.result = _preview(event.part.content)
 
     def summary(self, status: str, error: dict | None = None) -> dict:
+        """Return the accumulated activity as a serializable summary.
+
+        Any reasoning interval still open is counted up to the moment this is
+        called, so the summary is stable for a finished run.
+
+        Args:
+            status: Terminal run status to report.
+            error: Optional structured error details for failed runs.
+
+        Returns:
+            A dict with reasoning, tool, and error details.
+        """
         reasoning_ms = self.reasoning_ms
         if self.reasoning_started_at is not None:
             reasoning_ms += int(

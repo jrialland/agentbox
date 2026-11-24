@@ -1,3 +1,10 @@
+"""Manage long-lived MCP toolsets per agent session.
+
+Stdio MCP servers are started lazily per session, reused across runs, closed
+when the session ends, and swept when idle. Server startup failures become
+warnings instead of failing the session.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -15,24 +22,32 @@ from agentbox_harness.tools.paths import resolve_project_path
 
 @dataclass(frozen=True)
 class McpWarning:
+    """A non-fatal MCP startup problem for one server."""
+
     server_id: str
     message: str
 
 
 @dataclass
 class SessionToolsets:
+    """Toolsets started for a session and warnings from failed servers."""
+
     toolsets: list[MCPToolset] = field(default_factory=list)
     warnings: list[McpWarning] = field(default_factory=list)
 
 
 @dataclass(kw_only=True)
 class McpWarningEvent(CustomEvent, name="mcp.warning"):
+    """Custom event emitted when an MCP server fails to start."""
+
     server: str
     message: str
 
 
 @dataclass
 class _SessionEntry:
+    """Cached toolsets and warnings for one session."""
+
     bindings: list[McpToolBinding]
     toolsets: list[MCPToolset]
     warnings: list[McpWarning]
@@ -40,6 +55,13 @@ class _SessionEntry:
 
 
 class McpSessionManager:
+    """Start, reuse, and close MCP toolsets for agent sessions.
+
+    Only stdio servers are started here; HTTP servers are managed by
+    pydantic-ai. Entries are keyed by session id and guarded by a per-session
+    lock so concurrent runs share one set of toolsets.
+    """
+
     def __init__(self, start_timeout: float = 30.0) -> None:
         self.start_timeout = start_timeout
         self._entries: dict[str, _SessionEntry] = {}
@@ -53,11 +75,24 @@ class McpSessionManager:
         project_root: str,
         extra_roots: list[str] | None = None,
     ) -> SessionToolsets:
+        """Return the toolsets for a session, starting stdio servers on use.
+
+        Args:
+            session_id: Session requesting tools.
+            bindings: MCP server bindings from the Agent configuration.
+            project_root: Root used to resolve server working directories.
+            extra_roots: Additional allowed working directories.
+
+        Returns:
+            Cached toolsets plus warnings for servers that failed to start.
+        """
         stdio = [b for b in bindings if isinstance(b, McpToolBinding) and b.command]
         entry = self._entries.get(session_id)
         if entry is not None:
             entry.last_used = self._clock()
             return SessionToolsets(list(entry.toolsets))
+        # Double-check under the per-session lock so two concurrent runs do not
+        # start duplicate servers for the same session.
         lock = self._locks.setdefault(session_id, asyncio.Lock())
         async with lock:
             entry = self._entries.get(session_id)
@@ -76,6 +111,7 @@ class McpSessionManager:
         project_root: str,
         extra_roots: list[str] | None,
     ) -> _SessionEntry:
+        """Create a session entry and start all stdio servers concurrently."""
         entry = _SessionEntry(
             bindings=stdio,
             toolsets=[],
@@ -102,6 +138,17 @@ class McpSessionManager:
         project_root: str,
         extra_roots: list[str] | None,
     ) -> tuple[MCPToolset | None, McpWarning | None]:
+        """Start one stdio server, converting failures into warnings.
+
+        Args:
+            session_id: Session that owns the server.
+            binding: MCP binding to start.
+            project_root: Root used to resolve the working directory.
+            extra_roots: Additional allowed working directories.
+
+        Returns:
+            The started toolset, or ``None`` with a warning when startup fails.
+        """
         server_id = mcp_toolset_id(binding)
         try:
             cwd = resolve_project_path(binding.cwd, project_root, extra_roots)
@@ -110,6 +157,7 @@ class McpSessionManager:
             return None, McpWarning(server_id, str(exc))
         try:
             toolset = build_mcp_toolset(binding, cwd=str(cwd))
+            # Bound startup so one hung server cannot stall the session.
             await asyncio.wait_for(toolset.__aenter__(), timeout=self.start_timeout)
             return toolset, None
         except Exception as exc:
@@ -121,11 +169,17 @@ class McpSessionManager:
             return None, McpWarning(server_id, f"{type(exc).__name__}: {exc}")
 
     def touch(self, session_id: str) -> None:
+        """Mark a session as recently used so idle sweeps keep its toolsets."""
         entry = self._entries.get(session_id)
         if entry is not None:
             entry.last_used = self._clock()
 
     async def close_session(self, session_id: str) -> None:
+        """Close and forget a session's toolsets.
+
+        Closing errors are logged and otherwise ignored so one bad server
+        cannot block cleanup.
+        """
         entry = self._entries.pop(session_id, None)
         self._locks.pop(session_id, None)
         if entry is None:
@@ -137,6 +191,11 @@ class McpSessionManager:
                 logger.warning("mcp toolset close failed session={}", session_id)
 
     async def sweep_idle(self, ttl_seconds: float) -> None:
+        """Close sessions unused for at least ``ttl_seconds``.
+
+        Args:
+            ttl_seconds: Idle timeout before a session's toolsets are closed.
+        """
         now = self._clock()
         stale = [
             session_id
@@ -149,6 +208,7 @@ class McpSessionManager:
             logger.debug("mcp idle sweep closed count={}", len(stale))
 
     async def close_all(self) -> None:
+        """Close toolsets for every tracked session."""
         for session_id in list(self._entries):
             await self.close_session(session_id)
 
@@ -157,6 +217,7 @@ _manager: McpSessionManager | None = None
 
 
 def get_mcp_session_manager() -> McpSessionManager:
+    """Return the process-wide MCP session manager, creating it on first use."""
     global _manager
     if _manager is None:
         _manager = McpSessionManager()
@@ -164,5 +225,6 @@ def get_mcp_session_manager() -> McpSessionManager:
 
 
 def reset_mcp_session_manager() -> None:
+    """Discard the process-wide manager so the next call rebuilds it."""
     global _manager
     _manager = None

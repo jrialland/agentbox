@@ -1,3 +1,5 @@
+"""Authentication endpoints for obtaining and inspecting a bearer token."""
+
 import uuid
 
 from fastapi import APIRouter, HTTPException, Request
@@ -12,22 +14,30 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class LoginRequest(BaseModel):
+    """Credentials exchanged for a bearer token."""
+
     username: str
     password: str
 
 
 class RegisterRequest(BaseModel):
+    """Fields needed to register a new account."""
+
     username: str
     email: str
     password: str
 
 
 class LoginResponse(BaseModel):
+    """A bearer token and its type."""
+
     access_token: str
     token_type: str
 
 
 class MeResponse(BaseModel):
+    """The authenticated user's identity and effective permission scopes."""
+
     id: str
     username: str
     permissions: list[str]
@@ -35,6 +45,11 @@ class MeResponse(BaseModel):
 
 @router.post("/login", response_model=LoginResponse)
 async def login(body: LoginRequest, request: Request):
+    """Exchange username and password for a bearer token.
+
+    Returns:
+        A token response, or 401 when the credentials are invalid.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         user = (
@@ -56,6 +71,11 @@ async def login(body: LoginRequest, request: Request):
 
 @router.post("/register")
 async def register(body: RegisterRequest, request: Request):
+    """Register a new user account.
+
+    Returns:
+        The new user's id and username.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         user = User(
@@ -72,6 +92,11 @@ async def register(body: RegisterRequest, request: Request):
 
 @router.get("/me", response_model=MeResponse)
 async def me(request: Request):
+    """Return the authenticated user and its permission scopes.
+
+    Returns:
+        The caller's identity and effective scopes, or 401 when unauthenticated.
+    """
     if not request.user.is_authenticated:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return {

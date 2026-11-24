@@ -1,3 +1,5 @@
+"""Helpers for logging run failures from background tasks."""
+
 import traceback
 
 from loguru import logger

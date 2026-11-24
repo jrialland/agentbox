@@ -146,6 +146,13 @@ def update_for_event(event):
 
 @dataclass
 class AcpSession:
+    """Live state for one ACP session served by :class:`AgentboxAcpAgent`.
+
+    This is an agent session: it binds a persisted session row to the resolved
+    agent spec, model, tool registry, and active mode, plus any client tools and
+    the currently running harness run.
+    """
+
     session_id: str
     project_root: str
     project_id: str
@@ -195,6 +202,14 @@ async def _latest_leaf(factory, session_id: str):
 
 
 class AgentboxAcpAgent:
+    """ACP v1 agent implementation that runs Agentbox harness sessions.
+
+    The ACP stdio server dispatches protocol requests to the public methods here
+    on behalf of external ACP clients; they are not called directly by internal
+    Agentbox code. Sessions created or restored here are persisted as normal
+    agent sessions and can be listed, loaded, resumed, closed, and deleted.
+    """
+
     def __init__(self, agent_name: str, factory, settings):
         self._agent_name = agent_name
         self._factory = factory
@@ -208,15 +223,37 @@ class AgentboxAcpAgent:
         self.mcp_manager = get_mcp_session_manager()
 
     def on_connect(self, conn: acp.Client) -> None:
+        """Record the connected ACP client used for callbacks.
+
+        Args:
+            conn: Client connection provided by the ACP runtime on connect.
+        """
         self._client = conn
 
     @property
     def client_capabilities(self) -> AcpClientCapabilities:
+        """Capabilities the connected client advertised during ``initialize``."""
         return self._client_capabilities
 
     async def initialize(
         self, protocol_version, client_capabilities=None, client_info=None, **kwargs
     ):
+        """Negotiate the protocol version and advertise agent capabilities.
+
+        Called by an external ACP client at the start of the connection. The
+        client's capabilities are recorded for later client-tool installation,
+        and this agent advertises session loading, image/audio/embedded-context
+        prompt support, and list, delete, resume, and close session support.
+
+        Args:
+            protocol_version: Protocol version requested by the client.
+            client_capabilities: Capabilities advertised by the client.
+            client_info: Client implementation metadata (unused).
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The initialize response echoing the negotiated protocol version.
+        """
         self._client_capabilities = AcpClientCapabilities.from_sdk(
             client_capabilities
         )
@@ -241,6 +278,23 @@ class AgentboxAcpAgent:
     async def new_session(
         self, cwd, additional_directories=None, mcp_servers=None, **kwargs
     ):
+        """Create and persist a new ACP session for the configured agent.
+
+        Called by an external ACP client. The working directory becomes the
+        project root, extra roots and per-session MCP servers are applied, and
+        client tools are installed when the client is connected.
+
+        Args:
+            cwd: Working directory the session is rooted at.
+            additional_directories: Extra directories the client allows access
+                to (accepted for protocol compatibility; extra roots come from
+                the project configuration).
+            mcp_servers: Session-scoped MCP servers supplied by the client.
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The new session response including the session id and modes.
+        """
         session_id = uuid.uuid4().hex
         async with self._factory() as db:
             project = (
@@ -288,6 +342,8 @@ class AgentboxAcpAgent:
             project_id = project.id
         client_tools = None
         if self._client is not None:
+            # Client tools are only installed for capabilities negotiated during
+            # initialize, falling back to native tools otherwise.
             client_tools = AcpClientTools(
                 client=self._client,
                 session_id=session_id,
@@ -312,6 +368,25 @@ class AgentboxAcpAgent:
         return s.NewSessionResponse(session_id=session_id, modes=_modes(spec, mode))
 
     async def prompt(self, session_id, prompt, **kwargs):
+        """Run one user prompt for a session and stream updates to the client.
+
+        Called by an external ACP client. Prompt content blocks are converted to
+        the harness prompt override, harness events are translated into ACP
+        ``session/update`` notifications, and the assistant turn is persisted on
+        success.
+
+        Args:
+            session_id: Session to run the prompt in.
+            prompt: ACP content blocks forming the user turn.
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The prompt response reporting the stop reason.
+
+        Raises:
+            acp.RequestError: If the session id is unknown.
+            RuntimeError: If no ACP client is connected.
+        """
         sess = self._sessions.get(session_id)
         if sess is None:
             raise acp.RequestError(-32002, "unknown session")
@@ -366,8 +441,12 @@ class AgentboxAcpAgent:
             async for event in sub.stream():
                 update = update_for_event(event.event)
                 if update is not None:
+                    # Each harness stream event becomes one ACP session update;
+                    # events with no ACP mapping are dropped.
                     await client.session_update(session_id=session_id, update=update)
         finally:
+            # Stop the background closer before awaiting the outcome so the
+            # session object is not cleared while updates are still streaming.
             closer.cancel()
         outcome = await run.await_outcome()
         sess.run = None
@@ -394,12 +473,34 @@ class AgentboxAcpAgent:
         return s.PromptResponse(stop_reason="end_turn")
 
     async def cancel(self, session_id, **kwargs):
+        """Cancel the run currently executing for a session.
+
+        Called by an external ACP client; a no-op when the session has no active
+        run.
+
+        Args:
+            session_id: Session whose active run should be cancelled.
+            **kwargs: Additional protocol fields accepted for compatibility.
+        """
         sess = self._sessions.get(session_id)
         if sess is not None and sess.run is not None:
             sess.run.cancel()
         logger.info("acp cancel session={}", session_id)
 
     async def set_session_mode(self, session_id, mode_id, **kwargs):
+        """Switch the active mode for a session.
+
+        Args:
+            session_id: Session whose mode changes.
+            mode_id: Mode identifier selected by the client.
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The set-mode response.
+
+        Raises:
+            acp.RequestError: If the session id is unknown.
+        """
         sess = self._sessions.get(session_id)
         if sess is None:
             raise acp.RequestError(-32002, "unknown session")
@@ -407,6 +508,16 @@ class AgentboxAcpAgent:
         return s.SetSessionModeResponse()
 
     async def list_sessions(self, cwd=None, cursor=None, **kwargs):
+        """List persisted sessions belonging to the configured agent.
+
+        Args:
+            cwd: When set, only sessions whose project path matches are listed.
+            cursor: Pagination cursor (accepted for protocol compatibility).
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The list response with session summaries.
+        """
         runtime = await resolve_agent_runtime(self._factory, self._agent_name)
         async with self._factory() as db:
             rows = (
@@ -445,6 +556,29 @@ class AgentboxAcpAgent:
     async def load_session(
         self, cwd, session_id, mcp_servers=None, additional_directories=None, **kwargs
     ):
+        """Restore a persisted session and replay its turns to the client.
+
+        Called by an external ACP client. The session is restored (or reused),
+        then each stored user and assistant turn is replayed as a
+        ``session/update`` so the client can rebuild the transcript. Summary
+        turns are skipped.
+
+        Args:
+            cwd: Working directory requested by the client.
+            session_id: Session to load.
+            mcp_servers: Session-scoped MCP servers supplied by the client.
+            additional_directories: Extra client-approved directories (accepted
+                for protocol compatibility).
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The load response including the available modes.
+
+        Raises:
+            acp.RequestError: If the session id is unknown or belongs to another
+                agent configuration.
+            RuntimeError: If no ACP client is connected.
+        """
         sess = await self._restore(session_id, mcp_servers)
         client = self._client
         if client is None:
@@ -471,10 +605,39 @@ class AgentboxAcpAgent:
     async def resume_session(
         self, session_id, cwd, additional_directories=None, mcp_servers=None, **kwargs
     ):
+        """Restore a session without replaying its transcript.
+
+        Args:
+            session_id: Session to resume.
+            cwd: Working directory requested by the client.
+            additional_directories: Extra client-approved directories (accepted
+                for protocol compatibility).
+            mcp_servers: Session-scoped MCP servers supplied by the client.
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The resume response including the available modes.
+
+        Raises:
+            acp.RequestError: If the session id is unknown or belongs to another
+                agent configuration.
+        """
         sess = await self._restore(session_id, mcp_servers)
         return s.ResumeSessionResponse(modes=_modes(sess.spec, sess.mode))
 
     async def delete_session(self, session_id, **kwargs):
+        """Delete a session and its persisted data.
+
+        Called by an external ACP client. Client terminal resources are released
+        before the session rows and media are removed.
+
+        Args:
+            session_id: Session to delete.
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The delete response.
+        """
         sess = self._sessions.pop(session_id, None)
         if sess is not None and sess.client_tools is not None:
             await sess.client_tools.close()
@@ -482,8 +645,23 @@ class AgentboxAcpAgent:
         return s.DeleteSessionResponse()
 
     async def close_session(self, session_id, **kwargs):
+        """Close a live session and tear down its background resources.
+
+        Called by an external ACP client. MCP sessions, terminal jobs, and
+        subagent sessions are stopped before the session is dropped from the
+        in-memory map and its run is cancelled.
+
+        Args:
+            session_id: Session to close.
+            **kwargs: Additional protocol fields accepted for compatibility.
+
+        Returns:
+            The close response.
+        """
         from agentbox_api.subagent_sessions import cancel_subagent_sessions
 
+        # Tear down owned resources first, then drop the session and cancel any
+        # still-running harness run so nothing keeps emitting updates.
         await self.mcp_manager.close_session(session_id)
         await get_job_manager().kill_session(session_id)
         await cancel_subagent_sessions(self._factory, session_id)
@@ -604,6 +782,7 @@ async def _serve(agent_name: str) -> None:
 
 
 def main() -> None:
+    """Run the ACP stdio server for the agent named by ``--agent``."""
     parser = argparse.ArgumentParser()
     parser.add_argument("--agent", required=True)
     args = parser.parse_args()

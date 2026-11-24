@@ -1,3 +1,10 @@
+"""Web search and page-fetch tools for the model.
+
+Search tries the configured providers in order. Fetching only allows HTTPS
+(HTTP for localhost), rejects embedded credentials, follows a small number of
+redirects, and caps response size and extracted text.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -15,6 +22,8 @@ from loguru import logger
 
 @dataclass(frozen=True)
 class WebToolConfig:
+    """Configuration for web search and fetching, with conservative defaults."""
+
     search_provider: str = "auto"
     search_timeout: float = 10.0
     search_max_results: int = 5
@@ -30,16 +39,21 @@ class WebToolConfig:
 
 @dataclass(frozen=True)
 class SearchResult:
+    """One web search hit with a title, URL, and optional snippet."""
+
     title: str
     url: str
     snippet: str
 
 
 class SearchProvider(Protocol):
-    async def search(self, query: str, max_results: int) -> list[SearchResult]: ...
+    """Interface implemented by web search backends."""
+
+    async def search(self, query: str, max_results: int) -> list[SearchResult]: ...  # noqa: D102
 
 
 def _clean(value: object) -> str:
+    """Collapse whitespace in a possibly missing value."""
     return " ".join(str(value or "").split())
 
 
@@ -48,6 +62,21 @@ _REDIRECT_STATUSES = {301, 302, 303, 307, 308}
 
 
 def _validate_url(url: str) -> str:
+    """Validate that a URL is fetchable under the security policy.
+
+    Only HTTPS is allowed, except plain HTTP for localhost. Embedded
+    credentials are rejected.
+
+    Args:
+        url: URL to validate.
+
+    Returns:
+        The original URL with surrounding whitespace removed.
+
+    Raises:
+        ValueError: If the URL is empty, uses a disallowed scheme or host, or
+            embeds credentials.
+    """
     value = (url or "").strip()
     if not value:
         raise ValueError("URL must not be empty.")
@@ -58,6 +87,7 @@ def _validate_url(url: str) -> str:
         raise ValueError(
             "only https:// URLs are supported (http:// is allowed for localhost)."
         )
+    # Plain HTTP is permitted only for loopback hosts, never for the internet.
     if scheme == "http" and host not in _LOCAL_HOSTS:
         raise ValueError("http:// is only allowed for localhost; use https://.")
     if not host:
@@ -68,10 +98,12 @@ def _validate_url(url: str) -> str:
 
 
 def _content_type(headers: httpx.Headers) -> str:
+    """Return a lowercased media type without parameters."""
     return headers.get("content-type", "").split(";", 1)[0].strip().lower()
 
 
 def _decode(body: bytes, headers: httpx.Headers) -> str:
+    """Decode a response body using its declared charset, else UTF-8."""
     match = re.search(
         r"charset=([^\s;]+)", headers.get("content-type", ""), re.IGNORECASE
     )
@@ -83,10 +115,12 @@ def _decode(body: bytes, headers: httpx.Headers) -> str:
 
 
 def _looks_html(body: bytes) -> bool:
+    """Return whether a body appears to start with HTML."""
     return body.lstrip().startswith(b"<")
 
 
 def _is_html(content_type: str, body: bytes) -> bool:
+    """Return whether a response should be treated as HTML."""
     return content_type in ("text/html", "application/xhtml+xml") or (
         not content_type and _looks_html(body)
     )
@@ -95,6 +129,7 @@ def _is_html(content_type: str, body: bytes) -> bool:
 def _html_to_markdown(
     body: bytes, headers: httpx.Headers, url: str
 ) -> str:
+    """Convert an HTML body to Markdown, falling back to plain text."""
     text = _decode(body, headers)
     markdown = trafilatura.extract(
         text,
@@ -110,6 +145,8 @@ def _html_to_markdown(
 
 
 class DdgsSearchProvider:
+    """Search provider backed by the ``ddgs`` package."""
+
     def __init__(self, config: WebToolConfig):
         self._config = config
 
@@ -124,6 +161,7 @@ class DdgsSearchProvider:
             )
 
     async def search(self, query: str, max_results: int) -> list[SearchResult]:
+        """Return DuckDuckGo results, raising when the provider errors."""
         try:
             rows = await asyncio.to_thread(self._run_text, query, max_results)
         except DDGSException as exc:
@@ -140,6 +178,8 @@ class DdgsSearchProvider:
 
 
 class SearxngSearchProvider:
+    """Search provider backed by a SearxNG JSON endpoint."""
+
     def __init__(
         self,
         config: WebToolConfig,
@@ -149,6 +189,11 @@ class SearxngSearchProvider:
         self._transport = transport
 
     async def search(self, query: str, max_results: int) -> list[SearchResult]:
+        """Return results from a SearxNG instance.
+
+        Raises:
+            RuntimeError: If no SearxNG URL is configured.
+        """
         if not self._config.searxng_url:
             raise RuntimeError("searxng_url is not configured.")
         url = self._config.searxng_url.rstrip("/") + "/search"
@@ -175,6 +220,13 @@ class SearxngSearchProvider:
 
 
 class WebToolbox:
+    """Search the web and fetch readable page content for the model.
+
+    Fetching only accepts HTTPS (HTTP for localhost), rejects embedded
+    credentials, follows a small number of redirects, and caps both response
+    bytes and extracted text.
+    """
+
     def __init__(
         self,
         config: WebToolConfig | None = None,
@@ -212,6 +264,18 @@ class WebToolbox:
     async def web_search(
         self, query: str, max_results: int | None = None
     ) -> str:
+        """Search the web and return formatted results.
+
+        Tries the configured providers in order and falls back when one fails.
+
+        Args:
+            query: Search query text.
+            max_results: Maximum results to return, clamped to 1-10.
+
+        Returns:
+            Numbered Markdown links with snippets, or a failure message as
+            text.
+        """
         text = (query or "").strip()
         if not text:
             return "Search failed: query must not be empty."
@@ -248,6 +312,18 @@ class WebToolbox:
         return "\n".join(lines)
 
     async def fetch_url(self, url: str) -> str:
+        """Fetch a URL and return readable text for it.
+
+        For a site root, an ``llms.txt`` document is preferred when available.
+        HTML is converted to Markdown; other text and JSON/XML content is
+        returned as-is.
+
+        Args:
+            url: Absolute HTTPS URL (HTTP is allowed only for localhost).
+
+        Returns:
+            The source URL and extracted content, or a failure message as text.
+        """
         raw = (url or "").strip()
         if not raw:
             return "Fetch failed: URL must not be empty."
@@ -256,6 +332,8 @@ class WebToolbox:
         except ValueError as exc:
             return f"Fetch failed: {exc}"
         try:
+            # Prefer a site's llms.txt when the URL is a bare site root; fall
+            # back to fetching the page itself when there is none.
             llms = await self._try_llms(raw)
             if llms is not None:
                 final, text = llms
@@ -286,6 +364,11 @@ class WebToolbox:
         return self._format(final, text)
 
     async def _try_llms(self, url: str) -> tuple[str, str] | None:
+        """Return ``/llms.txt`` content for a site root, or ``None``.
+
+        Only the bare site root is eligible, and the response must be plain
+        text that does not look like an HTML error page.
+        """
         parts = urlsplit(url)
         if parts.path not in ("", "/") or parts.query or parts.fragment:
             return None
@@ -312,12 +395,27 @@ class WebToolbox:
     async def _fetch(
         self, url: str
     ) -> tuple[str, int, httpx.Headers, bytes]:
+        """Fetch a URL, following redirects manually and enforcing the size cap.
+
+        Args:
+            url: Initial validated URL.
+
+        Returns:
+            Final URL, status code, response headers, and body bytes.
+
+        Raises:
+            ValueError: If a redirect target is invalid, the response is too
+                large, or redirects exceed the limit.
+        """
         async with httpx.AsyncClient(
             transport=self._transport,
             timeout=self.config.fetch_timeout,
             headers={"User-Agent": self.config.user_agent},
         ) as client:
             current = url
+            # Follow redirects manually so every hop is re-validated against
+            # the URL policy; six iterations allow five redirects plus the
+            # final response.
             for _ in range(6):
                 _validate_url(current)
                 async with client.stream(
@@ -336,6 +434,8 @@ class WebToolbox:
                         continue
                     chunks: list[bytes] = []
                     total = 0
+                    # Stream and count bytes so an oversized response is
+                    # rejected before it is fully held in memory.
                     async for chunk in response.aiter_bytes():
                         total += len(chunk)
                         if total > self.config.fetch_max_bytes:
@@ -353,6 +453,7 @@ class WebToolbox:
         raise ValueError("too many redirects (limit 5)")
 
     def _format(self, final: str, text: str, *, llms: bool = False) -> str:
+        """Format a fetched page header and its possibly truncated content."""
         label = f"Source: {final}" + (" (llms.txt)" if llms else "")
         content = (text or "").strip()
         if len(content) > self.config.fetch_max_chars:

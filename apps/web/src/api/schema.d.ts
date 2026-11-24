@@ -13,7 +13,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Login */
+        /**
+         * Login
+         * @description Exchange username and password for a bearer token.
+         *
+         *     Returns:
+         *         A token response, or 401 when the credentials are invalid.
+         */
         post: operations["login_auth_login_post"];
         delete?: never;
         options?: never;
@@ -30,7 +36,13 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Register */
+        /**
+         * Register
+         * @description Register a new user account.
+         *
+         *     Returns:
+         *         The new user's id and username.
+         */
         post: operations["register_auth_register_post"];
         delete?: never;
         options?: never;
@@ -45,7 +57,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Me */
+        /**
+         * Me
+         * @description Return the authenticated user and its permission scopes.
+         *
+         *     Returns:
+         *         The caller's identity and effective scopes, or 401 when unauthenticated.
+         */
         get: operations["me_auth_me_get"];
         put?: never;
         post?: never;
@@ -62,10 +80,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Agents */
+        /**
+         * List Agents
+         * @description List agent configurations.
+         *
+         *     Requires the ``agents:read`` permission.
+         *
+         *     Returns:
+         *         All agent configurations.
+         */
         get: operations["list_agents_agents_get"];
         put?: never;
-        /** Create Agent */
+        /**
+         * Create Agent
+         * @description Create an agent configuration.
+         *
+         *     Requires the ``agents:create`` permission. Exactly one of ``model`` or
+         *     ``model_label`` must be supplied; invalid names, tool bindings, or plugin
+         *     MCP references are rejected with 400.
+         *
+         *     Returns:
+         *         The saved agent configuration.
+         */
         post: operations["create_agent_agents_post"];
         delete?: never;
         options?: never;
@@ -80,12 +116,41 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Agent */
+        /**
+         * Get Agent
+         * @description Get one agent configuration by name.
+         *
+         *     Requires the ``agents:read`` permission.
+         *
+         *     Returns:
+         *         The agent configuration, or 404 when no agent has that name.
+         */
         get: operations["get_agent_agents__name__get"];
-        /** Update Agent */
+        /**
+         * Update Agent
+         * @description Replace an existing agent configuration.
+         *
+         *     Requires the ``agents:create`` permission. ``body.name`` must match the
+         *     ``name`` path segment (400 otherwise), and exactly one of ``model`` or
+         *     ``model_label`` is required. Invalid bindings or plugin references return
+         *     400.
+         *
+         *     Returns:
+         *         The saved agent configuration.
+         */
         put: operations["update_agent_agents__name__put"];
         post?: never;
-        /** Delete Agent */
+        /**
+         * Delete Agent
+         * @description Delete an agent configuration with its stored avatar and card.
+         *
+         *     Requires the ``agents:delete`` permission. Deleting an unknown name is a
+         *     no-op. Deleting an agent that is still referenced (for example by a session)
+         *     returns 409.
+         *
+         *     Returns:
+         *         ``{"ok": True}`` once the agent and its media are removed.
+         */
         delete: operations["delete_agent_agents__name__delete"];
         options?: never;
         head?: never;
@@ -99,12 +164,40 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Avatar */
+        /**
+         * Get Avatar
+         * @description Return an agent's avatar image.
+         *
+         *     Public: no permission is required. Falls back to a deterministic generated
+         *     placeholder when no custom avatar exists. Supports ``If-None-Match`` with a
+         *     strong ETag and responds 304 when the client's copy is current.
+         *
+         *     Returns:
+         *         The PNG image bytes, or 404 when no agent has that name.
+         */
         get: operations["get_avatar_agents__name__avatar_get"];
-        /** Upload Avatar */
+        /**
+         * Upload Avatar
+         * @description Upload and replace an agent's avatar.
+         *
+         *     Requires the ``agents:create`` permission. The upload must be an allowed
+         *     image type (415 otherwise), within the size limit (413 otherwise), and
+         *     decodable (415 otherwise). Images are normalized to PNG.
+         *
+         *     Returns:
+         *         204 on success, or 404 when no agent has that name.
+         */
         put: operations["upload_avatar_agents__name__avatar_put"];
         post?: never;
-        /** Reset Avatar */
+        /**
+         * Reset Avatar
+         * @description Reset an agent's avatar to the generated placeholder.
+         *
+         *     Requires the ``agents:create`` permission.
+         *
+         *     Returns:
+         *         204 on success, or 404 when no agent has that name.
+         */
         delete: operations["reset_avatar_agents__name__avatar_delete"];
         options?: never;
         head?: never;
@@ -118,12 +211,38 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Agent Card */
+        /**
+         * Get Agent Card
+         * @description Return an agent's A2A agent card.
+         *
+         *     Requires the ``agents:read`` permission.
+         *
+         *     Returns:
+         *         The stored A2A card JSON, or 404 when the agent or its card is missing.
+         */
         get: operations["get_agent_card_agents__name__card_get"];
-        /** Set Agent Card */
+        /**
+         * Set Agent Card
+         * @description Create or replace an agent's A2A agent card.
+         *
+         *     Requires the ``agents:create`` permission. The body must parse as an A2A
+         *     ``AgentCard`` (400 otherwise). The previous card file is removed.
+         *
+         *     Returns:
+         *         The stored card JSON, or 404 when no agent has that name.
+         */
         put: operations["set_agent_card_agents__name__card_put"];
         post?: never;
-        /** Delete Agent Card */
+        /**
+         * Delete Agent Card
+         * @description Delete an agent's A2A agent card.
+         *
+         *     Requires the ``agents:create`` permission. Deleting a card that does not
+         *     exist is a no-op.
+         *
+         *     Returns:
+         *         ``{"ok": True}``.
+         */
         delete: operations["delete_agent_card_agents__name__card_delete"];
         options?: never;
         head?: never;
@@ -137,10 +256,26 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Providers */
+        /**
+         * List Providers
+         * @description List providers.
+         *
+         *     Requires the ``providers:read`` permission.
+         *
+         *     Returns:
+         *         All providers, without API keys.
+         */
         get: operations["list_providers_providers_get"];
         put?: never;
-        /** Create Provider */
+        /**
+         * Create Provider
+         * @description Create a provider.
+         *
+         *     Requires the ``providers:create`` permission.
+         *
+         *     Returns:
+         *         The created provider, without its API key.
+         */
         post: operations["create_provider_providers_post"];
         delete?: never;
         options?: never;
@@ -157,7 +292,18 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Test Provider */
+        /**
+         * Test Provider
+         * @description Test connectivity by fetching the provider's model list.
+         *
+         *     Requires the ``providers:create`` permission. URLs must be HTTP(S) (422
+         *     otherwise), and an unknown ``provider_id`` returns 404. Network, auth, and
+         *     timeout failures are reported in the result body with ``ok`` set to
+         *     ``False`` rather than raised; the upstream request is bounded to 10 seconds.
+         *
+         *     Returns:
+         *         The test outcome, including latency and up to five sample model names.
+         */
         post: operations["test_provider_providers_test_post"];
         delete?: never;
         options?: never;
@@ -173,10 +319,28 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update Provider */
+        /**
+         * Update Provider
+         * @description Update a provider's fields.
+         *
+         *     Requires the ``providers:create`` permission. Omitted fields are left
+         *     unchanged.
+         *
+         *     Returns:
+         *         The updated provider, or 404 when it does not exist.
+         */
         put: operations["update_provider_providers__pid__put"];
         post?: never;
-        /** Delete Provider */
+        /**
+         * Delete Provider
+         * @description Delete a provider and its models.
+         *
+         *     Requires the ``providers:delete`` permission.
+         *
+         *     Returns:
+         *         ``{"ok": True}``, or 404 when missing and 409 when one of the provider's
+         *         models is still used by an agent.
+         */
         delete: operations["delete_provider_providers__pid__delete"];
         options?: never;
         head?: never;
@@ -192,7 +356,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Refresh Models */
+        /**
+         * Refresh Models
+         * @description Fetch the provider's model list and add any new models.
+         *
+         *     Requires the ``providers:list-models`` permission. Existing models are kept;
+         *     only names not already stored are inserted.
+         *
+         *     Returns:
+         *         All of the provider's models, or 404 when the provider does not exist.
+         */
         post: operations["refresh_models_providers__pid__models_refresh_post"];
         delete?: never;
         options?: never;
@@ -207,10 +380,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Models Endpoint */
+        /**
+         * List Models Endpoint
+         * @description List all models with their labels.
+         *
+         *     Requires the ``providers:read`` permission.
+         *
+         *     Returns:
+         *         Every known model across all providers.
+         */
         get: operations["list_models_endpoint_models_get"];
         put?: never;
-        /** Create Model */
+        /**
+         * Create Model
+         * @description Register a model under an existing provider.
+         *
+         *     Requires the ``providers:create`` permission.
+         *
+         *     Returns:
+         *         The created model, or 404 when the provider does not exist and 409 when
+         *         the provider already has a model with that name.
+         */
         post: operations["create_model_models_post"];
         delete?: never;
         options?: never;
@@ -226,7 +416,16 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Set Model Labels */
+        /**
+         * Set Model Labels
+         * @description Replace a model's labels.
+         *
+         *     Requires the ``providers:create`` permission. Label names are normalized and
+         *     validated; invalid names return 400.
+         *
+         *     Returns:
+         *         The updated model, or 404 when the model does not exist.
+         */
         put: operations["set_model_labels_models__mid__labels_put"];
         post?: never;
         delete?: never;
@@ -245,7 +444,16 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Delete Model */
+        /**
+         * Delete Model
+         * @description Delete a model and its label links.
+         *
+         *     Requires the ``providers:create`` permission.
+         *
+         *     Returns:
+         *         ``{"ok": True}``, or 404 when missing and 409 when an agent still uses
+         *         the model.
+         */
         delete: operations["delete_model_models__mid__delete"];
         options?: never;
         head?: never;
@@ -259,10 +467,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Permissions */
+        /**
+         * List Permissions
+         * @description List the permission catalog.
+         *
+         *     Requires the ``roles:manage`` permission.
+         *
+         *     Returns:
+         *         All permissions.
+         */
         get: operations["list_permissions_permissions_get"];
         put?: never;
-        /** Create Permission */
+        /**
+         * Create Permission
+         * @description Add a permission to the catalog.
+         *
+         *     Requires the ``roles:manage`` permission. The name must match
+         *     ``resource:action`` (400 otherwise).
+         *
+         *     Returns:
+         *         The created permission, or 409 when the name already exists.
+         */
         post: operations["create_permission_permissions_post"];
         delete?: never;
         options?: never;
@@ -278,10 +503,28 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update Permission */
+        /**
+         * Update Permission
+         * @description Update a permission's name or description.
+         *
+         *     Requires the ``roles:manage`` permission. A changed name is validated (400
+         *     on an invalid format).
+         *
+         *     Returns:
+         *         The updated permission, or 404 when missing and 409 when the new name is
+         *         already taken.
+         */
         put: operations["update_permission_permissions__pid__put"];
         post?: never;
-        /** Delete Permission */
+        /**
+         * Delete Permission
+         * @description Delete a permission and detach it from roles.
+         *
+         *     Requires the ``roles:manage`` permission.
+         *
+         *     Returns:
+         *         ``{"ok": True}``, or 404 when the permission does not exist.
+         */
         delete: operations["delete_permission_permissions__pid__delete"];
         options?: never;
         head?: never;
@@ -295,10 +538,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Projects */
+        /**
+         * List Projects
+         * @description List all projects.
+         *
+         *     Requires the ``projects:read`` permission.
+         *
+         *     Returns:
+         *         Every project with its extra roots.
+         */
         get: operations["list_projects_projects_get"];
         put?: never;
-        /** Create Project */
+        /**
+         * Create Project
+         * @description Create a project owned by the caller.
+         *
+         *     Requires the ``projects:create`` permission. Invalid names or paths fail
+         *     validation with 422.
+         *
+         *     Returns:
+         *         The created project.
+         */
         post: operations["create_project_projects_post"];
         delete?: never;
         options?: never;
@@ -313,12 +573,38 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Project */
+        /**
+         * Get Project
+         * @description Get one project by id.
+         *
+         *     Requires the ``projects:read`` permission.
+         *
+         *     Returns:
+         *         The project, or 404 when it does not exist.
+         */
         get: operations["get_project_projects__pid__get"];
-        /** Update Project */
+        /**
+         * Update Project
+         * @description Update a project's name or extra roots.
+         *
+         *     Requires the ``projects:create`` permission. When ``extra_roots`` is sent it
+         *     replaces the existing set and is validated like creation.
+         *
+         *     Returns:
+         *         The updated project, or 404 when it does not exist.
+         */
         put: operations["update_project_projects__pid__put"];
         post?: never;
-        /** Delete Project */
+        /**
+         * Delete Project
+         * @description Delete a project together with its sessions and stored data.
+         *
+         *     Requires the ``projects:delete`` permission. Deleting a missing project is a
+         *     no-op.
+         *
+         *     Returns:
+         *         ``{"ok": True}``.
+         */
         delete: operations["delete_project_projects__pid__delete"];
         options?: never;
         head?: never;
@@ -334,7 +620,18 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Preview */
+        /**
+         * Preview
+         * @description Render a prompt template against sample data for editor previews.
+         *
+         *     Requires the ``agents:create`` permission. Template errors are returned in
+         *     the response body rather than raised, so partially written templates still
+         *     produce a usable preview.
+         *
+         *     Returns:
+         *         The rendered text, missing variables, any template error, the context
+         *         used, and the known variable names.
+         */
         post: operations["preview_prompts_preview_post"];
         delete?: never;
         options?: never;
@@ -349,10 +646,28 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Sessions */
+        /**
+         * List Sessions
+         * @description List top-level sessions.
+         *
+         *     Requires the ``sessions:read`` permission. Subagent sessions (those with a
+         *     parent session) are excluded.
+         *
+         *     Returns:
+         *         The top-level session rows.
+         */
         get: operations["list_sessions_sessions_get"];
         put?: never;
-        /** Create Session */
+        /**
+         * Create Session
+         * @description Start a session from an agent configuration in a project.
+         *
+         *     Requires the ``sessions:create`` permission. ``agent_id`` is an agent
+         *     configuration name.
+         *
+         *     Returns:
+         *         The new session row, or 404 when the agent configuration is missing.
+         */
         post: operations["create_session_sessions_post"];
         delete?: never;
         options?: never;
@@ -367,15 +682,40 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Session */
+        /**
+         * Get Session
+         * @description Get one session's details.
+         *
+         *     Requires the ``sessions:read`` permission.
+         *
+         *     Returns:
+         *         The session detail, or 404 when it does not exist.
+         */
         get: operations["get_session_sessions__sid__get"];
         put?: never;
         post?: never;
-        /** Delete Session */
+        /**
+         * Delete Session
+         * @description Delete a session, its subagent sessions, and stored media.
+         *
+         *     Requires the ``sessions:create`` permission.
+         *
+         *     Returns:
+         *         ``{"ok": True}``, or 404 when the session does not exist.
+         */
         delete: operations["delete_session_sessions__sid__delete"];
         options?: never;
         head?: never;
-        /** Rename Session */
+        /**
+         * Rename Session
+         * @description Rename a session.
+         *
+         *     Requires the ``sessions:create`` permission. The title is validated to be
+         *     non-empty and at most 120 characters (422 otherwise).
+         *
+         *     Returns:
+         *         The updated session row, or 404 when it does not exist.
+         */
         patch: operations["rename_session_sessions__sid__patch"];
         trace?: never;
     };
@@ -386,10 +726,35 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Messages */
+        /**
+         * List Messages
+         * @description List the active conversation chain for a session.
+         *
+         *     Requires the ``sessions:read`` permission. The chain follows the most recent
+         *     leaf back to its root and stops at a compaction summary, so abandoned forks
+         *     are not returned.
+         *
+         *     Returns:
+         *         The conversation messages in chronological order; empty for a session
+         *         with no history.
+         */
         get: operations["list_messages_sessions__sid__messages_get"];
         put?: never;
-        /** Chat */
+        /**
+         * Chat
+         * @description Send a user message and stream the resulting agent run.
+         *
+         *     Requires the ``sessions:create`` permission. The response is a streaming
+         *     AG-UI event source that stays open until the run finishes; cancel it with
+         *     ``POST /sessions/{sid}/messages/cancel``. ``retry_turn_id`` re-runs a prior
+         *     turn, ``fork``/``fork_from_turn_id`` branch from earlier history, and
+         *     ``skill`` prepends a rendered skill to the prompt.
+         *
+         *     Returns:
+         *         The streaming event response. Returns 404 for an unknown session or a
+         *         missing attachment file, 422 for prompt-template errors, and 400 for
+         *         invalid retry or skill references.
+         */
         post: operations["chat_sessions__sid__messages_post"];
         delete?: never;
         options?: never;
@@ -406,7 +771,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Upload Attachment */
+        /**
+         * Upload Attachment
+         * @description Upload a file attachment for a session.
+         *
+         *     Requires the ``sessions:create`` permission. The returned id can be passed in
+         *     ``attachment_ids`` on a subsequent message.
+         *
+         *     Returns:
+         *         The attachment id, media type, and filename.
+         */
         post: operations["upload_attachment_sessions__sid__attachments_post"];
         delete?: never;
         options?: never;
@@ -421,7 +795,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Download Attachment */
+        /**
+         * Download Attachment
+         * @description Download a session attachment by id.
+         *
+         *     Requires the ``sessions:read`` permission. The attachment must belong to the
+         *     session in the path.
+         *
+         *     Returns:
+         *         The file bytes, or 404 when missing or owned by another session.
+         */
         get: operations["download_attachment_sessions__sid__attachments__aid__get"];
         put?: never;
         post?: never;
@@ -440,7 +823,17 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Read App Resource */
+        /**
+         * Read App Resource
+         * @description Read a resource from an MCP server configured for the session.
+         *
+         *     Requires the ``sessions:create`` permission. The server is resolved from the
+         *     session's agent configuration and project.
+         *
+         *     Returns:
+         *         The MCP resource contents, or 404 when the session or MCP server is not
+         *         found.
+         */
         post: operations["read_app_resource_sessions__sid__mcp__server_id__resources_read_post"];
         delete?: never;
         options?: never;
@@ -457,7 +850,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Call App Tool */
+        /**
+         * Call App Tool
+         * @description Call a tool on an MCP server configured for the session.
+         *
+         *     Requires the ``sessions:create`` permission. The server is resolved from the
+         *     session's agent configuration and project.
+         *
+         *     Returns:
+         *         The MCP tool result, or 404 when the session or MCP server is not found.
+         */
         post: operations["call_app_tool_sessions__sid__mcp__server_id__tools_call_post"];
         delete?: never;
         options?: never;
@@ -474,7 +876,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Cancel Message */
+        /**
+         * Cancel Message
+         * @description Request cancellation of a session's active run.
+         *
+         *     Requires the ``sessions:create`` permission. Cancellation is cooperative, so
+         *     the streaming response may emit a few more events before ending.
+         *
+         *     Returns:
+         *         202 with ``{"status": "cancelling"}``, or 409 when no run is active.
+         */
         post: operations["cancel_message_sessions__sid__messages_cancel_post"];
         delete?: never;
         options?: never;
@@ -489,7 +900,18 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Session Files */
+        /**
+         * List Session Files
+         * @description List files in a session's project directory.
+         *
+         *     Requires the ``sessions:read`` permission. ``q`` filters paths
+         *     case-insensitively by substring. Traversal skips common build and cache
+         *     directories and caps the result at 1000 paths and depth 8.
+         *
+         *     Returns:
+         *         ``{"files": [...]}`` of project-relative POSIX paths, or 404 when the
+         *         session does not exist.
+         */
         get: operations["list_session_files_sessions__sid__files_get"];
         put?: never;
         post?: never;
@@ -506,7 +928,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Session Lsp */
+        /**
+         * Session Lsp
+         * @description Report LSP servers detected for a session's project.
+         *
+         *     Requires the ``sessions:read`` permission.
+         *
+         *     Returns:
+         *         Detected servers, servers active for the session, and diagnostic
+         *         snapshots, or 404 when the session does not exist.
+         */
         get: operations["session_lsp_sessions__sid__lsp_get"];
         put?: never;
         post?: never;
@@ -523,7 +954,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Session Plan */
+        /**
+         * Session Plan
+         * @description Get a session's plan items.
+         *
+         *     Requires the ``sessions:read`` permission.
+         *
+         *     Returns:
+         *         The plan items ordered by position, or 404 when the session does not
+         *         exist.
+         */
         get: operations["session_plan_sessions__sid__plan_get"];
         put?: never;
         post?: never;
@@ -540,10 +980,26 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Users */
+        /**
+         * List Users
+         * @description List user accounts.
+         *
+         *     Requires the ``users:manage`` permission.
+         *
+         *     Returns:
+         *         All users without password hashes.
+         */
         get: operations["list_users_users_get"];
         put?: never;
-        /** Create User */
+        /**
+         * Create User
+         * @description Create a user account.
+         *
+         *     Requires the ``users:manage`` permission.
+         *
+         *     Returns:
+         *         The created user, or 409 when the username is already taken.
+         */
         post: operations["create_user_users_post"];
         delete?: never;
         options?: never;
@@ -559,10 +1015,26 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update User */
+        /**
+         * Update User
+         * @description Update a user's email, active state, or password.
+         *
+         *     Requires the ``users:manage`` permission. Omitted fields are unchanged.
+         *
+         *     Returns:
+         *         The updated user, or 404 when it does not exist.
+         */
         put: operations["update_user_users__uid__put"];
         post?: never;
-        /** Delete User */
+        /**
+         * Delete User
+         * @description Delete a user with its role links and API keys.
+         *
+         *     Requires the ``users:manage`` permission. Deleting a missing user is a no-op.
+         *
+         *     Returns:
+         *         ``{"ok": True}``.
+         */
         delete: operations["delete_user_users__uid__delete"];
         options?: never;
         head?: never;
@@ -576,9 +1048,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get User Roles */
+        /**
+         * Get User Roles
+         * @description List a user's roles.
+         *
+         *     Requires the ``users:manage`` permission.
+         *
+         *     Returns:
+         *         The roles assigned to the user; empty when the user has none or does not
+         *         exist.
+         */
         get: operations["get_user_roles_users__uid__roles_get"];
-        /** Set User Roles */
+        /**
+         * Set User Roles
+         * @description Replace a user's role assignments.
+         *
+         *     Requires the ``users:manage`` permission. Every id must reference an
+         *     existing role (400 otherwise).
+         *
+         *     Returns:
+         *         The user's resulting roles, or 404 when the user does not exist.
+         */
         put: operations["set_user_roles_users__uid__roles_put"];
         post?: never;
         delete?: never;
@@ -594,10 +1084,26 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Roles */
+        /**
+         * List Roles
+         * @description List roles.
+         *
+         *     Requires the ``roles:manage`` permission.
+         *
+         *     Returns:
+         *         All roles.
+         */
         get: operations["list_roles_roles_get"];
         put?: never;
-        /** Create Role */
+        /**
+         * Create Role
+         * @description Create a role.
+         *
+         *     Requires the ``roles:manage`` permission.
+         *
+         *     Returns:
+         *         The created role.
+         */
         post: operations["create_role_roles_post"];
         delete?: never;
         options?: never;
@@ -613,10 +1119,27 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Update Role */
+        /**
+         * Update Role
+         * @description Update a role's name or description.
+         *
+         *     Requires the ``roles:manage`` permission.
+         *
+         *     Returns:
+         *         The updated role, or 404 when missing and 409 when the new name is taken.
+         */
         put: operations["update_role_roles__rid__put"];
         post?: never;
-        /** Delete Role */
+        /**
+         * Delete Role
+         * @description Delete a role and detach it from users and permissions.
+         *
+         *     Requires the ``roles:manage`` permission. Deleting a missing role is a
+         *     no-op.
+         *
+         *     Returns:
+         *         ``{"ok": True}``.
+         */
         delete: operations["delete_role_roles__rid__delete"];
         options?: never;
         head?: never;
@@ -630,9 +1153,27 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Role Permissions */
+        /**
+         * Get Role Permissions
+         * @description List a role's permissions.
+         *
+         *     Requires the ``roles:manage`` permission.
+         *
+         *     Returns:
+         *         The permissions granted to the role; empty when the role has none or
+         *         does not exist.
+         */
         get: operations["get_role_permissions_roles__rid__permissions_get"];
-        /** Set Role Permissions */
+        /**
+         * Set Role Permissions
+         * @description Replace a role's permission set.
+         *
+         *     Requires the ``roles:manage`` permission. Every id must reference an
+         *     existing permission (400 otherwise).
+         *
+         *     Returns:
+         *         The role's resulting permissions, or 404 when the role does not exist.
+         */
         put: operations["set_role_permissions_roles__rid__permissions_put"];
         post?: never;
         delete?: never;
@@ -648,10 +1189,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Api Keys */
+        /**
+         * List Api Keys
+         * @description List the authenticated user's API keys.
+         *
+         *     Requires the ``api_keys:manage`` permission. Only keys owned by the caller
+         *     are returned, including revoked ones.
+         *
+         *     Returns:
+         *         Key metadata without secrets.
+         */
         get: operations["list_api_keys_api_keys_get"];
         put?: never;
-        /** Create Api Key */
+        /**
+         * Create Api Key
+         * @description Create an API key for the authenticated user.
+         *
+         *     Requires the ``api_keys:manage`` permission. Requested scopes are
+         *     deduplicated and must not exceed the caller's own scopes (400 otherwise);
+         *     an ``expires_at`` in the past is rejected with 400.
+         *
+         *     Returns:
+         *         The new key metadata together with its plaintext secret.
+         */
         post: operations["create_api_key_api_keys_post"];
         delete?: never;
         options?: never;
@@ -669,7 +1229,16 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Revoke Api Key */
+        /**
+         * Revoke Api Key
+         * @description Revoke one of the authenticated user's API keys.
+         *
+         *     Requires the ``api_keys:manage`` permission. Revoking an already-revoked key
+         *     is harmless. Keys owned by other users are reported as missing.
+         *
+         *     Returns:
+         *         ``{"ok": True}``, or 404 when the key does not belong to the caller.
+         */
         delete: operations["revoke_api_key_api_keys__kid__delete"];
         options?: never;
         head?: never;
@@ -683,7 +1252,15 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Labels */
+        /**
+         * List Labels
+         * @description List model labels.
+         *
+         *     Requires the ``providers:read`` permission.
+         *
+         *     Returns:
+         *         All labels ordered by name.
+         */
         get: operations["list_labels_labels_get"];
         put?: never;
         post?: never;
@@ -700,7 +1277,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Skills */
+        /**
+         * List Skills
+         * @description List skills available to a project.
+         *
+         *     Requires the ``agents:read`` permission. Passing ``project_id`` includes
+         *     project-scoped skills and plugins.
+         *
+         *     Returns:
+         *         Skill summaries, or 404 when ``project_id`` does not exist.
+         */
         get: operations["list_skills_skills_get"];
         put?: never;
         post?: never;
@@ -717,12 +1303,39 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Skill */
+        /**
+         * Get Skill
+         * @description Get one skill including its Markdown body.
+         *
+         *     Requires the ``agents:read`` permission.
+         *
+         *     Returns:
+         *         The skill detail, or 404 when the project or skill is not found.
+         */
         get: operations["get_skill_skills__name__get"];
-        /** Save Skill */
+        /**
+         * Save Skill
+         * @description Create or overwrite a user skill.
+         *
+         *     Requires the ``agents:create`` permission. The name must be lowercase
+         *     kebab-case (400 otherwise) and the rendered skill must pass validation (422
+         *     otherwise).
+         *
+         *     Returns:
+         *         ``{"ok": True}``.
+         */
         put: operations["save_skill_skills__name__put"];
         post?: never;
-        /** Delete Skill */
+        /**
+         * Delete Skill
+         * @description Delete a user skill.
+         *
+         *     Requires the ``agents:create`` permission. Plugin-managed skills (names with
+         *     a ``:``) cannot be deleted (400).
+         *
+         *     Returns:
+         *         ``{"ok": True}``, or 404 when the user skill does not exist.
+         */
         delete: operations["delete_skill_skills__name__delete"];
         options?: never;
         head?: never;
@@ -736,7 +1349,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Plugins */
+        /**
+         * List Plugins
+         * @description List installed plugins visible to the caller.
+         *
+         *     Requires the ``plugins:read`` permission. Passing ``project_id`` includes
+         *     project-scoped plugins for that project.
+         *
+         *     Returns:
+         *         Plugin summaries, or 404 when ``project_id`` does not exist.
+         */
         get: operations["list_plugins_plugins_get"];
         put?: never;
         post?: never;
@@ -753,7 +1375,16 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Plugin */
+        /**
+         * Get Plugin
+         * @description Get one plugin by scope and name.
+         *
+         *     Requires the ``plugins:read`` permission. ``scope`` must be ``global`` or
+         *     ``project`` (400 otherwise).
+         *
+         *     Returns:
+         *         The plugin detail, or 404 when the project or plugin is not found.
+         */
         get: operations["get_plugin_plugins__scope___name__get"];
         put?: never;
         post?: never;
@@ -771,7 +1402,18 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Set Plugin State */
+        /**
+         * Set Plugin State
+         * @description Enable or disable a plugin for a scope.
+         *
+         *     Requires the ``plugins:write`` permission. Scope must be ``global`` or
+         *     ``project`` (400 otherwise), and project scope requires ``project_id`` (400
+         *     otherwise). Unknown projects return 404; invalid plugin state changes return
+         *     400.
+         *
+         *     Returns:
+         *         The updated plugin detail.
+         */
         put: operations["set_plugin_state_plugins_state_put"];
         post?: never;
         delete?: never;
@@ -784,7 +1426,15 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /** AgentCreate */
+        /**
+         * AgentCreate
+         * @description Request body for creating or replacing an agent configuration.
+         *
+         *     Exactly one of ``model`` or ``model_label`` must be set. ``tool_bindings``
+         *     holds native tool bindings or MCP servers, ``plugin_mcp_bindings`` references
+         *     MCP servers supplied by installed plugins, and ``mode_definitions`` declares
+         *     the agent's selectable modes.
+         */
         AgentCreate: {
             /** Name */
             name: string;
@@ -824,7 +1474,12 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
-        /** AgentSpec */
+        /**
+         * AgentSpec
+         * @description Configuration record describing an Agent.
+         *
+         *     An Agent is not a running unit; a session instantiates this configuration.
+         */
         AgentSpec: {
             /** Name */
             name: string;
@@ -848,7 +1503,13 @@ export interface components {
              */
             plugin_mcp_bindings: components["schemas"]["PluginMcpBinding"][];
         };
-        /** ApiKeyCreate */
+        /**
+         * ApiKeyCreate
+         * @description Request body for creating an API key.
+         *
+         *     ``scopes`` must be a subset of the caller's own scopes, and ``expires_at``
+         *     must be a future timestamp when set.
+         */
         ApiKeyCreate: {
             /**
              * Scopes
@@ -858,7 +1519,12 @@ export interface components {
             /** Expires At */
             expires_at?: string | null;
         };
-        /** ApiKeyCreated */
+        /**
+         * ApiKeyCreated
+         * @description A newly created API key.
+         *
+         *     ``key`` is the plaintext secret and is returned only in this response.
+         */
         ApiKeyCreated: {
             /** Id */
             id: string;
@@ -876,7 +1542,10 @@ export interface components {
             /** Key */
             key: string;
         };
-        /** ApiKeyRead */
+        /**
+         * ApiKeyRead
+         * @description Stored API-key metadata without the secret.
+         */
         ApiKeyRead: {
             /** Id */
             id: string;
@@ -892,7 +1561,10 @@ export interface components {
              */
             created_at: string;
         };
-        /** AttachmentRead */
+        /**
+         * AttachmentRead
+         * @description Metadata for an uploaded session attachment.
+         */
         AttachmentRead: {
             /** Id */
             id: string;
@@ -911,7 +1583,10 @@ export interface components {
             /** File */
             file: string;
         };
-        /** CallToolBody */
+        /**
+         * CallToolBody
+         * @description Request body for calling an MCP tool.
+         */
         CallToolBody: {
             /** Name */
             name: string;
@@ -928,7 +1603,10 @@ export interface components {
             /** Detail */
             detail?: components["schemas"]["ValidationError"][];
         };
-        /** LabelAssignment */
+        /**
+         * LabelAssignment
+         * @description A label to attach to a model, with a selection priority.
+         */
         LabelAssignment: {
             /** Label */
             label: string;
@@ -938,28 +1616,40 @@ export interface components {
              */
             priority: number;
         };
-        /** LabelRead */
+        /**
+         * LabelRead
+         * @description A model label that can be assigned to models.
+         */
         LabelRead: {
             /** Id */
             id: string;
             /** Name */
             name: string;
         };
-        /** LoginRequest */
+        /**
+         * LoginRequest
+         * @description Credentials exchanged for a bearer token.
+         */
         LoginRequest: {
             /** Username */
             username: string;
             /** Password */
             password: string;
         };
-        /** LoginResponse */
+        /**
+         * LoginResponse
+         * @description A bearer token and its type.
+         */
         LoginResponse: {
             /** Access Token */
             access_token: string;
             /** Token Type */
             token_type: string;
         };
-        /** McpToolBinding */
+        /**
+         * McpToolBinding
+         * @description Connect an MCP server and optionally prefix the tools it exposes.
+         */
         McpToolBinding: {
             /**
              * Server Url
@@ -1004,7 +1694,10 @@ export interface components {
                 [key: string]: string;
             };
         };
-        /** MeResponse */
+        /**
+         * MeResponse
+         * @description The authenticated user's identity and effective permission scopes.
+         */
         MeResponse: {
             /** Id */
             id: string;
@@ -1013,7 +1706,10 @@ export interface components {
             /** Permissions */
             permissions: string[];
         };
-        /** MessageRead */
+        /**
+         * MessageRead
+         * @description A message in a session's conversation history.
+         */
         MessageRead: {
             /** Id */
             id: string;
@@ -1036,7 +1732,14 @@ export interface components {
                 [key: string]: unknown;
             }[] | null;
         };
-        /** MessageRequest */
+        /**
+         * MessageRequest
+         * @description Request body for sending a message to a session.
+         *
+         *     ``mode`` selects an agent mode; ``skill`` prefixes a rendered skill.
+         *     ``fork`` / ``fork_from_turn_id`` branch history, and ``retry_turn_id``
+         *     re-runs a prior turn. ``attachment_ids`` reference uploaded attachments.
+         */
         MessageRequest: {
             /** Content */
             content: string;
@@ -1059,7 +1762,10 @@ export interface components {
              */
             attachment_ids: string[];
         };
-        /** Mode */
+        /**
+         * Mode
+         * @description A named session mode with boolean feature flags.
+         */
         Mode: {
             /** Name */
             name: string;
@@ -1068,14 +1774,20 @@ export interface components {
                 [key: string]: boolean;
             };
         };
-        /** ModelBinding */
+        /**
+         * ModelBinding
+         * @description Select the model name and provider for an Agent configuration.
+         */
         ModelBinding: {
             /** Model */
             model: string;
             /** Provider */
             provider: string;
         };
-        /** ModelCreate */
+        /**
+         * ModelCreate
+         * @description Request body for registering a model under a provider.
+         */
         ModelCreate: {
             /** Provider Id */
             provider_id: string;
@@ -1089,7 +1801,10 @@ export interface components {
              */
             labels: components["schemas"]["LabelAssignment"][];
         };
-        /** ModelLabelRead */
+        /**
+         * ModelLabelRead
+         * @description A label attached to a model.
+         */
         ModelLabelRead: {
             /** Id */
             id: string;
@@ -1098,7 +1813,10 @@ export interface components {
             /** Priority */
             priority: number;
         };
-        /** ModelLabelsUpdate */
+        /**
+         * ModelLabelsUpdate
+         * @description Request body that replaces a model's full label set.
+         */
         ModelLabelsUpdate: {
             /**
              * Labels
@@ -1106,7 +1824,10 @@ export interface components {
              */
             labels: components["schemas"]["LabelAssignment"][];
         };
-        /** ModelRead */
+        /**
+         * ModelRead
+         * @description A model with its provider and attached labels.
+         */
         ModelRead: {
             /** Id */
             id: string;
@@ -1122,7 +1843,10 @@ export interface components {
              */
             labels: components["schemas"]["ModelLabelRead"][];
         };
-        /** NativeToolBinding */
+        /**
+         * NativeToolBinding
+         * @description Bind a built-in harness tool that requires certain mode flags.
+         */
         NativeToolBinding: {
             /** Name */
             name: string;
@@ -1132,14 +1856,20 @@ export interface components {
              */
             required_flags: string[];
         };
-        /** PermissionCreate */
+        /**
+         * PermissionCreate
+         * @description Request body for creating a permission.
+         */
         PermissionCreate: {
             /** Name */
             name: string;
             /** Description */
             description?: string | null;
         };
-        /** PermissionIds */
+        /**
+         * PermissionIds
+         * @description Request body that replaces a role's permission set.
+         */
         PermissionIds: {
             /**
              * Permission Ids
@@ -1147,7 +1877,10 @@ export interface components {
              */
             permission_ids: string[];
         };
-        /** PermissionRead */
+        /**
+         * PermissionRead
+         * @description A permission record.
+         */
         PermissionRead: {
             /** Id */
             id: string;
@@ -1156,14 +1889,20 @@ export interface components {
             /** Description */
             description?: string | null;
         };
-        /** PermissionUpdate */
+        /**
+         * PermissionUpdate
+         * @description Request body that updates a permission's name or description.
+         */
         PermissionUpdate: {
             /** Name */
             name?: string | null;
             /** Description */
             description?: string | null;
         };
-        /** PlanItemRead */
+        /**
+         * PlanItemRead
+         * @description One ordered item in a session's plan.
+         */
         PlanItemRead: {
             /** Id */
             id: string;
@@ -1174,7 +1913,10 @@ export interface components {
             /** Status */
             status: string;
         };
-        /** PlanRead */
+        /**
+         * PlanRead
+         * @description A session's plan, ordered by position.
+         */
         PlanRead: {
             /**
              * Items
@@ -1182,7 +1924,10 @@ export interface components {
              */
             items: components["schemas"]["PlanItemRead"][];
         };
-        /** PluginMcpBinding */
+        /**
+         * PluginMcpBinding
+         * @description Reference an MCP server provided by a plugin.
+         */
         PluginMcpBinding: {
             /** Plugin */
             plugin: string;
@@ -1196,7 +1941,13 @@ export interface components {
              */
             id: string;
         };
-        /** PluginStateBody */
+        /**
+         * PluginStateBody
+         * @description Request body for enabling or disabling a plugin.
+         *
+         *     ``scope`` is ``global`` or ``project``; project scope requires
+         *     ``project_id``.
+         */
         PluginStateBody: {
             /** Plugin Name */
             plugin_name: string;
@@ -1213,7 +1964,12 @@ export interface components {
              */
             enabled: boolean;
         };
-        /** PreviewRequest */
+        /**
+         * PreviewRequest
+         * @description Request body for previewing a prompt template.
+         *
+         *     ``context`` overrides individual sample values; unknown keys are ignored.
+         */
         PreviewRequest: {
             /** Template */
             template: string;
@@ -1225,7 +1981,13 @@ export interface components {
                 [key: string]: string;
             };
         };
-        /** ProjectCreate */
+        /**
+         * ProjectCreate
+         * @description Request body for creating a project.
+         *
+         *     ``path`` must be an existing directory on the server, and every
+         *     ``extra_roots`` entry must be an absolute existing directory.
+         */
         ProjectCreate: {
             /** Name */
             name: string;
@@ -1237,7 +1999,10 @@ export interface components {
              */
             extra_roots: string[];
         };
-        /** ProjectRead */
+        /**
+         * ProjectRead
+         * @description A project and its workspace paths.
+         */
         ProjectRead: {
             /** Id */
             id: string;
@@ -1255,14 +2020,22 @@ export interface components {
              */
             created_at: string;
         };
-        /** ProjectUpdate */
+        /**
+         * ProjectUpdate
+         * @description Request body that updates a project's name or extra roots.
+         */
         ProjectUpdate: {
             /** Name */
             name?: string | null;
             /** Extra Roots */
             extra_roots?: string[] | null;
         };
-        /** ProviderCreate */
+        /**
+         * ProviderCreate
+         * @description Request body for creating a provider.
+         *
+         *     ``base_url`` and ``models_url`` must be HTTP(S) URLs when set.
+         */
         ProviderCreate: {
             /** Name */
             name: string;
@@ -1275,7 +2048,10 @@ export interface components {
             /** Models Url */
             models_url?: string | null;
         };
-        /** ProviderRead */
+        /**
+         * ProviderRead
+         * @description A provider without its API key.
+         */
         ProviderRead: {
             /** Id */
             id: string;
@@ -1293,14 +2069,22 @@ export interface components {
              */
             is_builtin: boolean;
         };
-        /** ProviderTestError */
+        /**
+         * ProviderTestError
+         * @description Machine-readable reason a provider connection test failed.
+         */
         ProviderTestError: {
             /** Code */
             code: string;
             /** Message */
             message: string;
         };
-        /** ProviderTestRequest */
+        /**
+         * ProviderTestRequest
+         * @description Ad-hoc provider connection test.
+         *
+         *     When ``provider_id`` is set, omitted fields fall back to the stored provider.
+         */
         ProviderTestRequest: {
             /** Kind */
             kind: string;
@@ -1313,7 +2097,10 @@ export interface components {
             /** Provider Id */
             provider_id?: string | null;
         };
-        /** ProviderTestResult */
+        /**
+         * ProviderTestResult
+         * @description Outcome of a provider connection test.
+         */
         ProviderTestResult: {
             /** Ok */
             ok: boolean;
@@ -1328,7 +2115,10 @@ export interface components {
             sample_models: string[];
             error?: components["schemas"]["ProviderTestError"] | null;
         };
-        /** ProviderUpdate */
+        /**
+         * ProviderUpdate
+         * @description Request body that updates provider fields; omitted fields are unchanged.
+         */
         ProviderUpdate: {
             /** Name */
             name?: string | null;
@@ -1341,12 +2131,18 @@ export interface components {
             /** Models Url */
             models_url?: string | null;
         };
-        /** ReadResourceBody */
+        /**
+         * ReadResourceBody
+         * @description Request body for reading an MCP resource.
+         */
         ReadResourceBody: {
             /** Uri */
             uri: string;
         };
-        /** RegisterRequest */
+        /**
+         * RegisterRequest
+         * @description Fields needed to register a new account.
+         */
         RegisterRequest: {
             /** Username */
             username: string;
@@ -1355,14 +2151,20 @@ export interface components {
             /** Password */
             password: string;
         };
-        /** RoleCreate */
+        /**
+         * RoleCreate
+         * @description Request body for creating a role.
+         */
         RoleCreate: {
             /** Name */
             name: string;
             /** Description */
             description?: string | null;
         };
-        /** RoleIds */
+        /**
+         * RoleIds
+         * @description Request body that replaces a user's role set.
+         */
         RoleIds: {
             /**
              * Role Ids
@@ -1370,7 +2172,10 @@ export interface components {
              */
             role_ids: string[];
         };
-        /** RoleRead */
+        /**
+         * RoleRead
+         * @description A role record.
+         */
         RoleRead: {
             /** Id */
             id: string;
@@ -1379,21 +2184,32 @@ export interface components {
             /** Description */
             description?: string | null;
         };
-        /** RoleUpdate */
+        /**
+         * RoleUpdate
+         * @description Request body that updates a role's name or description.
+         */
         RoleUpdate: {
             /** Name */
             name?: string | null;
             /** Description */
             description?: string | null;
         };
-        /** SessionCreate */
+        /**
+         * SessionCreate
+         * @description Request body for starting a session.
+         *
+         *     ``agent_id`` is the name of an existing agent configuration.
+         */
         SessionCreate: {
             /** Project Id */
             project_id: string;
             /** Agent Id */
             agent_id: string;
         };
-        /** SessionDetail */
+        /**
+         * SessionDetail
+         * @description A session with its agent's display name.
+         */
         SessionDetail: {
             /** Id */
             id: string;
@@ -1408,7 +2224,26 @@ export interface components {
             /** Created At */
             created_at: string;
         };
-        /** SessionRow */
+        /**
+         * SessionRow
+         * @description A live Agent session within a Project.
+         *
+         *     A Session runs an Agent configuration and owns its Turns, attachments, plan
+         *     items, and any child subagent sessions.
+         *
+         *     Attributes:
+         *         project_id: Owning Project. ``RESTRICT`` keeps Session history from being
+         *             orphaned by deleting its Project.
+         *         agent_id: Agent configuration used by the Session. ``RESTRICT`` prevents
+         *             deleting a configuration that still has sessions.
+         *         parent_session_id: Parent Session when this is a subagent session;
+         *             cascade-deleted with the parent.
+         *         subagent_session_status: Status metadata recorded when this Session runs
+         *             as a subagent session; ``None`` for ordinary sessions.
+         *         subagent_session_output: Optional captured output for a completed
+         *             subagent session.
+         *         subagent_session_depth: Nesting depth, ``0`` for a root Session.
+         */
         SessionRow: {
             /** Id */
             id: string;
@@ -1437,19 +2272,30 @@ export interface components {
              */
             created_at?: string;
         };
-        /** SessionTitleUpdate */
+        /**
+         * SessionTitleUpdate
+         * @description Request body for renaming a session.
+         *
+         *     Titles are trimmed to a single line and limited to 120 characters.
+         */
         SessionTitleUpdate: {
             /** Title */
             title: string;
         };
-        /** SkillWrite */
+        /**
+         * SkillWrite
+         * @description Request body for writing a user skill's description and body.
+         */
         SkillWrite: {
             /** Description */
             description: string;
             /** Body */
             body: string;
         };
-        /** UserCreate */
+        /**
+         * UserCreate
+         * @description Request body for creating a user.
+         */
         UserCreate: {
             /** Username */
             username: string;
@@ -1458,7 +2304,10 @@ export interface components {
             /** Password */
             password: string;
         };
-        /** UserRead */
+        /**
+         * UserRead
+         * @description A user account without its password hash.
+         */
         UserRead: {
             /** Id */
             id: string;
@@ -1469,7 +2318,10 @@ export interface components {
             /** Is Active */
             is_active: boolean;
         };
-        /** UserUpdate */
+        /**
+         * UserUpdate
+         * @description Request body that updates a user; omitted fields are unchanged.
+         */
         UserUpdate: {
             /** Email */
             email?: string | null;

@@ -1,3 +1,12 @@
+"""Execute plugin hooks at session, run, and tool lifecycle events.
+
+Hooks run in declaration order. Most hook failures are logged and skipped so a
+broken plugin cannot break a session; the exception is a ``before_tool`` hook
+configured with ``on_error=deny``, which fails the tool. Command hooks spawn
+subprocesses and HTTP hooks make network requests, both bounded by timeouts and
+output limits.
+"""
+
 from __future__ import annotations
 
 import asyncio
@@ -41,11 +50,17 @@ _ENV_PASSTHROUGH = (
 
 
 class HookExecutionError(RuntimeError):
-    pass
+    """Raised when a hook action fails or returns an invalid response."""
 
 
 @dataclass(frozen=True)
 class HookContext:
+    """Payload describing the event a hook is invoked for.
+
+    Fields not relevant to an event stay at their defaults. ``payload`` renders
+    a JSON-safe view passed to command stdin and HTTP bodies.
+    """
+
     event: str
     session_id: str = ""
     project_id: str | None = None
@@ -63,6 +78,7 @@ class HookContext:
     timestamp: str = ""
 
     def payload(self) -> dict[str, Any]:
+        """Return a JSON-safe mapping describing this event."""
         return {
             "event": self.event,
             "plugin": self.plugin,
@@ -84,6 +100,13 @@ class HookContext:
 
 @dataclass(frozen=True)
 class HookResult:
+    """Parsed response from a hook action.
+
+    ``decision`` and ``args`` are only honored for ``before_tool``; ``result``
+    replaces tool output for ``after_tool``/``tool_error``; ``context`` is
+    injected into the model context.
+    """
+
     decision: str | None = None
     reason: str = ""
     args: dict[str, Any] | None = None
@@ -136,7 +159,21 @@ def _parse_response(text: str) -> HookResult:
 
 
 class HookExecutor:
+    """Run a single hook action and parse its response."""
+
     async def execute(self, hook: PluginHook, context: HookContext) -> HookResult:
+        """Execute one hook action for the given event.
+
+        Args:
+            hook: Hook declaration whose action should run.
+            context: Event payload passed to the action.
+
+        Returns:
+            The parsed hook result.
+
+        Raises:
+            HookExecutionError: If the action fails or its response is invalid.
+        """
         action = hook.action
         if isinstance(action, ContextAction):
             return HookResult(
@@ -230,6 +267,8 @@ class HookExecutor:
 
 @dataclass(frozen=True)
 class PluginHookRef:
+    """A hook together with the plugin paths it runs against."""
+
     plugin: str
     root: pathlib.Path
     data: pathlib.Path
@@ -238,6 +277,8 @@ class PluginHookRef:
 
 @dataclass(frozen=True)
 class SessionHookState:
+    """Hook refs and project metadata retained for an active session."""
+
     refs: tuple[PluginHookRef, ...]
     project_id: str | None
     project_root: str
@@ -280,6 +321,8 @@ async def _run_context_refs(
     tool_name: str | None = None,
 ) -> tuple[str, ...]:
     contexts: list[str] = []
+    # Run in declaration order so context is deterministic, and isolate failures
+    # so one broken hook cannot suppress later hooks or the event itself.
     for ref in refs:
         if not _applies(ref, event, tool_name):
             continue
@@ -316,6 +359,9 @@ async def _run_before_tool(
     tool_name: str | None,
 ) -> tuple[dict[str, Any], list[str]]:
     contexts: list[str] = []
+    # Rewrites accumulate into the args returned to the tool, but each hook's
+    # payload reflects the original args. Failures are skipped unless the hook
+    # opted into ``on_error=deny``.
     for ref in refs:
         if not _applies(ref, "before_tool", tool_name):
             continue
@@ -352,6 +398,7 @@ async def _run_after_tool(
     tool_name: str | None,
 ) -> tuple[Any, list[str]]:
     contexts: list[str] = []
+    # Later hooks can observe and replace earlier results; failures are isolated.
     for ref in refs:
         if not _applies(ref, "after_tool", tool_name):
             continue
@@ -381,6 +428,8 @@ async def _run_tool_error(
 ) -> tuple[Any, list[str]]:
     replacement: Any = None
     contexts: list[str] = []
+    # Error hooks may supply replacement output; failures remain isolated so the
+    # original error still surfaces when nothing handles it.
     for ref in refs:
         if not _applies(ref, "tool_error", tool_name):
             continue
@@ -428,6 +477,12 @@ def _append_context(result: Any, context: str) -> Any:
 
 
 class PluginHookRuntime:
+    """Track active sessions and run their session-scoped hooks.
+
+    ``session_start`` fires once per session; ``session_end`` fires when the
+    session is torn down. State is process-local.
+    """
+
     def __init__(self, executor: HookExecutor | None = None):
         self.started: set[str] = set()
         self.active: dict[str, SessionHookState] = {}
@@ -440,6 +495,18 @@ class PluginHookRuntime:
         project_id: str | None,
         project_root: str,
     ) -> tuple[str, ...]:
+        """Start a session's hooks once and return any start context.
+
+        Args:
+            session_id: Session being started.
+            refs: Hooks enabled for the session.
+            project_id: Project owning the session, if any.
+            project_root: Project root passed to hooks.
+
+        Returns:
+            Context strings emitted by ``session_start`` hooks; empty when the
+            session was already started.
+        """
         if session_id in self.started:
             return ()
         self.started.add(session_id)
@@ -457,6 +524,11 @@ class PluginHookRuntime:
         )
 
     async def end_session(self, session_id: str) -> None:
+        """Fire ``session_end`` hooks and forget the session's state.
+
+        Args:
+            session_id: Session being torn down.
+        """
         state = self.active.pop(session_id, None)
         self.started.discard(session_id)
         if state is None or not state.refs:
@@ -472,6 +544,7 @@ class PluginHookRuntime:
         )
 
     async def end_all(self) -> None:
+        """End every active session, firing their ``session_end`` hooks."""
         for session_id in list(self.active):
             await self.end_session(session_id)
 
@@ -480,6 +553,7 @@ _runtime: PluginHookRuntime | None = None
 
 
 def get_plugin_hook_runtime() -> PluginHookRuntime:
+    """Return the process-wide plugin hook runtime, creating it on first use."""
     global _runtime
     if _runtime is None:
         _runtime = PluginHookRuntime()
@@ -487,6 +561,13 @@ def get_plugin_hook_runtime() -> PluginHookRuntime:
 
 
 class PluginHooks(AbstractCapability[Any]):
+    """pydantic-ai capability that runs plugin hooks for one session.
+
+    It maps run and tool lifecycle callbacks onto the session's hook refs,
+    enqueues hook-provided context into the system prompt, and rewrites or
+    replaces tool args/results where hooks request it.
+    """
+
     def __init__(
         self,
         runtime: PluginHookRuntime,
@@ -513,6 +594,11 @@ class PluginHooks(AbstractCapability[Any]):
         )
 
     async def before_run(self, ctx: RunContext[Any]) -> None:
+        """Start the session and run start hooks, enqueuing their context.
+
+        Args:
+            ctx: pydantic-ai run context for the current run.
+        """
         session_context = await self.runtime.ensure_started(
             self.session_id,
             self.refs,
@@ -532,6 +618,15 @@ class PluginHooks(AbstractCapability[Any]):
     async def after_run(
         self, ctx: RunContext[Any], *, result: Any
     ) -> Any:
+        """Fire run end hooks and return the run result unchanged.
+
+        Args:
+            ctx: pydantic-ai run context for the finished run.
+            result: Result produced by the run.
+
+        Returns:
+            ``result`` unchanged, since end hooks are side-effect only.
+        """
         await _run_side_effect_refs(
             self.runtime.executor,
             self.refs,
@@ -543,6 +638,15 @@ class PluginHooks(AbstractCapability[Any]):
     async def on_run_error(
         self, ctx: RunContext[Any], *, error: BaseException
     ) -> Any:
+        """Fire run error hooks, then re-raise the original error.
+
+        Args:
+            ctx: pydantic-ai run context for the failed run.
+            error: Exception that ended the run.
+
+        Raises:
+            BaseException: The original ``error``, always re-raised.
+        """
         await _run_side_effect_refs(
             self.runtime.executor,
             self.refs,
@@ -559,6 +663,21 @@ class PluginHooks(AbstractCapability[Any]):
         tool_def: ToolDefinition,
         args: dict[str, Any],
     ) -> dict[str, Any]:
+        """Run before-tool hooks, returning possibly rewritten arguments.
+
+        Args:
+            ctx: pydantic-ai run context.
+            call: Tool call being executed.
+            tool_def: Definition of the tool being executed.
+            args: Arguments the model supplied for the call.
+
+        Returns:
+            The arguments to execute with, after any hook rewrites.
+
+        Raises:
+            ToolFailed: If a hook denies the call or fails with
+                ``on_error=deny``.
+        """
         base = self._base(
             "before_tool",
             ctx,
@@ -587,6 +706,18 @@ class PluginHooks(AbstractCapability[Any]):
         args: dict[str, Any],
         result: Any,
     ) -> Any:
+        """Run after-tool hooks and append any stored hook context.
+
+        Args:
+            ctx: pydantic-ai run context.
+            call: Tool call that completed.
+            tool_def: Definition of the executed tool.
+            args: Arguments the tool ran with.
+            result: Tool output before hooks.
+
+        Returns:
+            The tool output after hooks and appended context.
+        """
         base = self._base(
             "after_tool",
             ctx,
@@ -617,6 +748,22 @@ class PluginHooks(AbstractCapability[Any]):
         args: dict[str, Any],
         error: Exception,
     ) -> Any:
+        """Run tool-error hooks and decide how the error surfaces.
+
+        Args:
+            ctx: pydantic-ai run context.
+            call: Tool call that failed.
+            tool_def: Definition of the failed tool.
+            args: Arguments the tool ran with.
+            error: Exception raised by the tool.
+
+        Returns:
+            Replacement output when a hook supplied one.
+
+        Raises:
+            ToolFailed: When hooks emitted context but no replacement.
+            Exception: The original ``error`` when no hook handled it.
+        """
         base = self._base(
             "tool_error",
             ctx,

@@ -1,3 +1,10 @@
+"""Skill discovery and user-skill management endpoints.
+
+Skills are Markdown instruction bundles discovered from the project, the user
+directory, and installed plugins. User-authored skills are written under the
+configured skills directory; plugin-provided skills are read-only.
+"""
+
 import pathlib
 import re
 import shutil
@@ -19,6 +26,8 @@ _NAME = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
 
 class SkillWrite(BaseModel):
+    """Request body for writing a user skill's description and body."""
+
     description: str
     body: str
 
@@ -66,6 +75,14 @@ async def list_skills(
     project_id: str | None = None,
     _=Depends(require_permission("agents:read")),
 ):
+    """List skills available to a project.
+
+    Requires the ``agents:read`` permission. Passing ``project_id`` includes
+    project-scoped skills and plugins.
+
+    Returns:
+        Skill summaries, or 404 when ``project_id`` does not exist.
+    """
     root = await _project_root(request, project_id)
     skills = discover_skills(
         root,
@@ -90,6 +107,13 @@ async def get_skill(
     project_id: str | None = None,
     _=Depends(require_permission("agents:read")),
 ):
+    """Get one skill including its Markdown body.
+
+    Requires the ``agents:read`` permission.
+
+    Returns:
+        The skill detail, or 404 when the project or skill is not found.
+    """
     root = await _project_root(request, project_id)
     skills = discover_skills(
         root,
@@ -115,6 +139,15 @@ async def save_skill(
     request: Request,
     _=Depends(require_permission("agents:create")),
 ):
+    """Create or overwrite a user skill.
+
+    Requires the ``agents:create`` permission. The name must be lowercase
+    kebab-case (400 otherwise) and the rendered skill must pass validation (422
+    otherwise).
+
+    Returns:
+        ``{"ok": True}``.
+    """
     if not _NAME.match(name):
         raise HTTPException(status_code=400, detail="Invalid skill name")
     content = (
@@ -142,6 +175,14 @@ async def save_skill(
 async def delete_skill(
     name: str, request: Request, _=Depends(require_permission("agents:create"))
 ):
+    """Delete a user skill.
+
+    Requires the ``agents:create`` permission. Plugin-managed skills (names with
+    a ``:``) cannot be deleted (400).
+
+    Returns:
+        ``{"ok": True}``, or 404 when the user skill does not exist.
+    """
     if ":" in name:
         raise HTTPException(status_code=400, detail="Plugin-managed skill")
     target = _user_dir(request) / name

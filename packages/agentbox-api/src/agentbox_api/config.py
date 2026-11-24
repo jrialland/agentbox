@@ -1,3 +1,11 @@
+"""Runtime settings for the API, resolved from the environment and ``agentbox.toml``.
+
+Settings combine pydantic-settings environment loading with database and media
+resolution from :mod:`agentbox_models.config`. Constructor values win, then the
+process environment and ``.env``, then the optional TOML file, then built-in
+defaults.
+"""
+
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -9,6 +17,25 @@ from agentbox_models.config import (
 
 
 class Settings(BaseSettings):
+    """Validated API configuration.
+
+    Each field is populated from a same-named environment variable (case
+    insensitive) or the ``.env`` file. ``jwt_secret`` is required and must be at
+    least 32 characters; ``jwt_expiry_seconds`` bounds how long issued tokens
+    stay valid. ``database_url`` and ``media_dir`` accept explicit values; when
+    left empty they are resolved in the model validator from the environment and
+    ``agentbox.toml``.
+
+    Attributes:
+        jwt_secret: Secret used to sign and verify JWTs. Short secrets are
+            rejected at startup to keep signed tokens non-forgeable.
+        database_url: Async SQLAlchemy URL; empty means resolve from the
+            database environment/TOML settings.
+        media_dir: Directory for avatars, attachments, and A2A cards; empty
+            means resolve from ``MEDIA_DIR`` or the TOML storage settings.
+        cors_origins: Origins allowed to make credentialed cross-origin calls.
+    """
+
     database_url: str = ""
     media_dir: str = ""
     jwt_secret: SecretStr = Field(min_length=32)
@@ -78,6 +105,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def _resolve_paths(self):
+        # Precedence for the resolved fields: explicit constructor/env value,
+        # then DATABASE_URL/MEDIA_DIR, then agentbox.toml, then defaults. The
+        # config file is only consulted when the field is still empty.
         config = load_config_file()
         if not self.database_url:
             self.database_url = resolve_database_url(config)

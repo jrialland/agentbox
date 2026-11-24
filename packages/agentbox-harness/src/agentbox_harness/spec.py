@@ -1,3 +1,9 @@
+"""Agent configuration types for the harness.
+
+An :class:`AgentSpec` describes an Agent (model, instructions, tools, and
+modes). It is configuration only; live execution happens in a session.
+"""
+
 from dataclasses import field
 
 from pydantic import BaseModel
@@ -6,27 +12,45 @@ from pydantic.dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ModelBinding:
+    """Select the model name and provider for an Agent configuration."""
+
     model: str
     provider: str
 
 
 @dataclass(frozen=True)
 class Mode:
+    """A named session mode with boolean feature flags."""
+
     name: str
     flags: dict[str, bool]
 
     def allows(self, flag: str) -> bool:
+        """Return whether the mode permits a flag.
+
+        Unset flags default to allowed.
+
+        Args:
+            flag: Flag name to look up.
+
+        Returns:
+            ``True`` when the flag is absent or set to ``True``.
+        """
         return self.flags.get(flag, True)
 
 
 @dataclass(frozen=True)
 class NativeToolBinding:
+    """Bind a built-in harness tool that requires certain mode flags."""
+
     name: str
     required_flags: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
 class McpToolBinding:
+    """Connect an MCP server and optionally prefix the tools it exposes."""
+
     server_url: str = ""
     tool_prefix: str = ""
     id: str = ""
@@ -41,6 +65,8 @@ class McpToolBinding:
 
 @dataclass(frozen=True)
 class PluginMcpBinding:
+    """Reference an MCP server provided by a plugin."""
+
     plugin: str
     server: str
     project_id: str | None = None
@@ -51,6 +77,11 @@ ToolBinding = NativeToolBinding | McpToolBinding
 
 
 class AgentSpec(BaseModel):
+    """Configuration record describing an Agent.
+
+    An Agent is not a running unit; a session instantiates this configuration.
+    """
+
     name: str
     description: str
     instructions: str
