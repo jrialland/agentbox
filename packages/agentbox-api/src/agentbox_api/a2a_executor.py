@@ -57,6 +57,15 @@ async def _latest_leaf(factory, session_id: str):
 
 
 class AgentboxA2AExecutor(AgentExecutor):
+    """Execute A2A requests as Agentbox harness sessions.
+
+    The A2A request handler owned by :class:`~agentbox_api.a2a_server.A2ADispatcher`
+    calls :meth:`execute` and :meth:`cancel` on behalf of external A2A peers; the
+    methods are not invoked directly by internal Agentbox code. A request context
+    is mapped to a harness session keyed by the A2A ``context_id`` so a multi-turn
+    task continues the same session.
+    """
+
     def __init__(self, agent_name, factory, settings):
         self._agent_name = agent_name
         self._factory = factory
@@ -76,9 +85,26 @@ class AgentboxA2AExecutor(AgentExecutor):
         return user.id
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
+        """Run one A2A request to completion and report the result as a task.
+
+        Called by the A2A request handler for an external peer. The A2A task and
+        its ``context_id`` are translated into an Agentbox session: the message
+        text becomes the run prompt and streamed harness text becomes a single
+        appended artifact.
+
+        Args:
+            context: A2A request context holding the incoming message and any
+                task the peer is continuing.
+            event_queue: Queue used to emit task status and artifact updates.
+
+        Raises:
+            ValueError: If the request carries no user message.
+        """
         message = context.message
         if message is None:
             raise ValueError("A2A request has no message")
+        # The peer owns an existing task when continuing a context; only a new
+        # task is echoed back to the queue before work starts.
         task = context.current_task or new_task_from_user_message(message)
         if context.current_task is None:
             await event_queue.enqueue_event(task)
@@ -187,6 +213,8 @@ class AgentboxA2AExecutor(AgentExecutor):
                     )
                     first = False
         finally:
+            # Stop the background closer before awaiting the outcome so only the
+            # request handler observes the finished run.
             closer.cancel()
         outcome = await run.await_outcome()
         self._runs.pop(session_id, None)
@@ -209,6 +237,16 @@ class AgentboxA2AExecutor(AgentExecutor):
             await updater.failed(message=new_text_message(outcome.message or "error"))
 
     async def cancel(self, context: RequestContext, event_queue: EventQueue) -> None:
+        """Cancel the run backing an A2A context and report task cancellation.
+
+        Called by the A2A request handler when an external peer cancels a task.
+        The recorded run is cancelled first; the task is then marked cancelled
+        on the event queue so the peer sees a terminal update.
+
+        Args:
+            context: A2A request context identifying the task and context.
+            event_queue: Queue used to emit the cancellation update.
+        """
         run = self._runs.get(context.context_id or "")
         if run is not None:
             run.cancel()

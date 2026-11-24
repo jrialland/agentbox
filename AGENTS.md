@@ -87,3 +87,10 @@ bun run codegen
 - Python: Ruff line length 100, target py311; first-party packages are the `agentbox_*` modules.
 - Feature work follows the paired design spec + plan files under `docs/superpowers/specs/` and `docs/superpowers/plans/`. `docs/ROADMAP.md` tracks spec coverage; update it when a feature lands.
 - Commit messages follow conventional commits, e.g. `feat(web): ...`, `fix(harness): ...`, `docs(roadmap): ...`.
+
+## Python documentation
+
+- Production Python under `packages/*/src` uses Google-style docstrings for
+  modules, public classes, and public functions/methods.
+- See `docs/contributing/python-documentation.md`.
+- Enforce with `uv run ruff check packages`.

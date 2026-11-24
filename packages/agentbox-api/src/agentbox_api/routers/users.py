@@ -1,3 +1,9 @@
+"""User administration endpoints.
+
+Managing users, their active state, and their role assignments requires the
+``users:manage`` permission.
+"""
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -20,6 +26,8 @@ router = APIRouter(prefix="/users", tags=["users"])
 
 
 class UserCreate(BaseModel):
+    """Request body for creating a user."""
+
     username: str
     email: str
     password: str
@@ -41,6 +49,8 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    """Request body that updates a user; omitted fields are unchanged."""
+
     email: str | None = None
     is_active: bool | None = None
     password: str | None = None
@@ -52,17 +62,25 @@ class UserUpdate(BaseModel):
 
 
 class RoleIds(BaseModel):
+    """Request body that replaces a user's role set."""
+
     role_ids: list[str] = []
 
 
 class UserRead(BaseModel):
+    """A user account without its password hash."""
+
     id: str
     username: str
     email: str
     is_active: bool
 
 
+# Keep this docstring identical to the RoleRead in routers/roles.py so FastAPI's
+# component names and the generated API types stay stable.
 class RoleRead(BaseModel):
+    """A role record."""
+
     id: str
     name: str
     description: str | None = None
@@ -72,6 +90,13 @@ class RoleRead(BaseModel):
 async def create_user(
     body: UserCreate, request: Request, _=Depends(require_permission("users:manage"))
 ):
+    """Create a user account.
+
+    Requires the ``users:manage`` permission.
+
+    Returns:
+        The created user, or 409 when the username is already taken.
+    """
     async with request.app.state.session_factory() as s:
         existing = (
             await s.execute(select(User).where(User.username == body.username))
@@ -93,6 +118,13 @@ async def create_user(
 
 @router.get("", response_model=list[UserRead])
 async def list_users(request: Request, _=Depends(require_permission("users:manage"))):
+    """List user accounts.
+
+    Requires the ``users:manage`` permission.
+
+    Returns:
+        All users without password hashes.
+    """
     return await UserRepository(request.app.state.session_factory).list()
 
 
@@ -103,6 +135,13 @@ async def update_user(
     request: Request,
     _=Depends(require_permission("users:manage")),
 ):
+    """Update a user's email, active state, or password.
+
+    Requires the ``users:manage`` permission. Omitted fields are unchanged.
+
+    Returns:
+        The updated user, or 404 when it does not exist.
+    """
     async with request.app.state.session_factory() as s:
         user = (await s.execute(select(User).where(User.id == uid))).scalars().first()
         if user is None:
@@ -124,6 +163,14 @@ async def update_user(
 async def get_user_roles(
     uid: str, request: Request, _=Depends(require_permission("users:manage"))
 ):
+    """List a user's roles.
+
+    Requires the ``users:manage`` permission.
+
+    Returns:
+        The roles assigned to the user; empty when the user has none or does not
+        exist.
+    """
     async with request.app.state.session_factory() as s:
         rows = (
             await s.execute(
@@ -142,6 +189,14 @@ async def set_user_roles(
     request: Request,
     _=Depends(require_permission("users:manage")),
 ):
+    """Replace a user's role assignments.
+
+    Requires the ``users:manage`` permission. Every id must reference an
+    existing role (400 otherwise).
+
+    Returns:
+        The user's resulting roles, or 404 when the user does not exist.
+    """
     async with request.app.state.session_factory() as s:
         user = (await s.execute(select(User).where(User.id == uid))).scalars().first()
         if user is None:
@@ -175,6 +230,13 @@ async def set_user_roles(
 async def delete_user(
     uid: str, request: Request, _=Depends(require_permission("users:manage"))
 ):
+    """Delete a user with its role links and API keys.
+
+    Requires the ``users:manage`` permission. Deleting a missing user is a no-op.
+
+    Returns:
+        ``{"ok": True}``.
+    """
     async with request.app.state.session_factory() as s:
         user = (await s.execute(select(User).where(User.id == uid))).scalars().first()
         if user is not None:

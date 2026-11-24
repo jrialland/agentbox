@@ -1,3 +1,11 @@
+"""Agent configuration and avatar endpoints.
+
+An agent is a configuration record (model, instructions, tools, modes), not a
+live unit. These routes create, read, update, delete, and brand agent
+configurations; sessions are started from them elsewhere. Avatar and A2A agent
+card files are stored through the media store.
+"""
+
 import hashlib
 import json
 import re
@@ -45,6 +53,14 @@ router = APIRouter(prefix="/agents", tags=["agents"])
 
 
 class AgentCreate(BaseModel):
+    """Request body for creating or replacing an agent configuration.
+
+    Exactly one of ``model`` or ``model_label`` must be set. ``tool_bindings``
+    holds native tool bindings or MCP servers, ``plugin_mcp_bindings`` references
+    MCP servers supplied by installed plugins, and ``mode_definitions`` declares
+    the agent's selectable modes.
+    """
+
     name: str
     description: str = ""
     instructions: str = ""
@@ -174,6 +190,16 @@ async def _validate_plugin_bindings(
 async def create_agent(
     body: AgentCreate, request: Request, _=Depends(require_permission("agents:create"))
 ):
+    """Create an agent configuration.
+
+    Requires the ``agents:create`` permission. Exactly one of ``model`` or
+    ``model_label`` must be supplied; invalid names, tool bindings, or plugin
+    MCP references are rejected with 400.
+
+    Returns:
+        The saved agent configuration.
+    """
+    # A model selector is mandatory and ambiguous when both or neither are set.
     if bool(body.model) == bool(body.model_label):
         raise HTTPException(
             status_code=400,
@@ -197,8 +223,19 @@ async def update_agent(
     request: Request,
     _=Depends(require_permission("agents:create")),
 ):
+    """Replace an existing agent configuration.
+
+    Requires the ``agents:create`` permission. ``body.name`` must match the
+    ``name`` path segment (400 otherwise), and exactly one of ``model`` or
+    ``model_label`` is required. Invalid bindings or plugin references return
+    400.
+
+    Returns:
+        The saved agent configuration.
+    """
     if body.name != name:
         raise HTTPException(status_code=400, detail="Agent name cannot be changed")
+    # A model selector is mandatory and ambiguous when both or neither are set.
     if bool(body.model) == bool(body.model_label):
         raise HTTPException(
             status_code=400,
@@ -217,12 +254,26 @@ async def update_agent(
 
 @router.get("", response_model=list[AgentSpec])
 async def list_agents(request: Request, _=Depends(require_permission("agents:read"))):
+    """List agent configurations.
+
+    Requires the ``agents:read`` permission.
+
+    Returns:
+        All agent configurations.
+    """
     repo = AgentRepository(request.app.state.session_factory)
     return await repo.list()
 
 
 @router.get("/{name}", response_model=AgentSpec)
 async def get_agent(name: str, request: Request, _=Depends(require_permission("agents:read"))):
+    """Get one agent configuration by name.
+
+    Requires the ``agents:read`` permission.
+
+    Returns:
+        The agent configuration, or 404 when no agent has that name.
+    """
     repo = AgentRepository(request.app.state.session_factory)
     spec = await repo.load(name)
     if spec is None:
@@ -234,6 +285,15 @@ async def get_agent(name: str, request: Request, _=Depends(require_permission("a
 async def delete_agent(
     name: str, request: Request, _=Depends(require_permission("agents:delete"))
 ):
+    """Delete an agent configuration with its stored avatar and card.
+
+    Requires the ``agents:delete`` permission. Deleting an unknown name is a
+    no-op. Deleting an agent that is still referenced (for example by a session)
+    returns 409.
+
+    Returns:
+        ``{"ok": True}`` once the agent and its media are removed.
+    """
     factory = request.app.state.session_factory
     media_store = request.app.state.media_store
     paths: list[str] = []
@@ -264,6 +324,7 @@ async def delete_agent(
             await s.commit()
         except IntegrityError:
             await s.rollback()
+            # Foreign-key references (for example session history) block delete.
             raise HTTPException(
                 status_code=409, detail="Agent is still referenced"
             ) from None
@@ -275,6 +336,15 @@ async def delete_agent(
 
 @router.get("/{name}/avatar")
 async def get_avatar(name: str, request: Request):
+    """Return an agent's avatar image.
+
+    Public: no permission is required. Falls back to a deterministic generated
+    placeholder when no custom avatar exists. Supports ``If-None-Match`` with a
+    strong ETag and responds 304 when the client's copy is current.
+
+    Returns:
+        The PNG image bytes, or 404 when no agent has that name.
+    """
     factory = request.app.state.session_factory
     media_store = request.app.state.media_store
     async with factory() as s:
@@ -324,6 +394,15 @@ async def upload_avatar(
     file: UploadFile = File(...),
     _=Depends(require_permission("agents:create")),
 ):
+    """Upload and replace an agent's avatar.
+
+    Requires the ``agents:create`` permission. The upload must be an allowed
+    image type (415 otherwise), within the size limit (413 otherwise), and
+    decodable (415 otherwise). Images are normalized to PNG.
+
+    Returns:
+        204 on success, or 404 when no agent has that name.
+    """
     if file.content_type not in avatars.ALLOWED_UPLOAD_TYPES:
         logger.warning("avatar upload rejected agent={} reason=type", name)
         raise HTTPException(status_code=415, detail="Unsupported image type")
@@ -387,6 +466,13 @@ async def reset_avatar(
     request: Request,
     _=Depends(require_permission("agents:create")),
 ):
+    """Reset an agent's avatar to the generated placeholder.
+
+    Requires the ``agents:create`` permission.
+
+    Returns:
+        204 on success, or 404 when no agent has that name.
+    """
     factory = request.app.state.session_factory
     media_store = request.app.state.media_store
     old_path: str | None = None
@@ -418,6 +504,13 @@ async def reset_avatar(
 async def get_agent_card(
     name: str, request: Request, _=Depends(require_permission("agents:read"))
 ):
+    """Return an agent's A2A agent card.
+
+    Requires the ``agents:read`` permission.
+
+    Returns:
+        The stored A2A card JSON, or 404 when the agent or its card is missing.
+    """
     media_store = request.app.state.media_store
     async with request.app.state.session_factory() as s:
         agent = (
@@ -448,9 +541,18 @@ async def set_agent_card(
     request: Request,
     _=Depends(require_permission("agents:create")),
 ):
+    """Create or replace an agent's A2A agent card.
+
+    Requires the ``agents:create`` permission. The body must parse as an A2A
+    ``AgentCard`` (400 otherwise). The previous card file is removed.
+
+    Returns:
+        The stored card JSON, or 404 when no agent has that name.
+    """
     try:
         json_format.ParseDict(body, a2a_types.AgentCard())
     except Exception:
+        # Reject payloads that do not match the A2A card protobuf schema.
         raise HTTPException(status_code=400, detail="Invalid A2A agent card") from None
 
     factory = request.app.state.session_factory
@@ -520,6 +622,14 @@ async def set_agent_card(
 async def delete_agent_card(
     name: str, request: Request, _=Depends(require_permission("agents:create"))
 ):
+    """Delete an agent's A2A agent card.
+
+    Requires the ``agents:create`` permission. Deleting a card that does not
+    exist is a no-op.
+
+    Returns:
+        ``{"ok": True}``.
+    """
     media_store = request.app.state.media_store
     old_path: str | None = None
     async with request.app.state.session_factory() as s:

@@ -1,3 +1,9 @@
+"""Run the API server for local development.
+
+Initializes the database, seeds the admin user, builds the app, and serves it
+with uvicorn on ``127.0.0.1``. Writes schema and seed data to the database.
+"""
+
 import asyncio
 import os
 
@@ -10,6 +16,7 @@ from agentbox_models.db import create_engine_and_sessionmaker, init_db
 
 
 def main() -> None:
+    """Initialize the database, seed ``admin``, and serve the app."""
     settings = Settings()
     engine, factory = create_engine_and_sessionmaker(settings.database_url)
     asyncio.run(init_db(engine))

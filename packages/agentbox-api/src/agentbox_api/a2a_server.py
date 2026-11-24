@@ -22,6 +22,20 @@ a2a_user: contextvars.ContextVar[str | None] = contextvars.ContextVar(
 
 
 def build_card(stored: dict, agent_name: str, public_url: str):
+    """Build an A2A agent card from a stored card document.
+
+    The stored JSON is parsed into a protobuf ``AgentCard``, then the name,
+    streaming capability, and JSON-RPC interface are overridden so the card
+    always advertises this deployment's public A2A endpoint.
+
+    Args:
+        stored: Decoded card JSON persisted for the agent.
+        agent_name: Agent name used when the stored card has no explicit name.
+        public_url: Public base URL clients use to reach this deployment.
+
+    Returns:
+        The populated A2A ``AgentCard`` protobuf message.
+    """
     card = json_format.ParseDict(stored, a2a_types.AgentCard())
     card.name = stored.get("name") or agent_name
     card.capabilities.streaming = True
@@ -37,6 +51,14 @@ def build_card(stored: dict, agent_name: str, public_url: str):
 
 
 class A2ADispatcher:
+    """Authenticated ASGI entry point that routes A2A requests per agent.
+
+    Each agent gets a cached Starlette app built around
+    :class:`~agentbox_api.a2a_executor.AgentboxA2AExecutor`; the dispatcher
+    enforces authentication and the ``sessions:create`` scope before delegating
+    to that app.
+    """
+
     def __init__(self, session_factory, settings, media_store):
         self._factory = session_factory
         self._settings = settings
@@ -80,6 +102,17 @@ class A2ADispatcher:
         return app
 
     async def __call__(self, scope, receive, send):
+        """Authenticate and dispatch an HTTP A2A request to its agent app.
+
+        This ASGI endpoint is reached by external A2A peers. It resolves the
+        agent from the path, rejects unauthenticated or unscoped callers, and
+        forwards the remainder of the path to the agent's per-agent app.
+
+        Args:
+            scope: ASGI connection scope carrying the resolved user and auth.
+            receive: ASGI receive callable forwarded to the agent app.
+            send: ASGI send callable forwarded to the agent app.
+        """
         if scope["type"] != "http":
             return
         path = scope["path"]
@@ -113,6 +146,8 @@ class A2ADispatcher:
                 scope, receive, send
             )
         app = self._app_for(name, stored)
+        # The executor reads the owning user from this context variable so the
+        # session and any project it creates are attributed to the peer's user.
         token = a2a_user.set(getattr(user, "identity", None))
         try:
             rest_scope = dict(scope)

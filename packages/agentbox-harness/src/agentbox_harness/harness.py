@@ -1,3 +1,10 @@
+"""Orchestrate session runs: build the agent, prepare tools, and drive runs.
+
+:class:`Harness` owns the run manager and middleware pipeline. It starts
+sessions from an Agent configuration, prepares MCP toolsets, launches runs as
+background tasks, and records assistant turns for completed runs.
+"""
+
 import uuid
 
 from loguru import logger
@@ -29,6 +36,8 @@ from agentbox_harness.usage import context_tokens_from_usage
 
 
 class Harness:
+    """Coordinator for session lifecycle, agent construction, and runs."""
+
     def __init__(
         self,
         registry: ToolRegistry,
@@ -58,6 +67,15 @@ class Harness:
         self.plugin_hooks = plugin_hooks
 
     async def prepare_mcp(self, session: Session) -> SessionToolsets:
+        """Open the MCP toolsets required by a session's Agent configuration.
+
+        Args:
+            session: Session whose bindings and project roots define the
+                toolsets.
+
+        Returns:
+            MCP toolsets for the session, managed by the MCP session manager.
+        """
         spec = session.agent_spec
         bindings = (
             [b for b in spec.tool_bindings if isinstance(b, McpToolBinding)]
@@ -77,6 +95,16 @@ class Harness:
         project_root: str,
         mode_name: str,
     ) -> Session:
+        """Create a new session for an Agent configuration.
+
+        Args:
+            spec: Agent configuration the session runs.
+            project_root: Project root the session is scoped to.
+            mode_name: Name of the mode the session starts in.
+
+        Returns:
+            A new in-memory session with no history.
+        """
         store = self.store_factory()
         return Session(
             session_id=uuid.uuid4().hex,
@@ -88,6 +116,14 @@ class Harness:
         )
 
     def _resolve_mode(self, session: Session):
+        """Resolve the session's mode from its Agent configuration.
+
+        Configurations without mode definitions fall back to a permissive mode.
+
+        Raises:
+            ValueError: If the session has no Agent configuration, or the mode
+                name is unknown when definitions exist.
+        """
         spec = session.agent_spec
         if spec is None:
             raise ValueError("Session has no agent spec")
@@ -108,6 +144,29 @@ class Harness:
         record_user_turn: bool = True,
         user_attachments: list[dict] | None = None,
     ) -> Run:
+        """Launch an asynchronous run for one user message.
+
+        Prepares middleware, records the user turn, gathers reminders, resolves
+        the mode, opens MCP toolsets, builds the agent, and starts a managed
+        task that streams events onto the bus.
+
+        Args:
+            session: Session the run belongs to.
+            user_message: User prompt for this run.
+            bus: Event bus receiving run events.
+            model_override: Model override passed to the run manager.
+            prompt_override: Structured prompt parts replacing the plain
+                prompt.
+            record_user_turn: Whether to append the user message as a turn.
+            user_attachments: Attachments recorded with the user turn.
+
+        Returns:
+            The started run, whose task is already scheduled.
+
+        Raises:
+            ValueError: If the session has no Agent configuration or requests
+                an unknown mode.
+        """
         model = model_override or self.model
         context = RunContext(
             session=session,
@@ -118,6 +177,7 @@ class Harness:
         )
         await self.middleware.prepare(context)
 
+        # Record the user turn before building history so the run sees it.
         if record_user_turn:
             turn = Turn(
                 id=uuid.uuid4().hex,
@@ -134,6 +194,7 @@ class Harness:
             try:
                 text = await provider.reminder(session)
             except Exception:
+                # A failing reminder provider must not block the run.
                 logger.exception("reminder provider failed")
                 continue
             if text:
@@ -168,6 +229,8 @@ class Harness:
             context_editing=self.context_editing,
             plugin_hooks=self.plugin_hooks,
         )
+        # The run manager owns the background task, cancellation token, and
+        # overflow recovery callback for this run.
         return self.run_manager.start(
             agent,
             effective_prompt,
@@ -186,6 +249,24 @@ class Harness:
         bus: EventBus,
         model_override=None,
     ) -> RunOutcome:
+        """Run one turn to completion and record the assistant reply.
+
+        Delegates to :meth:`run`, waits for the outcome, and on success appends
+        the assistant output as a turn with its reported context usage.
+
+        Args:
+            session: Session the turn belongs to.
+            user_message: User prompt for the turn.
+            bus: Event bus receiving run events.
+            model_override: Model override passed to the run manager.
+
+        Returns:
+            The terminal outcome of the run.
+
+        Raises:
+            ValueError: If the session has no Agent configuration or requests
+                an unknown mode.
+        """
         run = await self.run(session, user_message, bus, model_override)
         outcome = await run.await_outcome()
         if outcome.status == "success":

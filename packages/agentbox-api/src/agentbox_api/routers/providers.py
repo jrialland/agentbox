@@ -1,3 +1,10 @@
+"""LLM provider endpoints.
+
+Providers describe upstream model services. These routes manage provider
+records, test connectivity, refresh the model list, and delete providers.
+Provider URLs must be HTTP(S) URLs.
+"""
+
 import asyncio
 import time
 import uuid
@@ -20,6 +27,11 @@ router = APIRouter(prefix="/providers", tags=["providers"])
 
 
 class ProviderCreate(BaseModel):
+    """Request body for creating a provider.
+
+    ``base_url`` and ``models_url`` must be HTTP(S) URLs when set.
+    """
+
     name: str
     kind: str
     base_url: str | None = None
@@ -43,6 +55,8 @@ class ProviderCreate(BaseModel):
 
 
 class ProviderRead(BaseModel):
+    """A provider without its API key."""
+
     id: str
     name: str
     kind: str
@@ -52,6 +66,8 @@ class ProviderRead(BaseModel):
 
 
 class ProviderUpdate(BaseModel):
+    """Request body that updates provider fields; omitted fields are unchanged."""
+
     name: str | None = None
     kind: str | None = None
     base_url: str | None = None
@@ -75,6 +91,11 @@ class ProviderUpdate(BaseModel):
 
 
 class ProviderTestRequest(BaseModel):
+    """Ad-hoc provider connection test.
+
+    When ``provider_id`` is set, omitted fields fall back to the stored provider.
+    """
+
     kind: str
     base_url: str | None = None
     models_url: str | None = None
@@ -83,11 +104,15 @@ class ProviderTestRequest(BaseModel):
 
 
 class ProviderTestError(BaseModel):
+    """Machine-readable reason a provider connection test failed."""
+
     code: str
     message: str
 
 
 class ProviderTestResult(BaseModel):
+    """Outcome of a provider connection test."""
+
     ok: bool
     latency_ms: int
     model_count: int | None = None
@@ -99,6 +124,13 @@ class ProviderTestResult(BaseModel):
 async def create_provider(
     body: ProviderCreate, request: Request, _=Depends(require_permission("providers:create"))
 ):
+    """Create a provider.
+
+    Requires the ``providers:create`` permission.
+
+    Returns:
+        The created provider, without its API key.
+    """
     provider = await ProviderRepository(request.app.state.session_factory).create(
         Provider(id=uuid.uuid4().hex, **body.model_dump())
     )
@@ -108,6 +140,13 @@ async def create_provider(
 
 @router.get("", response_model=list[ProviderRead])
 async def list_providers(request: Request, _=Depends(require_permission("providers:read"))):
+    """List providers.
+
+    Requires the ``providers:read`` permission.
+
+    Returns:
+        All providers, without API keys.
+    """
     return await ProviderRepository(request.app.state.session_factory).list()
 
 
@@ -134,6 +173,16 @@ async def test_provider(
     request: Request,
     _=Depends(require_permission("providers:create")),
 ):
+    """Test connectivity by fetching the provider's model list.
+
+    Requires the ``providers:create`` permission. URLs must be HTTP(S) (422
+    otherwise), and an unknown ``provider_id`` returns 404. Network, auth, and
+    timeout failures are reported in the result body with ``ok`` set to
+    ``False`` rather than raised; the upstream request is bounded to 10 seconds.
+
+    Returns:
+        The test outcome, including latency and up to five sample model names.
+    """
     stored = None
     if body.provider_id:
         stored = await ProviderRepository(request.app.state.session_factory).get(
@@ -218,6 +267,14 @@ async def update_provider(
     request: Request,
     _=Depends(require_permission("providers:create")),
 ):
+    """Update a provider's fields.
+
+    Requires the ``providers:create`` permission. Omitted fields are left
+    unchanged.
+
+    Returns:
+        The updated provider, or 404 when it does not exist.
+    """
     async with request.app.state.session_factory() as s:
         provider = (
             await s.execute(select(Provider).where(Provider.id == pid))
@@ -238,6 +295,14 @@ async def update_provider(
 async def refresh_models(
     pid: str, request: Request, _=Depends(require_permission("providers:list-models"))
 ):
+    """Fetch the provider's model list and add any new models.
+
+    Requires the ``providers:list-models`` permission. Existing models are kept;
+    only names not already stored are inserted.
+
+    Returns:
+        All of the provider's models, or 404 when the provider does not exist.
+    """
     factory = request.app.state.session_factory
     provider = await ProviderRepository(factory).get(pid)
     if provider is None:
@@ -264,6 +329,14 @@ async def refresh_models(
 async def delete_provider(
     pid: str, request: Request, _=Depends(require_permission("providers:delete"))
 ):
+    """Delete a provider and its models.
+
+    Requires the ``providers:delete`` permission.
+
+    Returns:
+        ``{"ok": True}``, or 404 when missing and 409 when one of the provider's
+        models is still used by an agent.
+    """
     async with request.app.state.session_factory() as s:
         provider = (
             await s.execute(select(Provider).where(Provider.id == pid))

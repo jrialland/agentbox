@@ -1,3 +1,11 @@
+"""Parse and validate plugin hook configuration.
+
+Hooks are declared in ``com.agentbox/hooks/hooks.json`` inside a plugin. This
+module models the action types, enforces size/timeout/scope limits, and
+normalizes paths and URLs against the plugin roots. Invalid entries become
+warnings rather than fatal errors.
+"""
+
 from __future__ import annotations
 
 import json
@@ -35,12 +43,20 @@ _HTTP_METHODS = frozenset({"POST", "PUT", "PATCH", "DELETE", "GET"})
 
 @dataclass(frozen=True)
 class HookIssue:
+    """A non-fatal problem found while loading plugin hooks."""
+
     severity: Literal["warning"]
     component: str
     message: str
 
 
 class CommandAction(BaseModel):
+    """Hook action that runs an external command.
+
+    Timeouts are clamped to a safe range, and commands are limited to bare
+    executables or plugin-relative ``./`` paths during normalization.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
     type: Literal["command"]
@@ -57,6 +73,12 @@ class CommandAction(BaseModel):
 
 
 class HttpAction(BaseModel):
+    """Hook action that calls an HTTP endpoint.
+
+    Only a fixed set of methods is accepted; URLs and headers are revalidated
+    when the hook is normalized and again before each request.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
     type: Literal["http"]
@@ -80,6 +102,8 @@ class HttpAction(BaseModel):
 
 
 class ContextAction(BaseModel):
+    """Hook action that injects static text into the model context."""
+
     model_config = ConfigDict(extra="forbid")
 
     type: Literal["context"]
@@ -93,6 +117,12 @@ HookAction = Annotated[
 
 
 class PluginHook(BaseModel):
+    """A single validated hook declaration.
+
+    Tool filters are only valid for tool events, and ``on_error=deny`` is only
+    valid for ``before_tool`` so a failing hook cannot block unrelated events.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
     id: str = Field(
@@ -122,6 +152,12 @@ class PluginHook(BaseModel):
 
 
 class HooksFile(BaseModel):
+    """Top-level shape of a plugin ``hooks.json`` file.
+
+    Hooks stay untyped here so each entry can be validated independently and
+    reported as a warning instead of failing the whole file.
+    """
+
     model_config = ConfigDict(extra="forbid")
 
     version: Literal[1]
@@ -134,6 +170,8 @@ def _normalize_hook(
     action = hook.action
     if isinstance(action, CommandAction):
         command = action.command
+        # Reject absolute or traversal paths; only bare executables and
+        # plugin-relative ``./`` commands are allowed.
         if command.startswith("./"):
             command = str(ensure_inside(root, root / command[2:]))
         elif "/" in command or "\\" in command:
@@ -142,6 +180,8 @@ def _normalize_hook(
         env: dict[str, str] = {}
         for key, value in action.env.items():
             if key in RESERVED_ENV:
+                # These variables are set by the runtime and must not be
+                # overridden by plugin configuration.
                 raise ValueError(f"reserved environment variable: {key}")
             env[key] = expand(value, root, data_root)
         cwd = (
@@ -160,6 +200,16 @@ def _normalize_hook(
 def load_plugin_hooks(
     root: pathlib.Path, data_root: pathlib.Path
 ) -> tuple[tuple[PluginHook, ...], tuple[HookIssue, ...]]:
+    """Load and validate the hooks declared by a plugin.
+
+    Args:
+        root: Plugin root directory.
+        data_root: Per-plugin writable data directory used for expansion.
+
+    Returns:
+        A ``(hooks, issues)`` pair. Invalid or excess entries are skipped and
+        reported as warnings rather than raised.
+    """
     issues: list[HookIssue] = []
     path = root / "com.agentbox" / "hooks" / "hooks.json"
     if not path.exists():
@@ -170,6 +220,7 @@ def load_plugin_hooks(
         )
         return (), tuple(issues)
     try:
+        # Treat the hooks path as untrusted; it must resolve inside the plugin.
         ensure_inside(root, path)
     except ValueError:
         issues.append(
@@ -205,6 +256,7 @@ def load_plugin_hooks(
             )
             continue
         seen.add(hook.id)
+        # Cap hook count per plugin to bound per-event execution cost.
         if len(hooks) >= MAX_HOOKS:
             issues.append(
                 HookIssue(

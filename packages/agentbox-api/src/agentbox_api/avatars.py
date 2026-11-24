@@ -23,10 +23,36 @@ def _render_default(seed: str, size: int) -> bytes:
 
 
 def generate_default_avatar(seed: str, size: int = AVATAR_SIZE) -> bytes:
+    """Generate a deterministic default avatar PNG for a seed.
+
+    Results are cached by ``(seed, size)``, so repeated requests for the same
+    avatar do not re-render.
+
+    Args:
+        seed: Stable string (for example the agent id) selecting the artwork.
+        size: Square edge length in pixels.
+
+    Returns:
+        PNG-encoded avatar bytes.
+    """
     return _render_default(seed, size)
 
 
 def normalize_upload(data: bytes) -> bytes:
+    """Validate and normalize an uploaded avatar image to a square PNG.
+
+    The image is decoded, converted to RGB, center-cropped to a square, and
+    resized to :data:`AVATAR_SIZE`.
+
+    Args:
+        data: Raw uploaded image bytes.
+
+    Returns:
+        The normalized PNG bytes.
+
+    Raises:
+        ValueError: If the bytes are not a decodable image.
+    """
     try:
         with Image.open(io.BytesIO(data)) as img:
             img = img.convert("RGB")

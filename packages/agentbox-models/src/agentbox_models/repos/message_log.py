@@ -1,3 +1,11 @@
+"""Persist a session's turn history with its activity and attachments.
+
+``DatabaseMessageLogStore`` writes turns for one session. Public methods open
+their own session from the injected factory and commit writes before returning.
+The private loaders run on the caller's session so a turn and its child rows are
+read in a single transaction.
+"""
+
 import uuid
 
 from loguru import logger
@@ -27,6 +35,7 @@ async def _load_activity(session, turn_id: str) -> dict | None:
         )
     ).scalars().all()
     error = None
+    # Surface an error object only when either error column is populated.
     if row.error_code is not None or row.error_message is not None:
         error = {"code": row.error_code, "message": row.error_message}
     return {
@@ -73,11 +82,26 @@ async def _load_attachments(session, turn_id: str) -> list[dict] | None:
 
 
 class DatabaseMessageLogStore:
+    """Append and read turns for one session in the database.
+
+    Instances are scoped to a single session id and a session factory. Each
+    public method opens and closes its own session.
+    """
+
     def __init__(self, session_factory, session_id: str):
         self._factory = session_factory
         self._session_id = session_id
 
     async def append(self, turn: Turn) -> None:
+        """Append a turn together with its activity and attachment links.
+
+        Activity is written only when ``turn.activity`` is set; tool entries keep
+        their list order. Attachments are linked by id in list order. The whole
+        write is committed before returning.
+
+        Args:
+            turn: Turn to persist.
+        """
         async with self._factory() as s:
             s.add(
                 TurnRow(
@@ -90,6 +114,9 @@ class DatabaseMessageLogStore:
                     created_at=turn.created_at or utcnow(),
                 )
             )
+            # Flush the turn row before adding activity and attachment children
+            # whose foreign keys reference its id; the commit below closes the
+            # transaction after all children are written.
             await s.flush()
             if turn.activity is not None:
                 activity = turn.activity
@@ -129,6 +156,14 @@ class DatabaseMessageLogStore:
             logger.debug("turn appended session={} role={}", self._session_id, turn.role)
 
     async def list_turns(self) -> list[Turn]:
+        """Return this session's turns ordered by creation time.
+
+        Each turn is rebuilt with its activity and attachments. Ties on
+        ``created_at`` keep database-dependent order.
+
+        Returns:
+            Turns in ascending ``created_at`` order, possibly empty.
+        """
         async with self._factory() as s:
             rows = (
                 await s.execute(
@@ -154,6 +189,17 @@ class DatabaseMessageLogStore:
         return turns
 
     async def get(self, turn_id: str) -> Turn:
+        """Return one turn by id with its activity and attachments.
+
+        Args:
+            turn_id: Turn primary key.
+
+        Returns:
+            The reconstructed turn.
+
+        Raises:
+            KeyError: If no turn matches ``turn_id``.
+        """
         async with self._factory() as s:
             row = (
                 await s.execute(select(TurnRow).where(TurnRow.id == turn_id))
@@ -172,6 +218,15 @@ class DatabaseMessageLogStore:
             )
 
     async def set_parent(self, turn_id: str, parent_id: str) -> None:
+        """Set the parent pointer for a turn and commit.
+
+        Args:
+            turn_id: Turn to update.
+            parent_id: Turn id to record as the parent.
+
+        Raises:
+            KeyError: If no turn matches ``turn_id``.
+        """
         async with self._factory() as s:
             row = await s.get(TurnRow, turn_id)
             if row is None:

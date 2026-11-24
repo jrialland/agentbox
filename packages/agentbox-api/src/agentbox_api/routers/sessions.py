@@ -1,3 +1,10 @@
+"""Agent session lifecycle, messaging, and file endpoints.
+
+A session is a live instance of an agent configuration within a project. These
+routes create sessions, read and prune history, relay MCP resources and tools,
+stream agent runs, and expose session files, plans, and LSP diagnostics.
+"""
+
 import asyncio
 import os
 import pathlib
@@ -46,11 +53,23 @@ router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
 class SessionCreate(BaseModel):
+    """Request body for starting a session.
+
+    ``agent_id`` is the name of an existing agent configuration.
+    """
+
     project_id: str
     agent_id: str
 
 
 class MessageRequest(BaseModel):
+    """Request body for sending a message to a session.
+
+    ``mode`` selects an agent mode; ``skill`` prefixes a rendered skill.
+    ``fork`` / ``fork_from_turn_id`` branch history, and ``retry_turn_id``
+    re-runs a prior turn. ``attachment_ids`` reference uploaded attachments.
+    """
+
     content: str
     mode: str | None = None
     skill: str | None = None
@@ -61,6 +80,11 @@ class MessageRequest(BaseModel):
 
 
 class SessionTitleUpdate(BaseModel):
+    """Request body for renaming a session.
+
+    Titles are trimmed to a single line and limited to 120 characters.
+    """
+
     title: str
 
     @field_validator("title")
@@ -75,6 +99,15 @@ class SessionTitleUpdate(BaseModel):
 
 
 def derive_session_title(content: str) -> str:
+    """Build a short session title from the first user message.
+
+    Args:
+        content: Raw user message text.
+
+    Returns:
+        A single-line title of at most 60 characters, truncated with an ellipsis
+        when needed.
+    """
     text = " ".join(content.split())
     return text if len(text) <= 60 else text[:57] + "..."
 
@@ -83,6 +116,14 @@ def derive_session_title(content: str) -> str:
 async def create_session(
     body: SessionCreate, request: Request, _=Depends(require_permission("sessions:create"))
 ):
+    """Start a session from an agent configuration in a project.
+
+    Requires the ``sessions:create`` permission. ``agent_id`` is an agent
+    configuration name.
+
+    Returns:
+        The new session row, or 404 when the agent configuration is missing.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         agent = (
@@ -100,6 +141,14 @@ async def create_session(
 
 @router.get("", response_model=list[SessionRow])
 async def list_sessions(request: Request, _=Depends(require_permission("sessions:read"))):
+    """List top-level sessions.
+
+    Requires the ``sessions:read`` permission. Subagent sessions (those with a
+    parent session) are excluded.
+
+    Returns:
+        The top-level session rows.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         rows = (
@@ -113,6 +162,8 @@ async def list_sessions(request: Request, _=Depends(require_permission("sessions
 
 
 class SessionDetail(BaseModel):
+    """A session with its agent's display name."""
+
     id: str
     project_id: str
     agent_id: str
@@ -125,6 +176,13 @@ class SessionDetail(BaseModel):
 async def get_session(
     sid: str, request: Request, _=Depends(require_permission("sessions:read"))
 ):
+    """Get one session's details.
+
+    Requires the ``sessions:read`` permission.
+
+    Returns:
+        The session detail, or 404 when it does not exist.
+    """
     async with request.app.state.session_factory() as s:
         row = (
             await s.execute(select(SessionRow).where(SessionRow.id == sid))
@@ -151,6 +209,14 @@ async def rename_session(
     request: Request,
     _=Depends(require_permission("sessions:create")),
 ):
+    """Rename a session.
+
+    Requires the ``sessions:create`` permission. The title is validated to be
+    non-empty and at most 120 characters (422 otherwise).
+
+    Returns:
+        The updated session row, or 404 when it does not exist.
+    """
     async with request.app.state.session_factory() as s:
         row = await s.get(SessionRow, sid)
         if row is None:
@@ -166,6 +232,13 @@ async def rename_session(
 async def delete_session(
     sid: str, request: Request, _=Depends(require_permission("sessions:create"))
 ):
+    """Delete a session, its subagent sessions, and stored media.
+
+    Requires the ``sessions:create`` permission.
+
+    Returns:
+        ``{"ok": True}``, or 404 when the session does not exist.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         row = (
@@ -178,6 +251,8 @@ async def delete_session(
 
 
 class MessageRead(BaseModel):
+    """A message in a session's conversation history."""
+
     id: str
     role: str
     content: str
@@ -192,6 +267,16 @@ class MessageRead(BaseModel):
 async def list_messages(
     sid: str, request: Request, _=Depends(require_permission("sessions:read"))
 ):
+    """List the active conversation chain for a session.
+
+    Requires the ``sessions:read`` permission. The chain follows the most recent
+    leaf back to its root and stops at a compaction summary, so abandoned forks
+    are not returned.
+
+    Returns:
+        The conversation messages in chronological order; empty for a session
+        with no history.
+    """
     store = DatabaseMessageLogStore(request.app.state.session_factory, sid)
     turns = await store.list_turns()
     by_id = {turn.id: turn for turn in turns}
@@ -227,6 +312,8 @@ async def list_messages(
 
 
 class AttachmentRead(BaseModel):
+    """Metadata for an uploaded session attachment."""
+
     id: str
     media_type: str
     filename: str
@@ -239,6 +326,14 @@ async def upload_attachment(
     file: UploadFile = File(...),
     _=Depends(require_permission("sessions:create")),
 ):
+    """Upload a file attachment for a session.
+
+    Requires the ``sessions:create`` permission. The returned id can be passed in
+    ``attachment_ids`` on a subsequent message.
+
+    Returns:
+        The attachment id, media type, and filename.
+    """
     data = await file.read()
     media_store = request.app.state.media_store
     filename = file.filename or "file"
@@ -287,6 +382,14 @@ async def download_attachment(
     request: Request,
     _=Depends(require_permission("sessions:read")),
 ):
+    """Download a session attachment by id.
+
+    Requires the ``sessions:read`` permission. The attachment must belong to the
+    session in the path.
+
+    Returns:
+        The file bytes, or 404 when missing or owned by another session.
+    """
     async with request.app.state.session_factory() as s:
         row = await s.get(SessionAttachment, aid)
         media = await s.get(MediaFile, row.file_id) if row is not None else None
@@ -304,10 +407,14 @@ async def download_attachment(
 
 
 class ReadResourceBody(BaseModel):
+    """Request body for reading an MCP resource."""
+
     uri: str
 
 
 class CallToolBody(BaseModel):
+    """Request body for calling an MCP tool."""
+
     name: str
     arguments: dict = {}
 
@@ -369,6 +476,15 @@ async def read_app_resource(
     request: Request,
     _=Depends(require_permission("sessions:create")),
 ):
+    """Read a resource from an MCP server configured for the session.
+
+    Requires the ``sessions:create`` permission. The server is resolved from the
+    session's agent configuration and project.
+
+    Returns:
+        The MCP resource contents, or 404 when the session or MCP server is not
+        found.
+    """
     from agentbox_api import mcp_relay
     from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
@@ -401,6 +517,14 @@ async def call_app_tool(
     request: Request,
     _=Depends(require_permission("sessions:create")),
 ):
+    """Call a tool on an MCP server configured for the session.
+
+    Requires the ``sessions:create`` permission. The server is resolved from the
+    session's agent configuration and project.
+
+    Returns:
+        The MCP tool result, or 404 when the session or MCP server is not found.
+    """
     from agentbox_api import mcp_relay
     from agentbox_harness.tools.mcp_session import get_mcp_session_manager
 
@@ -433,6 +557,19 @@ async def chat(
     request: Request,
     _=Depends(require_permission("sessions:create")),
 ):
+    """Send a user message and stream the resulting agent run.
+
+    Requires the ``sessions:create`` permission. The response is a streaming
+    AG-UI event source that stays open until the run finishes; cancel it with
+    ``POST /sessions/{sid}/messages/cancel``. ``retry_turn_id`` re-runs a prior
+    turn, ``fork``/``fork_from_turn_id`` branch from earlier history, and
+    ``skill`` prepends a rendered skill to the prompt.
+
+    Returns:
+        The streaming event response. Returns 404 for an unknown session or a
+        missing attachment file, 422 for prompt-template errors, and 400 for
+        invalid retry or skill references.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         srow = (
@@ -493,6 +630,8 @@ async def chat(
     user_attachments: list[dict] = []
 
     if body.retry_turn_id:
+        # Retrying replays the user turn behind the target instead of recording
+        # a duplicate user message.
         retry_turn = await store.get(body.retry_turn_id)
         prompt_turn = retry_turn
         if retry_turn.role == "assistant":
@@ -509,6 +648,7 @@ async def chat(
         user_attachments = prompt_turn.attachments or []
         attachment_ids = [item["id"] for item in user_attachments]
     elif body.fork:
+        # Forking continues from the requested turn rather than the latest leaf.
         session.head_id = body.fork_from_turn_id
     else:
         turns = await store.list_turns()
@@ -560,6 +700,8 @@ async def chat(
         [*prefix, body.content, *binary] if (prefix or binary) else None
     )
 
+    # Name the session from its first user message so it is identifiable in
+    # listings; later messages leave the title unchanged.
     if not srow.title:
         initial_title = derive_session_title(body.content)
         async with factory() as s:
@@ -609,6 +751,8 @@ async def chat(
             )
 
         async def finish():
+            # Persist the assistant turn and always release the run registry and
+            # event bus, whether the run succeeded or not.
             try:
                 outcome = await run.await_outcome()
                 if outcome.status == "success":
@@ -665,6 +809,14 @@ async def cancel_message(
     request: Request,
     _=Depends(require_permission("sessions:create")),
 ):
+    """Request cancellation of a session's active run.
+
+    Requires the ``sessions:create`` permission. Cancellation is cooperative, so
+    the streaming response may emit a few more events before ending.
+
+    Returns:
+        202 with ``{"status": "cancelling"}``, or 409 when no run is active.
+    """
     if request.app.state.run_registry.cancel(sid):
         return {"status": "cancelling"}
     raise HTTPException(status_code=409, detail="No active run")
@@ -685,6 +837,16 @@ async def list_session_files(
     q: str = "",
     _=Depends(require_permission("sessions:read")),
 ):
+    """List files in a session's project directory.
+
+    Requires the ``sessions:read`` permission. ``q`` filters paths
+    case-insensitively by substring. Traversal skips common build and cache
+    directories and caps the result at 1000 paths and depth 8.
+
+    Returns:
+        ``{"files": [...]}`` of project-relative POSIX paths, or 404 when the
+        session does not exist.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         row = (
@@ -721,6 +883,14 @@ async def list_session_files(
 async def session_lsp(
     sid: str, request: Request, _=Depends(require_permission("sessions:read"))
 ):
+    """Report LSP servers detected for a session's project.
+
+    Requires the ``sessions:read`` permission.
+
+    Returns:
+        Detected servers, servers active for the session, and diagnostic
+        snapshots, or 404 when the session does not exist.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         srow = (
@@ -750,6 +920,8 @@ async def session_lsp(
     }
 
 class PlanItemRead(BaseModel):
+    """One ordered item in a session's plan."""
+
     id: str
     position: int
     content: str
@@ -757,6 +929,8 @@ class PlanItemRead(BaseModel):
 
 
 class PlanRead(BaseModel):
+    """A session's plan, ordered by position."""
+
     items: list[PlanItemRead] = []
 
 
@@ -764,6 +938,14 @@ class PlanRead(BaseModel):
 async def session_plan(
     sid: str, request: Request, _=Depends(require_permission("sessions:read"))
 ):
+    """Get a session's plan items.
+
+    Requires the ``sessions:read`` permission.
+
+    Returns:
+        The plan items ordered by position, or 404 when the session does not
+        exist.
+    """
     factory = request.app.state.session_factory
     async with factory() as s:
         if await s.get(SessionRow, sid) is None:

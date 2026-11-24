@@ -1,3 +1,9 @@
+"""Tool hooks that surface LSP diagnostics after file-writing tools run.
+
+The hook is deliberately best-effort: when no enabled server or language
+matches the written path it returns ``None`` so the tool result is unchanged.
+"""
+
 from loguru import logger
 
 from agentbox_harness.lsp.stacks import language_for
@@ -7,6 +13,15 @@ WRITE_TOOLS = {"write_file", "append_file", "edit_file"}
 
 
 def format_diagnostics(path: str, diagnostics: list[dict]) -> str | None:
+    """Render errors and warnings as a compact, capped text block.
+
+    Args:
+        path: File path shown in the header.
+        diagnostics: Raw LSP diagnostics from the server.
+
+    Returns:
+        A formatted string, or ``None`` when there are no errors or warnings.
+    """
     rows = []
     for diagnostic in diagnostics:
         severity = diagnostic.get("severity", 1)
@@ -27,6 +42,18 @@ def format_diagnostics(path: str, diagnostics: list[dict]) -> str | None:
 
 
 def make_lsp_hook(manager, session_id: str | None, project_root: str):
+    """Build a tool hook that synchronizes writes and appends diagnostics.
+
+    Args:
+        manager: LSP manager used to resolve and start a server.
+        session_id: Session id recorded as active when a server is used, or
+            ``None`` when the hook is not bound to a session.
+        project_root: Project root used for stack and root resolution.
+
+    Returns:
+        An async hook that returns diagnostic text or ``None``.
+    """
+
     async def hook(ctx: ToolHookContext) -> str | None:
         if ctx.tool_name not in WRITE_TOOLS or not manager.enabled:
             return None

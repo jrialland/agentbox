@@ -1,3 +1,9 @@
+"""Role endpoints.
+
+Roles bundle permissions and are assigned to users. All role management
+requires the ``roles:manage`` permission.
+"""
+
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -19,6 +25,8 @@ router = APIRouter(prefix="/roles", tags=["roles"])
 
 
 class RoleCreate(BaseModel):
+    """Request body for creating a role."""
+
     name: str
     description: str | None = None
 
@@ -29,6 +37,8 @@ class RoleCreate(BaseModel):
 
 
 class RoleUpdate(BaseModel):
+    """Request body that updates a role's name or description."""
+
     name: str | None = None
     description: str | None = None
 
@@ -39,16 +49,26 @@ class RoleUpdate(BaseModel):
 
 
 class PermissionIds(BaseModel):
+    """Request body that replaces a role's permission set."""
+
     permission_ids: list[str] = []
 
 
+# Keep this docstring identical to the PermissionRead in routers/permissions.py
+# so FastAPI's component names and the generated API types stay stable.
 class PermissionRead(BaseModel):
+    """A permission record."""
+
     id: str
     name: str
     description: str | None = None
 
 
+# Keep this docstring identical to the RoleRead in routers/users.py so FastAPI's
+# component names and the generated API types stay stable.
 class RoleRead(BaseModel):
+    """A role record."""
+
     id: str
     name: str
     description: str | None = None
@@ -58,6 +78,13 @@ class RoleRead(BaseModel):
 async def create_role(
     body: RoleCreate, request: Request, _=Depends(require_permission("roles:manage"))
 ):
+    """Create a role.
+
+    Requires the ``roles:manage`` permission.
+
+    Returns:
+        The created role.
+    """
     repo = RoleRepository(request.app.state.session_factory)
     role = await repo.create(
         Role(id=uuid.uuid4().hex, name=body.name, description=body.description)
@@ -68,6 +95,13 @@ async def create_role(
 
 @router.get("", response_model=list[RoleRead])
 async def list_roles(request: Request, _=Depends(require_permission("roles:manage"))):
+    """List roles.
+
+    Requires the ``roles:manage`` permission.
+
+    Returns:
+        All roles.
+    """
     return await RoleRepository(request.app.state.session_factory).list()
 
 
@@ -78,6 +112,13 @@ async def update_role(
     request: Request,
     _=Depends(require_permission("roles:manage")),
 ):
+    """Update a role's name or description.
+
+    Requires the ``roles:manage`` permission.
+
+    Returns:
+        The updated role, or 404 when missing and 409 when the new name is taken.
+    """
     async with request.app.state.session_factory() as s:
         role = (await s.execute(select(Role).where(Role.id == rid))).scalars().first()
         if role is None:
@@ -104,6 +145,14 @@ async def update_role(
 async def get_role_permissions(
     rid: str, request: Request, _=Depends(require_permission("roles:manage"))
 ):
+    """List a role's permissions.
+
+    Requires the ``roles:manage`` permission.
+
+    Returns:
+        The permissions granted to the role; empty when the role has none or
+        does not exist.
+    """
     async with request.app.state.session_factory() as s:
         rows = (
             await s.execute(
@@ -122,6 +171,14 @@ async def set_role_permissions(
     request: Request,
     _=Depends(require_permission("roles:manage")),
 ):
+    """Replace a role's permission set.
+
+    Requires the ``roles:manage`` permission. Every id must reference an
+    existing permission (400 otherwise).
+
+    Returns:
+        The role's resulting permissions, or 404 when the role does not exist.
+    """
     async with request.app.state.session_factory() as s:
         role = (await s.execute(select(Role).where(Role.id == rid))).scalars().first()
         if role is None:
@@ -161,6 +218,14 @@ async def set_role_permissions(
 async def delete_role(
     rid: str, request: Request, _=Depends(require_permission("roles:manage"))
 ):
+    """Delete a role and detach it from users and permissions.
+
+    Requires the ``roles:manage`` permission. Deleting a missing role is a
+    no-op.
+
+    Returns:
+        ``{"ok": True}``.
+    """
     async with request.app.state.session_factory() as s:
         role = (await s.execute(select(Role).where(Role.id == rid))).scalars().first()
         if role is not None:

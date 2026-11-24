@@ -1,3 +1,10 @@
+"""Collect and present LSP diagnostics for sessions and projects.
+
+:class:`DiagnosticsService` coordinates background analysis jobs, caches
+snapshots per path, and builds the optional reminder text appended to a session.
+Formatting helpers render snapshots for the ``lsp_diagnostics`` tool.
+"""
+
 import asyncio
 import contextlib
 import pathlib
@@ -15,6 +22,19 @@ from agentbox_harness.session import Session
 
 @dataclass(frozen=True)
 class DiagnosticsSnapshot:
+    """Immutable diagnostics result for one file at one point in time.
+
+    Attributes:
+        path: Absolute file path the snapshot describes.
+        stack: Stack name that produced the diagnostics, if known.
+        root: Workspace root used for analysis.
+        generation: Document write generation the diagnostics correspond to.
+        state: Result state such as ``"ready"``, ``"timeout"``, or ``"error"``.
+        diagnostics: Raw LSP diagnostic dictionaries.
+        updated_at: POSIX timestamp when the snapshot was produced.
+        error: Error message when analysis failed.
+    """
+
     path: str
     stack: str
     root: str
@@ -26,10 +46,12 @@ class DiagnosticsSnapshot:
 
     @property
     def errors(self) -> list[dict]:
+        """Return diagnostics with LSP error severity."""
         return [d for d in self.diagnostics if d.get("severity", 1) == 1]
 
     @property
     def warnings(self) -> list[dict]:
+        """Return diagnostics with LSP warning severity."""
         return [d for d in self.diagnostics if d.get("severity", 1) == 2]
 
 
@@ -41,7 +63,9 @@ class _Job:
 
 
 class SessionReminder(Protocol):
-    async def reminder(self, session: Session) -> str | None: ...
+    """Callable contract for reminder text injected into a session."""
+
+    async def reminder(self, session: Session) -> str | None: ...  # noqa: D102
 
 
 def _position(diagnostic: dict) -> tuple[int, int]:
@@ -82,6 +106,17 @@ def _keep(diagnostic: dict, severity: str) -> bool:
 def format_snapshot(
     snapshot: DiagnosticsSnapshot, severity: str = "error", limit: int = 20
 ) -> str:
+    """Render one file's diagnostics as a bounded text block.
+
+    Args:
+        snapshot: Diagnostics result to render.
+        severity: ``"error"``, ``"warning"``, or any other value for all.
+        limit: Maximum findings to show, clamped to ``1..100``.
+
+    Returns:
+        Human-readable diagnostics text, including timeout and unavailable
+        states.
+    """
     limit = max(1, min(limit, 100))
     if snapshot.state == "error" and not snapshot.diagnostics:
         return f"LSP unavailable for {snapshot.path}: {snapshot.error or 'unknown error'}"
@@ -106,6 +141,16 @@ def format_snapshot(
 def format_project(
     snapshots: list[DiagnosticsSnapshot], severity: str = "error", limit: int = 20
 ) -> str:
+    """Render the diagnostics for several files as one bounded text block.
+
+    Args:
+        snapshots: Snapshots to combine, typically for one session.
+        severity: ``"error"``, ``"warning"``, or any other value for all.
+        limit: Maximum findings to show, clamped to ``1..100``.
+
+    Returns:
+        Grouped diagnostics text, or a no-findings message.
+    """
     limit = max(1, min(limit, 100))
     rows: list[tuple[str, list[dict]]] = []
     total = 0
@@ -133,6 +178,13 @@ def format_project(
 
 
 class DiagnosticsService:
+    """Queue and cache LSP diagnostics for edited files across sessions.
+
+    Writes enqueue analysis jobs that a single background worker drains, so
+    rapid edits debounce naturally per path. Callers can await
+    :meth:`refresh` for a fresh snapshot or read cached results synchronously.
+    """
+
     def __init__(
         self,
         manager: LspManager | None = None,
@@ -156,6 +208,11 @@ class DiagnosticsService:
         self._analysis_count = 0
 
     def configure(self, settings) -> None:
+        """Apply LSP diagnostic settings to this service.
+
+        Args:
+            settings: Settings object exposing optional ``lsp_*`` attributes.
+        """
         self.mode = getattr(settings, "lsp_mode", "auto")
         self.enabled = bool(
             getattr(settings, "lsp_enabled", True) and self.mode != "off"
@@ -171,12 +228,20 @@ class DiagnosticsService:
         )
 
     def note_write(self, session_id: str, project_root: str, path: str) -> None:
+        """Record a file write and enqueue automatic analysis in auto mode.
+
+        Args:
+            session_id: Session that wrote the file.
+            project_root: Project root used to resolve a server.
+            path: Written file path.
+        """
         if not self.enabled:
             return
         target = pathlib.Path(path).resolve()
         self._touched[session_id].add(target)
         if self.mode != "auto":
             return
+        # Replacing a queued job for the same path debounces rapid edits.
         self._queued[target] = _Job(session_id, project_root, str(target))
         self._wake.set()
         self._ensure_worker()
@@ -189,6 +254,21 @@ class DiagnosticsService:
         *,
         timeout: float | None = None,
     ) -> DiagnosticsSnapshot:
+        """Request a fresh snapshot, waiting up to a timeout.
+
+        Concurrent refreshes for the same path share one in-flight future so a
+        burst of callers triggers a single analysis.
+
+        Args:
+            session_id: Session requesting the analysis.
+            project_root: Project root used to resolve a server.
+            path: File path to analyze.
+            timeout: Seconds to wait; defaults to ``max_wait``.
+
+        Returns:
+            The fresh snapshot, or a ``"timeout"`` snapshot using cached
+            diagnostics when the wait expires.
+        """
         target = pathlib.Path(path).resolve()
         self._touched[session_id].add(target)
         loop = asyncio.get_running_loop()
@@ -222,9 +302,25 @@ class DiagnosticsService:
             return snapshot
 
     def snapshot(self, path: str) -> DiagnosticsSnapshot | None:
+        """Return the cached snapshot for a path, if any.
+
+        Args:
+            path: File path to look up.
+
+        Returns:
+            The cached snapshot, or ``None`` when the path was never analyzed.
+        """
         return self._snapshots.get(pathlib.Path(path).resolve())
 
     def snapshots_for_session(self, session_id: str) -> list[DiagnosticsSnapshot]:
+        """Return cached snapshots for files touched by a session.
+
+        Args:
+            session_id: Session whose touched files are inspected.
+
+        Returns:
+            Up to ``session_limit`` snapshots for touched paths.
+        """
         paths = list(self._touched.get(session_id, ()))[: self.session_limit]
         return [
             self._snapshots[path]
@@ -233,6 +329,14 @@ class DiagnosticsService:
         ]
 
     def project_snapshot(self, project_root: str) -> list[DiagnosticsSnapshot]:
+        """Return snapshots for every analyzed file under a project root.
+
+        Args:
+            project_root: Root used to filter snapshot paths.
+
+        Returns:
+            Snapshots whose path is the root or lives beneath it.
+        """
         root = pathlib.Path(project_root).resolve()
         return [
             snapshot
@@ -241,6 +345,17 @@ class DiagnosticsService:
         ]
 
     async def reminder(self, session_id: str) -> str | None:
+        """Build an error reminder for files a session edited.
+
+        Only snapshots that are ready, contain errors, and have not already been
+        delivered for this session are included, capped at five files.
+
+        Args:
+            session_id: Session requesting reminder text.
+
+        Returns:
+            Reminder text, or ``None`` when disabled or there is nothing new.
+        """
         if not self.enabled or self.mode != "auto":
             return None
         included: list[tuple[str, list[dict]]] = []
@@ -288,6 +403,8 @@ class DiagnosticsService:
         while True:
             await self._wake.wait()
             self._wake.clear()
+            # Drain the latest job per path; later writes replace earlier ones
+            # while the worker was busy, which debounces repeated edits.
             jobs = list(self._queued.values())
             self._queued.clear()
             if jobs:
@@ -328,6 +445,8 @@ class DiagnosticsService:
                         job, "error", "Unsupported language"
                     )
                 else:
+                    # Sync before requesting diagnostics so the server analyzes
+                    # the on-disk text and returns the generation matching it.
                     generation = await server.sync_document(
                         job.path, language, save=stack.save
                     )
@@ -356,6 +475,7 @@ class DiagnosticsService:
             future.set_result(snapshot)
 
     async def shutdown(self) -> None:
+        """Cancel the background worker and fail any in-flight refresh waits."""
         if self._worker is not None:
             self._worker.cancel()
             with contextlib.suppress(asyncio.CancelledError):
@@ -375,22 +495,49 @@ _service = DiagnosticsService()
 
 
 def get_diagnostics_service() -> DiagnosticsService:
+    """Return the process-wide diagnostics service singleton."""
     return _service
 
 
 def configure_diagnostics(settings) -> None:
+    """Configure the process-wide diagnostics service from settings.
+
+    Args:
+        settings: Settings object passed to :meth:`DiagnosticsService.configure`.
+    """
     _service.configure(settings)
 
 
 class DiagnosticsReminder:
+    """Session reminder adapter backed by a diagnostics service."""
+
     def __init__(self, service: DiagnosticsService):
         self.service = service
 
     async def reminder(self, session: Session) -> str | None:
+        """Return reminder text for a session's newly introduced errors.
+
+        Args:
+            session: Session whose id selects touched files.
+
+        Returns:
+            Reminder text, or ``None`` when there is nothing new.
+        """
         return await self.service.reminder(session.session_id)
 
 
 def make_lsp_notify_hook(service, session_id: str | None, project_root: str):
+    """Build a tool hook that queues diagnostics after file writes.
+
+    Args:
+        service: Diagnostics service that receives write notifications.
+        session_id: Session id recorded with each write, or ``None`` to ignore
+            writes.
+        project_root: Project root forwarded with each write.
+
+    Returns:
+        An async hook that always returns ``None``.
+    """
     from agentbox_harness.lsp.hooks import WRITE_TOOLS
     from agentbox_harness.tools.registry import ToolHookContext
 
@@ -409,6 +556,17 @@ def make_lsp_notify_hook(service, session_id: str | None, project_root: str):
 def make_lsp_diagnostics_tool(
     service: DiagnosticsService, session_id: str, project_root: str
 ):
+    """Build the ``lsp_diagnostics`` tool bound to a session and project.
+
+    Args:
+        service: Diagnostics service used to refresh or read snapshots.
+        session_id: Session id used to scope cached results.
+        project_root: Project root used to resolve and validate paths.
+
+    Returns:
+        An async tool callable that accepts an optional path, severity, and
+        limit and returns formatted diagnostics text.
+    """
     root = pathlib.Path(project_root).resolve()
 
     async def lsp_diagnostics(

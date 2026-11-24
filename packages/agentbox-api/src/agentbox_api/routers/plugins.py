@@ -1,3 +1,10 @@
+"""Agent Plugin discovery and enable/disable endpoints.
+
+Plugins are installed globally or per project and can contribute skills, MCP
+servers, and hooks. Reads require ``plugins:read``; toggling requires
+``plugins:write``.
+"""
+
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -12,6 +19,12 @@ router = APIRouter(prefix="/plugins", tags=["plugins"])
 
 
 class PluginStateBody(BaseModel):
+    """Request body for enabling or disabling a plugin.
+
+    ``scope`` is ``global`` or ``project``; project scope requires
+    ``project_id``.
+    """
+
     plugin_name: str
     scope: str = "global"
     project_id: str | None = None
@@ -96,6 +109,14 @@ async def list_plugins(
     project_id: str | None = None,
     _=Depends(require_permission("plugins:read")),
 ):
+    """List installed plugins visible to the caller.
+
+    Requires the ``plugins:read`` permission. Passing ``project_id`` includes
+    project-scoped plugins for that project.
+
+    Returns:
+        Plugin summaries, or 404 when ``project_id`` does not exist.
+    """
     project = await _project(request, project_id)
     views = await _service(request).list_plugins(
         project.id if project else None,
@@ -112,6 +133,14 @@ async def get_plugin(
     project_id: str | None = None,
     _=Depends(require_permission("plugins:read")),
 ):
+    """Get one plugin by scope and name.
+
+    Requires the ``plugins:read`` permission. ``scope`` must be ``global`` or
+    ``project`` (400 otherwise).
+
+    Returns:
+        The plugin detail, or 404 when the project or plugin is not found.
+    """
     if scope not in {"global", "project"}:
         raise HTTPException(status_code=400, detail="Invalid plugin scope")
     project = await _project(request, project_id)
@@ -138,6 +167,16 @@ async def set_plugin_state(
     request: Request,
     _=Depends(require_permission("plugins:write")),
 ):
+    """Enable or disable a plugin for a scope.
+
+    Requires the ``plugins:write`` permission. Scope must be ``global`` or
+    ``project`` (400 otherwise), and project scope requires ``project_id`` (400
+    otherwise). Unknown projects return 404; invalid plugin state changes return
+    400.
+
+    Returns:
+        The updated plugin detail.
+    """
     if body.scope not in {"global", "project"}:
         raise HTTPException(status_code=400, detail="Invalid plugin scope")
     if body.scope == "project" and not body.project_id:

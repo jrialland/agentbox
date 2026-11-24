@@ -105,6 +105,18 @@ def csp_header(raw: str | None = None) -> str:
 
 
 def sandbox_response(csp_param: str | None = None) -> HTMLResponse:
+    """Build the sandbox proxy iframe response with its CSP headers.
+
+    The page is never cached, and the CSP restricts the proxy to inline script
+    and style plus domains explicitly requested by the app.
+
+    Args:
+        csp_param: Optional JSON ``?csp=`` value requesting extra connect and
+            resource domains.
+
+    Returns:
+        An :class:`~fastapi.responses.HTMLResponse` serving the sandbox page.
+    """
     return HTMLResponse(
         SANDBOX_HTML,
         headers={

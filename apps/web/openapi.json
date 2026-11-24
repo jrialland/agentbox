@@ -11,6 +11,7 @@
           "auth"
         ],
         "summary": "Login",
+        "description": "Exchange username and password for a bearer token.\n\nReturns:\n    A token response, or 401 when the credentials are invalid.",
         "operationId": "login_auth_login_post",
         "requestBody": {
           "content": {
@@ -52,6 +53,7 @@
           "auth"
         ],
         "summary": "Register",
+        "description": "Register a new user account.\n\nReturns:\n    The new user's id and username.",
         "operationId": "register_auth_register_post",
         "requestBody": {
           "content": {
@@ -91,6 +93,7 @@
           "auth"
         ],
         "summary": "Me",
+        "description": "Return the authenticated user and its permission scopes.\n\nReturns:\n    The caller's identity and effective scopes, or 401 when unauthenticated.",
         "operationId": "me_auth_me_get",
         "responses": {
           "200": {
@@ -112,6 +115,7 @@
           "agents"
         ],
         "summary": "List Agents",
+        "description": "List agent configurations.\n\nRequires the ``agents:read`` permission.\n\nReturns:\n    All agent configurations.",
         "operationId": "list_agents_agents_get",
         "responses": {
           "200": {
@@ -135,6 +139,7 @@
           "agents"
         ],
         "summary": "Create Agent",
+        "description": "Create an agent configuration.\n\nRequires the ``agents:create`` permission. Exactly one of ``model`` or\n``model_label`` must be supplied; invalid names, tool bindings, or plugin\nMCP references are rejected with 400.\n\nReturns:\n    The saved agent configuration.",
         "operationId": "create_agent_agents_post",
         "requestBody": {
           "content": {
@@ -176,6 +181,7 @@
           "agents"
         ],
         "summary": "Update Agent",
+        "description": "Replace an existing agent configuration.\n\nRequires the ``agents:create`` permission. ``body.name`` must match the\n``name`` path segment (400 otherwise), and exactly one of ``model`` or\n``model_label`` is required. Invalid bindings or plugin references return\n400.\n\nReturns:\n    The saved agent configuration.",
         "operationId": "update_agent_agents__name__put",
         "parameters": [
           {
@@ -226,6 +232,7 @@
           "agents"
         ],
         "summary": "Get Agent",
+        "description": "Get one agent configuration by name.\n\nRequires the ``agents:read`` permission.\n\nReturns:\n    The agent configuration, or 404 when no agent has that name.",
         "operationId": "get_agent_agents__name__get",
         "parameters": [
           {
@@ -266,6 +273,7 @@
           "agents"
         ],
         "summary": "Delete Agent",
+        "description": "Delete an agent configuration with its stored avatar and card.\n\nRequires the ``agents:delete`` permission. Deleting an unknown name is a\nno-op. Deleting an agent that is still referenced (for example by a session)\nreturns 409.\n\nReturns:\n    ``{\"ok\": True}`` once the agent and its media are removed.",
         "operationId": "delete_agent_agents__name__delete",
         "parameters": [
           {
@@ -306,6 +314,7 @@
           "agents"
         ],
         "summary": "Get Avatar",
+        "description": "Return an agent's avatar image.\n\nPublic: no permission is required. Falls back to a deterministic generated\nplaceholder when no custom avatar exists. Supports ``If-None-Match`` with a\nstrong ETag and responds 304 when the client's copy is current.\n\nReturns:\n    The PNG image bytes, or 404 when no agent has that name.",
         "operationId": "get_avatar_agents__name__avatar_get",
         "parameters": [
           {
@@ -344,6 +353,7 @@
           "agents"
         ],
         "summary": "Upload Avatar",
+        "description": "Upload and replace an agent's avatar.\n\nRequires the ``agents:create`` permission. The upload must be an allowed\nimage type (415 otherwise), within the size limit (413 otherwise), and\ndecodable (415 otherwise). Images are normalized to PNG.\n\nReturns:\n    204 on success, or 404 when no agent has that name.",
         "operationId": "upload_avatar_agents__name__avatar_put",
         "parameters": [
           {
@@ -392,6 +402,7 @@
           "agents"
         ],
         "summary": "Reset Avatar",
+        "description": "Reset an agent's avatar to the generated placeholder.\n\nRequires the ``agents:create`` permission.\n\nReturns:\n    204 on success, or 404 when no agent has that name.",
         "operationId": "reset_avatar_agents__name__avatar_delete",
         "parameters": [
           {
@@ -432,6 +443,7 @@
           "agents"
         ],
         "summary": "Get Agent Card",
+        "description": "Return an agent's A2A agent card.\n\nRequires the ``agents:read`` permission.\n\nReturns:\n    The stored A2A card JSON, or 404 when the agent or its card is missing.",
         "operationId": "get_agent_card_agents__name__card_get",
         "parameters": [
           {
@@ -470,6 +482,7 @@
           "agents"
         ],
         "summary": "Set Agent Card",
+        "description": "Create or replace an agent's A2A agent card.\n\nRequires the ``agents:create`` permission. The body must parse as an A2A\n``AgentCard`` (400 otherwise). The previous card file is removed.\n\nReturns:\n    The stored card JSON, or 404 when no agent has that name.",
         "operationId": "set_agent_card_agents__name__card_put",
         "parameters": [
           {
@@ -520,6 +533,7 @@
           "agents"
         ],
         "summary": "Delete Agent Card",
+        "description": "Delete an agent's A2A agent card.\n\nRequires the ``agents:create`` permission. Deleting a card that does not\nexist is a no-op.\n\nReturns:\n    ``{\"ok\": True}``.",
         "operationId": "delete_agent_card_agents__name__card_delete",
         "parameters": [
           {
@@ -560,6 +574,7 @@
           "providers"
         ],
         "summary": "List Providers",
+        "description": "List providers.\n\nRequires the ``providers:read`` permission.\n\nReturns:\n    All providers, without API keys.",
         "operationId": "list_providers_providers_get",
         "responses": {
           "200": {
@@ -583,6 +598,7 @@
           "providers"
         ],
         "summary": "Create Provider",
+        "description": "Create a provider.\n\nRequires the ``providers:create`` permission.\n\nReturns:\n    The created provider, without its API key.",
         "operationId": "create_provider_providers_post",
         "requestBody": {
           "content": {
@@ -624,6 +640,7 @@
           "providers"
         ],
         "summary": "Test Provider",
+        "description": "Test connectivity by fetching the provider's model list.\n\nRequires the ``providers:create`` permission. URLs must be HTTP(S) (422\notherwise), and an unknown ``provider_id`` returns 404. Network, auth, and\ntimeout failures are reported in the result body with ``ok`` set to\n``False`` rather than raised; the upstream request is bounded to 10 seconds.\n\nReturns:\n    The test outcome, including latency and up to five sample model names.",
         "operationId": "test_provider_providers_test_post",
         "requestBody": {
           "content": {
@@ -665,6 +682,7 @@
           "providers"
         ],
         "summary": "Update Provider",
+        "description": "Update a provider's fields.\n\nRequires the ``providers:create`` permission. Omitted fields are left\nunchanged.\n\nReturns:\n    The updated provider, or 404 when it does not exist.",
         "operationId": "update_provider_providers__pid__put",
         "parameters": [
           {
@@ -715,6 +733,7 @@
           "providers"
         ],
         "summary": "Delete Provider",
+        "description": "Delete a provider and its models.\n\nRequires the ``providers:delete`` permission.\n\nReturns:\n    ``{\"ok\": True}``, or 404 when missing and 409 when one of the provider's\n    models is still used by an agent.",
         "operationId": "delete_provider_providers__pid__delete",
         "parameters": [
           {
@@ -755,6 +774,7 @@
           "providers"
         ],
         "summary": "Refresh Models",
+        "description": "Fetch the provider's model list and add any new models.\n\nRequires the ``providers:list-models`` permission. Existing models are kept;\nonly names not already stored are inserted.\n\nReturns:\n    All of the provider's models, or 404 when the provider does not exist.",
         "operationId": "refresh_models_providers__pid__models_refresh_post",
         "parameters": [
           {
@@ -801,6 +821,7 @@
           "models"
         ],
         "summary": "List Models Endpoint",
+        "description": "List all models with their labels.\n\nRequires the ``providers:read`` permission.\n\nReturns:\n    Every known model across all providers.",
         "operationId": "list_models_endpoint_models_get",
         "responses": {
           "200": {
@@ -824,6 +845,7 @@
           "models"
         ],
         "summary": "Create Model",
+        "description": "Register a model under an existing provider.\n\nRequires the ``providers:create`` permission.\n\nReturns:\n    The created model, or 404 when the provider does not exist and 409 when\n    the provider already has a model with that name.",
         "operationId": "create_model_models_post",
         "requestBody": {
           "content": {
@@ -865,6 +887,7 @@
           "models"
         ],
         "summary": "Set Model Labels",
+        "description": "Replace a model's labels.\n\nRequires the ``providers:create`` permission. Label names are normalized and\nvalidated; invalid names return 400.\n\nReturns:\n    The updated model, or 404 when the model does not exist.",
         "operationId": "set_model_labels_models__mid__labels_put",
         "parameters": [
           {
@@ -917,6 +940,7 @@
           "models"
         ],
         "summary": "Delete Model",
+        "description": "Delete a model and its label links.\n\nRequires the ``providers:create`` permission.\n\nReturns:\n    ``{\"ok\": True}``, or 404 when missing and 409 when an agent still uses\n    the model.",
         "operationId": "delete_model_models__mid__delete",
         "parameters": [
           {
@@ -957,6 +981,7 @@
           "permissions"
         ],
         "summary": "List Permissions",
+        "description": "List the permission catalog.\n\nRequires the ``roles:manage`` permission.\n\nReturns:\n    All permissions.",
         "operationId": "list_permissions_permissions_get",
         "responses": {
           "200": {
@@ -980,6 +1005,7 @@
           "permissions"
         ],
         "summary": "Create Permission",
+        "description": "Add a permission to the catalog.\n\nRequires the ``roles:manage`` permission. The name must match\n``resource:action`` (400 otherwise).\n\nReturns:\n    The created permission, or 409 when the name already exists.",
         "operationId": "create_permission_permissions_post",
         "requestBody": {
           "content": {
@@ -1021,6 +1047,7 @@
           "permissions"
         ],
         "summary": "Update Permission",
+        "description": "Update a permission's name or description.\n\nRequires the ``roles:manage`` permission. A changed name is validated (400\non an invalid format).\n\nReturns:\n    The updated permission, or 404 when missing and 409 when the new name is\n    already taken.",
         "operationId": "update_permission_permissions__pid__put",
         "parameters": [
           {
@@ -1071,6 +1098,7 @@
           "permissions"
         ],
         "summary": "Delete Permission",
+        "description": "Delete a permission and detach it from roles.\n\nRequires the ``roles:manage`` permission.\n\nReturns:\n    ``{\"ok\": True}``, or 404 when the permission does not exist.",
         "operationId": "delete_permission_permissions__pid__delete",
         "parameters": [
           {
@@ -1111,6 +1139,7 @@
           "projects"
         ],
         "summary": "List Projects",
+        "description": "List all projects.\n\nRequires the ``projects:read`` permission.\n\nReturns:\n    Every project with its extra roots.",
         "operationId": "list_projects_projects_get",
         "responses": {
           "200": {
@@ -1134,6 +1163,7 @@
           "projects"
         ],
         "summary": "Create Project",
+        "description": "Create a project owned by the caller.\n\nRequires the ``projects:create`` permission. Invalid names or paths fail\nvalidation with 422.\n\nReturns:\n    The created project.",
         "operationId": "create_project_projects_post",
         "requestBody": {
           "content": {
@@ -1175,6 +1205,7 @@
           "projects"
         ],
         "summary": "Get Project",
+        "description": "Get one project by id.\n\nRequires the ``projects:read`` permission.\n\nReturns:\n    The project, or 404 when it does not exist.",
         "operationId": "get_project_projects__pid__get",
         "parameters": [
           {
@@ -1215,6 +1246,7 @@
           "projects"
         ],
         "summary": "Update Project",
+        "description": "Update a project's name or extra roots.\n\nRequires the ``projects:create`` permission. When ``extra_roots`` is sent it\nreplaces the existing set and is validated like creation.\n\nReturns:\n    The updated project, or 404 when it does not exist.",
         "operationId": "update_project_projects__pid__put",
         "parameters": [
           {
@@ -1265,6 +1297,7 @@
           "projects"
         ],
         "summary": "Delete Project",
+        "description": "Delete a project together with its sessions and stored data.\n\nRequires the ``projects:delete`` permission. Deleting a missing project is a\nno-op.\n\nReturns:\n    ``{\"ok\": True}``.",
         "operationId": "delete_project_projects__pid__delete",
         "parameters": [
           {
@@ -1305,6 +1338,7 @@
           "prompts"
         ],
         "summary": "Preview",
+        "description": "Render a prompt template against sample data for editor previews.\n\nRequires the ``agents:create`` permission. Template errors are returned in\nthe response body rather than raised, so partially written templates still\nproduce a usable preview.\n\nReturns:\n    The rendered text, missing variables, any template error, the context\n    used, and the known variable names.",
         "operationId": "preview_prompts_preview_post",
         "requestBody": {
           "content": {
@@ -1344,6 +1378,7 @@
           "sessions"
         ],
         "summary": "List Sessions",
+        "description": "List top-level sessions.\n\nRequires the ``sessions:read`` permission. Subagent sessions (those with a\nparent session) are excluded.\n\nReturns:\n    The top-level session rows.",
         "operationId": "list_sessions_sessions_get",
         "responses": {
           "200": {
@@ -1367,6 +1402,7 @@
           "sessions"
         ],
         "summary": "Create Session",
+        "description": "Start a session from an agent configuration in a project.\n\nRequires the ``sessions:create`` permission. ``agent_id`` is an agent\nconfiguration name.\n\nReturns:\n    The new session row, or 404 when the agent configuration is missing.",
         "operationId": "create_session_sessions_post",
         "requestBody": {
           "content": {
@@ -1408,6 +1444,7 @@
           "sessions"
         ],
         "summary": "Get Session",
+        "description": "Get one session's details.\n\nRequires the ``sessions:read`` permission.\n\nReturns:\n    The session detail, or 404 when it does not exist.",
         "operationId": "get_session_sessions__sid__get",
         "parameters": [
           {
@@ -1448,6 +1485,7 @@
           "sessions"
         ],
         "summary": "Rename Session",
+        "description": "Rename a session.\n\nRequires the ``sessions:create`` permission. The title is validated to be\nnon-empty and at most 120 characters (422 otherwise).\n\nReturns:\n    The updated session row, or 404 when it does not exist.",
         "operationId": "rename_session_sessions__sid__patch",
         "parameters": [
           {
@@ -1498,6 +1536,7 @@
           "sessions"
         ],
         "summary": "Delete Session",
+        "description": "Delete a session, its subagent sessions, and stored media.\n\nRequires the ``sessions:create`` permission.\n\nReturns:\n    ``{\"ok\": True}``, or 404 when the session does not exist.",
         "operationId": "delete_session_sessions__sid__delete",
         "parameters": [
           {
@@ -1538,6 +1577,7 @@
           "sessions"
         ],
         "summary": "List Messages",
+        "description": "List the active conversation chain for a session.\n\nRequires the ``sessions:read`` permission. The chain follows the most recent\nleaf back to its root and stops at a compaction summary, so abandoned forks\nare not returned.\n\nReturns:\n    The conversation messages in chronological order; empty for a session\n    with no history.",
         "operationId": "list_messages_sessions__sid__messages_get",
         "parameters": [
           {
@@ -1582,6 +1622,7 @@
           "sessions"
         ],
         "summary": "Chat",
+        "description": "Send a user message and stream the resulting agent run.\n\nRequires the ``sessions:create`` permission. The response is a streaming\nAG-UI event source that stays open until the run finishes; cancel it with\n``POST /sessions/{sid}/messages/cancel``. ``retry_turn_id`` re-runs a prior\nturn, ``fork``/``fork_from_turn_id`` branch from earlier history, and\n``skill`` prepends a rendered skill to the prompt.\n\nReturns:\n    The streaming event response. Returns 404 for an unknown session or a\n    missing attachment file, 422 for prompt-template errors, and 400 for\n    invalid retry or skill references.",
         "operationId": "chat_sessions__sid__messages_post",
         "parameters": [
           {
@@ -1632,6 +1673,7 @@
           "sessions"
         ],
         "summary": "Upload Attachment",
+        "description": "Upload a file attachment for a session.\n\nRequires the ``sessions:create`` permission. The returned id can be passed in\n``attachment_ids`` on a subsequent message.\n\nReturns:\n    The attachment id, media type, and filename.",
         "operationId": "upload_attachment_sessions__sid__attachments_post",
         "parameters": [
           {
@@ -1684,6 +1726,7 @@
           "sessions"
         ],
         "summary": "Download Attachment",
+        "description": "Download a session attachment by id.\n\nRequires the ``sessions:read`` permission. The attachment must belong to the\nsession in the path.\n\nReturns:\n    The file bytes, or 404 when missing or owned by another session.",
         "operationId": "download_attachment_sessions__sid__attachments__aid__get",
         "parameters": [
           {
@@ -1733,6 +1776,7 @@
           "sessions"
         ],
         "summary": "Read App Resource",
+        "description": "Read a resource from an MCP server configured for the session.\n\nRequires the ``sessions:create`` permission. The server is resolved from the\nsession's agent configuration and project.\n\nReturns:\n    The MCP resource contents, or 404 when the session or MCP server is not\n    found.",
         "operationId": "read_app_resource_sessions__sid__mcp__server_id__resources_read_post",
         "parameters": [
           {
@@ -1792,6 +1836,7 @@
           "sessions"
         ],
         "summary": "Call App Tool",
+        "description": "Call a tool on an MCP server configured for the session.\n\nRequires the ``sessions:create`` permission. The server is resolved from the\nsession's agent configuration and project.\n\nReturns:\n    The MCP tool result, or 404 when the session or MCP server is not found.",
         "operationId": "call_app_tool_sessions__sid__mcp__server_id__tools_call_post",
         "parameters": [
           {
@@ -1851,6 +1896,7 @@
           "sessions"
         ],
         "summary": "Cancel Message",
+        "description": "Request cancellation of a session's active run.\n\nRequires the ``sessions:create`` permission. Cancellation is cooperative, so\nthe streaming response may emit a few more events before ending.\n\nReturns:\n    202 with ``{\"status\": \"cancelling\"}``, or 409 when no run is active.",
         "operationId": "cancel_message_sessions__sid__messages_cancel_post",
         "parameters": [
           {
@@ -1891,6 +1937,7 @@
           "sessions"
         ],
         "summary": "List Session Files",
+        "description": "List files in a session's project directory.\n\nRequires the ``sessions:read`` permission. ``q`` filters paths\ncase-insensitively by substring. Traversal skips common build and cache\ndirectories and caps the result at 1000 paths and depth 8.\n\nReturns:\n    ``{\"files\": [...]}`` of project-relative POSIX paths, or 404 when the\n    session does not exist.",
         "operationId": "list_session_files_sessions__sid__files_get",
         "parameters": [
           {
@@ -1941,6 +1988,7 @@
           "sessions"
         ],
         "summary": "Session Lsp",
+        "description": "Report LSP servers detected for a session's project.\n\nRequires the ``sessions:read`` permission.\n\nReturns:\n    Detected servers, servers active for the session, and diagnostic\n    snapshots, or 404 when the session does not exist.",
         "operationId": "session_lsp_sessions__sid__lsp_get",
         "parameters": [
           {
@@ -1981,6 +2029,7 @@
           "sessions"
         ],
         "summary": "Session Plan",
+        "description": "Get a session's plan items.\n\nRequires the ``sessions:read`` permission.\n\nReturns:\n    The plan items ordered by position, or 404 when the session does not\n    exist.",
         "operationId": "session_plan_sessions__sid__plan_get",
         "parameters": [
           {
@@ -2023,6 +2072,7 @@
           "users"
         ],
         "summary": "List Users",
+        "description": "List user accounts.\n\nRequires the ``users:manage`` permission.\n\nReturns:\n    All users without password hashes.",
         "operationId": "list_users_users_get",
         "responses": {
           "200": {
@@ -2046,6 +2096,7 @@
           "users"
         ],
         "summary": "Create User",
+        "description": "Create a user account.\n\nRequires the ``users:manage`` permission.\n\nReturns:\n    The created user, or 409 when the username is already taken.",
         "operationId": "create_user_users_post",
         "requestBody": {
           "content": {
@@ -2087,6 +2138,7 @@
           "users"
         ],
         "summary": "Update User",
+        "description": "Update a user's email, active state, or password.\n\nRequires the ``users:manage`` permission. Omitted fields are unchanged.\n\nReturns:\n    The updated user, or 404 when it does not exist.",
         "operationId": "update_user_users__uid__put",
         "parameters": [
           {
@@ -2137,6 +2189,7 @@
           "users"
         ],
         "summary": "Delete User",
+        "description": "Delete a user with its role links and API keys.\n\nRequires the ``users:manage`` permission. Deleting a missing user is a no-op.\n\nReturns:\n    ``{\"ok\": True}``.",
         "operationId": "delete_user_users__uid__delete",
         "parameters": [
           {
@@ -2177,6 +2230,7 @@
           "users"
         ],
         "summary": "Get User Roles",
+        "description": "List a user's roles.\n\nRequires the ``users:manage`` permission.\n\nReturns:\n    The roles assigned to the user; empty when the user has none or does not\n    exist.",
         "operationId": "get_user_roles_users__uid__roles_get",
         "parameters": [
           {
@@ -2221,6 +2275,7 @@
           "users"
         ],
         "summary": "Set User Roles",
+        "description": "Replace a user's role assignments.\n\nRequires the ``users:manage`` permission. Every id must reference an\nexisting role (400 otherwise).\n\nReturns:\n    The user's resulting roles, or 404 when the user does not exist.",
         "operationId": "set_user_roles_users__uid__roles_put",
         "parameters": [
           {
@@ -2277,6 +2332,7 @@
           "roles"
         ],
         "summary": "List Roles",
+        "description": "List roles.\n\nRequires the ``roles:manage`` permission.\n\nReturns:\n    All roles.",
         "operationId": "list_roles_roles_get",
         "responses": {
           "200": {
@@ -2300,6 +2356,7 @@
           "roles"
         ],
         "summary": "Create Role",
+        "description": "Create a role.\n\nRequires the ``roles:manage`` permission.\n\nReturns:\n    The created role.",
         "operationId": "create_role_roles_post",
         "requestBody": {
           "content": {
@@ -2341,6 +2398,7 @@
           "roles"
         ],
         "summary": "Update Role",
+        "description": "Update a role's name or description.\n\nRequires the ``roles:manage`` permission.\n\nReturns:\n    The updated role, or 404 when missing and 409 when the new name is taken.",
         "operationId": "update_role_roles__rid__put",
         "parameters": [
           {
@@ -2391,6 +2449,7 @@
           "roles"
         ],
         "summary": "Delete Role",
+        "description": "Delete a role and detach it from users and permissions.\n\nRequires the ``roles:manage`` permission. Deleting a missing role is a\nno-op.\n\nReturns:\n    ``{\"ok\": True}``.",
         "operationId": "delete_role_roles__rid__delete",
         "parameters": [
           {
@@ -2431,6 +2490,7 @@
           "roles"
         ],
         "summary": "Get Role Permissions",
+        "description": "List a role's permissions.\n\nRequires the ``roles:manage`` permission.\n\nReturns:\n    The permissions granted to the role; empty when the role has none or\n    does not exist.",
         "operationId": "get_role_permissions_roles__rid__permissions_get",
         "parameters": [
           {
@@ -2475,6 +2535,7 @@
           "roles"
         ],
         "summary": "Set Role Permissions",
+        "description": "Replace a role's permission set.\n\nRequires the ``roles:manage`` permission. Every id must reference an\nexisting permission (400 otherwise).\n\nReturns:\n    The role's resulting permissions, or 404 when the role does not exist.",
         "operationId": "set_role_permissions_roles__rid__permissions_put",
         "parameters": [
           {
@@ -2531,6 +2592,7 @@
           "api-keys"
         ],
         "summary": "List Api Keys",
+        "description": "List the authenticated user's API keys.\n\nRequires the ``api_keys:manage`` permission. Only keys owned by the caller\nare returned, including revoked ones.\n\nReturns:\n    Key metadata without secrets.",
         "operationId": "list_api_keys_api_keys_get",
         "responses": {
           "200": {
@@ -2554,6 +2616,7 @@
           "api-keys"
         ],
         "summary": "Create Api Key",
+        "description": "Create an API key for the authenticated user.\n\nRequires the ``api_keys:manage`` permission. Requested scopes are\ndeduplicated and must not exceed the caller's own scopes (400 otherwise);\nan ``expires_at`` in the past is rejected with 400.\n\nReturns:\n    The new key metadata together with its plaintext secret.",
         "operationId": "create_api_key_api_keys_post",
         "requestBody": {
           "content": {
@@ -2595,6 +2658,7 @@
           "api-keys"
         ],
         "summary": "Revoke Api Key",
+        "description": "Revoke one of the authenticated user's API keys.\n\nRequires the ``api_keys:manage`` permission. Revoking an already-revoked key\nis harmless. Keys owned by other users are reported as missing.\n\nReturns:\n    ``{\"ok\": True}``, or 404 when the key does not belong to the caller.",
         "operationId": "revoke_api_key_api_keys__kid__delete",
         "parameters": [
           {
@@ -2635,6 +2699,7 @@
           "labels"
         ],
         "summary": "List Labels",
+        "description": "List model labels.\n\nRequires the ``providers:read`` permission.\n\nReturns:\n    All labels ordered by name.",
         "operationId": "list_labels_labels_get",
         "responses": {
           "200": {
@@ -2660,6 +2725,7 @@
           "skills"
         ],
         "summary": "List Skills",
+        "description": "List skills available to a project.\n\nRequires the ``agents:read`` permission. Passing ``project_id`` includes\nproject-scoped skills and plugins.\n\nReturns:\n    Skill summaries, or 404 when ``project_id`` does not exist.",
         "operationId": "list_skills_skills_get",
         "parameters": [
           {
@@ -2707,6 +2773,7 @@
           "skills"
         ],
         "summary": "Get Skill",
+        "description": "Get one skill including its Markdown body.\n\nRequires the ``agents:read`` permission.\n\nReturns:\n    The skill detail, or 404 when the project or skill is not found.",
         "operationId": "get_skill_skills__name__get",
         "parameters": [
           {
@@ -2761,6 +2828,7 @@
           "skills"
         ],
         "summary": "Save Skill",
+        "description": "Create or overwrite a user skill.\n\nRequires the ``agents:create`` permission. The name must be lowercase\nkebab-case (400 otherwise) and the rendered skill must pass validation (422\notherwise).\n\nReturns:\n    ``{\"ok\": True}``.",
         "operationId": "save_skill_skills__name__put",
         "parameters": [
           {
@@ -2809,6 +2877,7 @@
           "skills"
         ],
         "summary": "Delete Skill",
+        "description": "Delete a user skill.\n\nRequires the ``agents:create`` permission. Plugin-managed skills (names with\na ``:``) cannot be deleted (400).\n\nReturns:\n    ``{\"ok\": True}``, or 404 when the user skill does not exist.",
         "operationId": "delete_skill_skills__name__delete",
         "parameters": [
           {
@@ -2849,6 +2918,7 @@
           "plugins"
         ],
         "summary": "List Plugins",
+        "description": "List installed plugins visible to the caller.\n\nRequires the ``plugins:read`` permission. Passing ``project_id`` includes\nproject-scoped plugins for that project.\n\nReturns:\n    Plugin summaries, or 404 when ``project_id`` does not exist.",
         "operationId": "list_plugins_plugins_get",
         "parameters": [
           {
@@ -2896,6 +2966,7 @@
           "plugins"
         ],
         "summary": "Get Plugin",
+        "description": "Get one plugin by scope and name.\n\nRequires the ``plugins:read`` permission. ``scope`` must be ``global`` or\n``project`` (400 otherwise).\n\nReturns:\n    The plugin detail, or 404 when the project or plugin is not found.",
         "operationId": "get_plugin_plugins__scope___name__get",
         "parameters": [
           {
@@ -2961,6 +3032,7 @@
           "plugins"
         ],
         "summary": "Set Plugin State",
+        "description": "Enable or disable a plugin for a scope.\n\nRequires the ``plugins:write`` permission. Scope must be ``global`` or\n``project`` (400 otherwise), and project scope requires ``project_id`` (400\notherwise). Unknown projects return 404; invalid plugin state changes return\n400.\n\nReturns:\n    The updated plugin detail.",
         "operationId": "set_plugin_state_plugins_state_put",
         "requestBody": {
           "content": {
@@ -3067,7 +3139,8 @@
         "required": [
           "name"
         ],
-        "title": "AgentCreate"
+        "title": "AgentCreate",
+        "description": "Request body for creating or replacing an agent configuration.\n\nExactly one of ``model`` or ``model_label`` must be set. ``tool_bindings``\nholds native tool bindings or MCP servers, ``plugin_mcp_bindings`` references\nMCP servers supplied by installed plugins, and ``mode_definitions`` declares\nthe agent's selectable modes."
       },
       "AgentSpec": {
         "properties": {
@@ -3136,7 +3209,8 @@
           "tool_bindings",
           "model_binding"
         ],
-        "title": "AgentSpec"
+        "title": "AgentSpec",
+        "description": "Configuration record describing an Agent.\n\nAn Agent is not a running unit; a session instantiates this configuration."
       },
       "ApiKeyCreate": {
         "properties": {
@@ -3162,7 +3236,8 @@
           }
         },
         "type": "object",
-        "title": "ApiKeyCreate"
+        "title": "ApiKeyCreate",
+        "description": "Request body for creating an API key.\n\n``scopes`` must be a subset of the caller's own scopes, and ``expires_at``\nmust be a future timestamp when set."
       },
       "ApiKeyCreated": {
         "properties": {
@@ -3218,7 +3293,8 @@
           "created_at",
           "key"
         ],
-        "title": "ApiKeyCreated"
+        "title": "ApiKeyCreated",
+        "description": "A newly created API key.\n\n``key`` is the plaintext secret and is returned only in this response."
       },
       "ApiKeyRead": {
         "properties": {
@@ -3269,7 +3345,8 @@
           "scopes",
           "created_at"
         ],
-        "title": "ApiKeyRead"
+        "title": "ApiKeyRead",
+        "description": "Stored API-key metadata without the secret."
       },
       "AttachmentRead": {
         "properties": {
@@ -3292,7 +3369,8 @@
           "media_type",
           "filename"
         ],
-        "title": "AttachmentRead"
+        "title": "AttachmentRead",
+        "description": "Metadata for an uploaded session attachment."
       },
       "Body_upload_attachment_sessions__sid__attachments_post": {
         "properties": {
@@ -3339,7 +3417,8 @@
         "required": [
           "name"
         ],
-        "title": "CallToolBody"
+        "title": "CallToolBody",
+        "description": "Request body for calling an MCP tool."
       },
       "HTTPValidationError": {
         "properties": {
@@ -3370,7 +3449,8 @@
         "required": [
           "label"
         ],
-        "title": "LabelAssignment"
+        "title": "LabelAssignment",
+        "description": "A label to attach to a model, with a selection priority."
       },
       "LabelRead": {
         "properties": {
@@ -3388,7 +3468,8 @@
           "id",
           "name"
         ],
-        "title": "LabelRead"
+        "title": "LabelRead",
+        "description": "A model label that can be assigned to models."
       },
       "LoginRequest": {
         "properties": {
@@ -3406,7 +3487,8 @@
           "username",
           "password"
         ],
-        "title": "LoginRequest"
+        "title": "LoginRequest",
+        "description": "Credentials exchanged for a bearer token."
       },
       "LoginResponse": {
         "properties": {
@@ -3424,7 +3506,8 @@
           "access_token",
           "token_type"
         ],
-        "title": "LoginResponse"
+        "title": "LoginResponse",
+        "description": "A bearer token and its type."
       },
       "McpToolBinding": {
         "properties": {
@@ -3488,7 +3571,8 @@
           }
         },
         "type": "object",
-        "title": "McpToolBinding"
+        "title": "McpToolBinding",
+        "description": "Connect an MCP server and optionally prefix the tools it exposes."
       },
       "MeResponse": {
         "properties": {
@@ -3514,7 +3598,8 @@
           "username",
           "permissions"
         ],
-        "title": "MeResponse"
+        "title": "MeResponse",
+        "description": "The authenticated user's identity and effective permission scopes."
       },
       "MessageRead": {
         "properties": {
@@ -3591,7 +3676,8 @@
           "content",
           "created_at"
         ],
-        "title": "MessageRead"
+        "title": "MessageRead",
+        "description": "A message in a session's conversation history."
       },
       "MessageRequest": {
         "properties": {
@@ -3661,7 +3747,8 @@
         "required": [
           "content"
         ],
-        "title": "MessageRequest"
+        "title": "MessageRequest",
+        "description": "Request body for sending a message to a session.\n\n``mode`` selects an agent mode; ``skill`` prefixes a rendered skill.\n``fork`` / ``fork_from_turn_id`` branch history, and ``retry_turn_id``\nre-runs a prior turn. ``attachment_ids`` reference uploaded attachments."
       },
       "Mode": {
         "properties": {
@@ -3682,7 +3769,8 @@
           "name",
           "flags"
         ],
-        "title": "Mode"
+        "title": "Mode",
+        "description": "A named session mode with boolean feature flags."
       },
       "ModelBinding": {
         "properties": {
@@ -3700,7 +3788,8 @@
           "model",
           "provider"
         ],
-        "title": "ModelBinding"
+        "title": "ModelBinding",
+        "description": "Select the model name and provider for an Agent configuration."
       },
       "ModelCreate": {
         "properties": {
@@ -3737,7 +3826,8 @@
           "provider_id",
           "name"
         ],
-        "title": "ModelCreate"
+        "title": "ModelCreate",
+        "description": "Request body for registering a model under a provider."
       },
       "ModelLabelRead": {
         "properties": {
@@ -3760,7 +3850,8 @@
           "name",
           "priority"
         ],
-        "title": "ModelLabelRead"
+        "title": "ModelLabelRead",
+        "description": "A label attached to a model."
       },
       "ModelLabelsUpdate": {
         "properties": {
@@ -3774,7 +3865,8 @@
           }
         },
         "type": "object",
-        "title": "ModelLabelsUpdate"
+        "title": "ModelLabelsUpdate",
+        "description": "Request body that replaces a model's full label set."
       },
       "ModelRead": {
         "properties": {
@@ -3816,7 +3908,8 @@
           "provider_id",
           "name"
         ],
-        "title": "ModelRead"
+        "title": "ModelRead",
+        "description": "A model with its provider and attached labels."
       },
       "NativeToolBinding": {
         "properties": {
@@ -3837,7 +3930,8 @@
         "required": [
           "name"
         ],
-        "title": "NativeToolBinding"
+        "title": "NativeToolBinding",
+        "description": "Bind a built-in harness tool that requires certain mode flags."
       },
       "PermissionCreate": {
         "properties": {
@@ -3861,7 +3955,8 @@
         "required": [
           "name"
         ],
-        "title": "PermissionCreate"
+        "title": "PermissionCreate",
+        "description": "Request body for creating a permission."
       },
       "PermissionIds": {
         "properties": {
@@ -3875,7 +3970,8 @@
           }
         },
         "type": "object",
-        "title": "PermissionIds"
+        "title": "PermissionIds",
+        "description": "Request body that replaces a role's permission set."
       },
       "PermissionRead": {
         "properties": {
@@ -3904,7 +4000,8 @@
           "id",
           "name"
         ],
-        "title": "PermissionRead"
+        "title": "PermissionRead",
+        "description": "A permission record."
       },
       "PermissionUpdate": {
         "properties": {
@@ -3932,7 +4029,8 @@
           }
         },
         "type": "object",
-        "title": "PermissionUpdate"
+        "title": "PermissionUpdate",
+        "description": "Request body that updates a permission's name or description."
       },
       "PlanItemRead": {
         "properties": {
@@ -3960,7 +4058,8 @@
           "content",
           "status"
         ],
-        "title": "PlanItemRead"
+        "title": "PlanItemRead",
+        "description": "One ordered item in a session's plan."
       },
       "PlanRead": {
         "properties": {
@@ -3974,7 +4073,8 @@
           }
         },
         "type": "object",
-        "title": "PlanRead"
+        "title": "PlanRead",
+        "description": "A session's plan, ordered by position."
       },
       "PluginMcpBinding": {
         "properties": {
@@ -4008,7 +4108,8 @@
           "plugin",
           "server"
         ],
-        "title": "PluginMcpBinding"
+        "title": "PluginMcpBinding",
+        "description": "Reference an MCP server provided by a plugin."
       },
       "PluginStateBody": {
         "properties": {
@@ -4042,7 +4143,8 @@
         "required": [
           "plugin_name"
         ],
-        "title": "PluginStateBody"
+        "title": "PluginStateBody",
+        "description": "Request body for enabling or disabling a plugin.\n\n``scope`` is ``global`` or ``project``; project scope requires\n``project_id``."
       },
       "PreviewRequest": {
         "properties": {
@@ -4063,7 +4165,8 @@
         "required": [
           "template"
         ],
-        "title": "PreviewRequest"
+        "title": "PreviewRequest",
+        "description": "Request body for previewing a prompt template.\n\n``context`` overrides individual sample values; unknown keys are ignored."
       },
       "ProjectCreate": {
         "properties": {
@@ -4089,7 +4192,8 @@
           "name",
           "path"
         ],
-        "title": "ProjectCreate"
+        "title": "ProjectCreate",
+        "description": "Request body for creating a project.\n\n``path`` must be an existing directory on the server, and every\n``extra_roots`` entry must be an absolute existing directory."
       },
       "ProjectRead": {
         "properties": {
@@ -4131,7 +4235,8 @@
           "extra_roots",
           "created_at"
         ],
-        "title": "ProjectRead"
+        "title": "ProjectRead",
+        "description": "A project and its workspace paths."
       },
       "ProjectUpdate": {
         "properties": {
@@ -4162,7 +4267,8 @@
           }
         },
         "type": "object",
-        "title": "ProjectUpdate"
+        "title": "ProjectUpdate",
+        "description": "Request body that updates a project's name or extra roots."
       },
       "ProviderCreate": {
         "properties": {
@@ -4213,7 +4319,8 @@
           "name",
           "kind"
         ],
-        "title": "ProviderCreate"
+        "title": "ProviderCreate",
+        "description": "Request body for creating a provider.\n\n``base_url`` and ``models_url`` must be HTTP(S) URLs when set."
       },
       "ProviderRead": {
         "properties": {
@@ -4263,7 +4370,8 @@
           "name",
           "kind"
         ],
-        "title": "ProviderRead"
+        "title": "ProviderRead",
+        "description": "A provider without its API key."
       },
       "ProviderTestError": {
         "properties": {
@@ -4281,7 +4389,8 @@
           "code",
           "message"
         ],
-        "title": "ProviderTestError"
+        "title": "ProviderTestError",
+        "description": "Machine-readable reason a provider connection test failed."
       },
       "ProviderTestRequest": {
         "properties": {
@@ -4338,7 +4447,8 @@
         "required": [
           "kind"
         ],
-        "title": "ProviderTestRequest"
+        "title": "ProviderTestRequest",
+        "description": "Ad-hoc provider connection test.\n\nWhen ``provider_id`` is set, omitted fields fall back to the stored provider."
       },
       "ProviderTestResult": {
         "properties": {
@@ -4385,7 +4495,8 @@
           "ok",
           "latency_ms"
         ],
-        "title": "ProviderTestResult"
+        "title": "ProviderTestResult",
+        "description": "Outcome of a provider connection test."
       },
       "ProviderUpdate": {
         "properties": {
@@ -4446,7 +4557,8 @@
           }
         },
         "type": "object",
-        "title": "ProviderUpdate"
+        "title": "ProviderUpdate",
+        "description": "Request body that updates provider fields; omitted fields are unchanged."
       },
       "ReadResourceBody": {
         "properties": {
@@ -4459,7 +4571,8 @@
         "required": [
           "uri"
         ],
-        "title": "ReadResourceBody"
+        "title": "ReadResourceBody",
+        "description": "Request body for reading an MCP resource."
       },
       "RegisterRequest": {
         "properties": {
@@ -4482,7 +4595,8 @@
           "email",
           "password"
         ],
-        "title": "RegisterRequest"
+        "title": "RegisterRequest",
+        "description": "Fields needed to register a new account."
       },
       "RoleCreate": {
         "properties": {
@@ -4506,7 +4620,8 @@
         "required": [
           "name"
         ],
-        "title": "RoleCreate"
+        "title": "RoleCreate",
+        "description": "Request body for creating a role."
       },
       "RoleIds": {
         "properties": {
@@ -4520,7 +4635,8 @@
           }
         },
         "type": "object",
-        "title": "RoleIds"
+        "title": "RoleIds",
+        "description": "Request body that replaces a user's role set."
       },
       "RoleRead": {
         "properties": {
@@ -4549,7 +4665,8 @@
           "id",
           "name"
         ],
-        "title": "RoleRead"
+        "title": "RoleRead",
+        "description": "A role record."
       },
       "RoleUpdate": {
         "properties": {
@@ -4577,7 +4694,8 @@
           }
         },
         "type": "object",
-        "title": "RoleUpdate"
+        "title": "RoleUpdate",
+        "description": "Request body that updates a role's name or description."
       },
       "SessionCreate": {
         "properties": {
@@ -4595,7 +4713,8 @@
           "project_id",
           "agent_id"
         ],
-        "title": "SessionCreate"
+        "title": "SessionCreate",
+        "description": "Request body for starting a session.\n\n``agent_id`` is the name of an existing agent configuration."
       },
       "SessionDetail": {
         "properties": {
@@ -4639,7 +4758,8 @@
           "agent_name",
           "created_at"
         ],
-        "title": "SessionDetail"
+        "title": "SessionDetail",
+        "description": "A session with its agent's display name."
       },
       "SessionRow": {
         "properties": {
@@ -4727,7 +4847,8 @@
           "project_id",
           "agent_id"
         ],
-        "title": "SessionRow"
+        "title": "SessionRow",
+        "description": "A live Agent session within a Project.\n\nA Session runs an Agent configuration and owns its Turns, attachments, plan\nitems, and any child subagent sessions.\n\nAttributes:\n    project_id: Owning Project. ``RESTRICT`` keeps Session history from being\n        orphaned by deleting its Project.\n    agent_id: Agent configuration used by the Session. ``RESTRICT`` prevents\n        deleting a configuration that still has sessions.\n    parent_session_id: Parent Session when this is a subagent session;\n        cascade-deleted with the parent.\n    subagent_session_status: Status metadata recorded when this Session runs\n        as a subagent session; ``None`` for ordinary sessions.\n    subagent_session_output: Optional captured output for a completed\n        subagent session.\n    subagent_session_depth: Nesting depth, ``0`` for a root Session."
       },
       "SessionTitleUpdate": {
         "properties": {
@@ -4740,7 +4861,8 @@
         "required": [
           "title"
         ],
-        "title": "SessionTitleUpdate"
+        "title": "SessionTitleUpdate",
+        "description": "Request body for renaming a session.\n\nTitles are trimmed to a single line and limited to 120 characters."
       },
       "SkillWrite": {
         "properties": {
@@ -4758,7 +4880,8 @@
           "description",
           "body"
         ],
-        "title": "SkillWrite"
+        "title": "SkillWrite",
+        "description": "Request body for writing a user skill's description and body."
       },
       "UserCreate": {
         "properties": {
@@ -4781,7 +4904,8 @@
           "email",
           "password"
         ],
-        "title": "UserCreate"
+        "title": "UserCreate",
+        "description": "Request body for creating a user."
       },
       "UserRead": {
         "properties": {
@@ -4809,7 +4933,8 @@
           "email",
           "is_active"
         ],
-        "title": "UserRead"
+        "title": "UserRead",
+        "description": "A user account without its password hash."
       },
       "UserUpdate": {
         "properties": {
@@ -4848,7 +4973,8 @@
           }
         },
         "type": "object",
-        "title": "UserUpdate"
+        "title": "UserUpdate",
+        "description": "Request body that updates a user; omitted fields are unchanged."
       },
       "ValidationError": {
         "properties": {

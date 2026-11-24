@@ -1,3 +1,11 @@
+"""Resolve provider rows into pydantic-ai models for agent sessions.
+
+The ``test``, ``test_tool``, and ``test_*`` provider kinds are deterministic
+fixtures used for tests and local demos rather than production models. API keys
+for real providers are resolved through
+:func:`agentbox_providers.api_keys.resolve_api_key`.
+"""
+
 import asyncio
 
 from loguru import logger
@@ -13,6 +21,8 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from agentbox_models.tables.core import Provider
 from agentbox_providers.api_keys import resolve_api_key
 
+# Track per-model stream attempts so the ``test_flaky`` fixture fails once and
+# then succeeds on retry.
 _flaky_attempts: dict[str, int] = {}
 
 _LONG_FIXTURE_TEXT = (
@@ -33,6 +43,19 @@ _LONG_FIXTURE_TEXT = (
 def resolve_model(
     provider: Provider, model_name: str, context_window: int | None = None
 ) -> Model:
+    """Build a pydantic-ai model for a provider row.
+
+    Args:
+        provider: Provider row that selects the model backend.
+        model_name: Model identifier passed to the backend.
+        context_window: Optional context window recorded on the model profile.
+
+    Returns:
+        A pydantic-ai model ready to serve a session.
+
+    Raises:
+        ValueError: If the provider kind is not recognized.
+    """
     kind = provider.kind
     profile: ModelProfile | None = (
         {"context_window": context_window} if context_window else None
@@ -75,6 +98,8 @@ def resolve_model(
             provider=OllamaProvider(base_url=provider.base_url),
             profile=profile,
         )
+    # Test kinds return deterministic fixtures instead of production model
+    # clients so sessions can be exercised without network access.
     if kind == "test":
         from pydantic_ai.models.test import TestModel
 
@@ -217,6 +242,7 @@ def resolve_model(
             custom_output_text=_LONG_FIXTURE_TEXT,
             profile=profile,
         )
+    # Reaching this point means the row kind matches no supported backend.
     raise ValueError(f"Unknown provider kind: {kind}")
 
 

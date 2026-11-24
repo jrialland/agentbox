@@ -1,3 +1,10 @@
+"""Build the FastAPI application and manage its process-wide resources.
+
+The app owns the database engine, session factory, media store, and run
+registry. Its lifespan starts logging, LSP, diagnostics, MCP session sweeping,
+and subagent-session reconciliation, then tears them down in reverse order.
+"""
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -37,6 +44,25 @@ from agentbox_models.db import create_engine_and_sessionmaker
 
 
 def create_app(settings: Settings, engine=None, session_factory=None) -> FastAPI:
+    """Create a fully configured FastAPI application.
+
+    Registers the JWT authentication middleware, CORS, all REST routers, the
+    sandbox page, and the A2A dispatcher, and stores shared state (engine,
+    session factory, settings, media store, run registry) on ``app.state`` so
+    dependency providers can reach it.
+
+    Args:
+        settings: Validated runtime settings, including the JWT secret and
+            database URL.
+        engine: Existing async engine. When omitted (or when
+            ``session_factory`` is omitted), a new engine and session factory
+            are built from ``settings.database_url``.
+        session_factory: Existing async session factory paired with ``engine``.
+
+    Returns:
+        The constructed FastAPI application. Callers are responsible for
+        serving it; its lifespan disposes the engine it was given.
+    """
     if engine is None or session_factory is None:
         engine, session_factory = create_engine_and_sessionmaker(settings.database_url)
 

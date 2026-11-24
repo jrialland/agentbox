@@ -1,3 +1,10 @@
+"""Local development preparation helpers.
+
+Generates a ``.env`` with a ``JWT_SECRET`` and installs missing Python and
+frontend dependencies. Mutates the filesystem and may spawn ``uv``/``bun``
+subprocesses.
+"""
+
 from __future__ import annotations
 
 import secrets
@@ -21,6 +28,17 @@ def _has_secret(contents: str) -> bool:
 
 
 def ensure_env(env_path: Path = ENV_PATH) -> bool:
+    """Ensure the env file contains a non-empty ``JWT_SECRET``.
+
+    Creates the file when missing and appends the secret when the key is absent,
+    so repeated calls are idempotent.
+
+    Args:
+        env_path: Environment file to inspect and update.
+
+    Returns:
+        ``True`` when a secret was written, ``False`` when one already existed.
+    """
     existed = env_path.exists()
     contents = env_path.read_text(encoding="utf-8") if existed else ""
     if _has_secret(contents):
@@ -46,6 +64,18 @@ def _require(tool: str, url: str) -> None:
 
 
 def ensure_dependencies(root: Path = REPO_ROOT, run: Run = subprocess.run) -> None:
+    """Install missing Python and frontend dependencies.
+
+    Only runs a package manager when its install directory is absent, so an
+    already-provisioned checkout incurs no subprocess calls.
+
+    Args:
+        root: Repository root containing ``.venv`` and ``apps/web``.
+        run: Callable used to invoke package managers, injectable for tests.
+
+    Raises:
+        RuntimeError: If a required tool (``uv`` or ``bun``) is unavailable.
+    """
     if not (root / ".venv").exists():
         _require("uv", "https://docs.astral.sh/uv/")
         print("Installing Python dependencies with uv sync.")
@@ -59,6 +89,7 @@ def ensure_dependencies(root: Path = REPO_ROOT, run: Run = subprocess.run) -> No
 
 
 def main() -> int:
+    """Prepare the local checkout and return a process exit code."""
     ensure_env()
     ensure_dependencies()
     return 0
