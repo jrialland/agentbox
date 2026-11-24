@@ -22,3 +22,4 @@ e2e-media/
 target/
 .worktrees/
 /reports/
+.superpowers/

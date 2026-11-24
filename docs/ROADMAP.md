@@ -261,4 +261,3 @@ Captured ideas, not yet specified. Each will get its own spec → plan → imple
 | D16 | **Telegram / WhatsApp interface** | Let a user create a channel binding (e.g. a Telegram bot) to manage an agent session from a phone: inbound messages start/continue sessions, replies stream back. |
 | D17 | **Agile project management** | Integrations with Jira, YouTrack, etc., so agents can create and then consume tickets to manage large projects autonomously. |
 | D18 | **Skills page** | A page to add new skills easily, browse the skills.sh registry, and install/manage skills from it. |
-| D23 | **llms.txt** | DONE — public `/llms.txt` index plus section files under `/llms/`, tailored for agents; spec `superpowers/specs/2026-11-22-llms-txt-design.md`, plan `superpowers/plans/2026-11-22-llms-txt.md`. |
